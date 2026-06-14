@@ -551,6 +551,106 @@ Gezielte Tests für Invarianten, die die App voraussetzt:
 
 ---
 
+## MVP-Scope (v1)
+
+**v1 — muss funktionieren:**
+- Immobilie anlegen (Wizard)
+- Prognose-KPIs (Übersicht, Cashflow Soll, AfA, Tilgungsplan)
+- Statushistorie + Ist-Cashflow
+- Portfolio-Übersicht + Portfolio-KPIs
+- Investment-Rechner inkl. Sensitivitätsanalyse und Promote-Flow
+
+**v2 — bewusst rausgelassen:**
+- iCloud Sync
+- Export / Backup
+- Mehrsprachigkeit
+
+---
+
+## Error-Handling-Strategie
+
+Zwei Ebenen:
+
+**Blocking — App verhindert Speichern:**
+- Pflichtfeld leer (Name, Kaufpreis, Wohnfläche, Zinssatz, Tilgungssatz)
+- `economicTransferDate` in der Vergangenheit ohne ersten Statuseintrag
+
+**Warning — Speichern möglich, Hinweis wird angezeigt:**
+- `land_value + building_value` weicht um mehr als 5% von `purchase_price` ab
+- `depreciationRate` außerhalb der Normwerte (< 2% oder > 4%)
+- `loanAmount` > `purchasePrice` (Vollfinanzierung inkl. Nebenkosten — ungewöhnlich)
+
+**Systemfehler:**
+- `ModelContainer` schlägt beim Start fehl → Fehlerdialog mit Pfad zur SQLite-Datei, kein Crash
+- SwiftData-Operation schlägt fehl → In-App-Benachrichtigung, kein Silent Fail
+
+---
+
+## SwiftData-Migrationen
+
+Jede Schema-Änderung erfordert eine neue `VersionedSchema` und eine `MigrationPlan`-Stage. Niemals ein Feld umbenennen oder löschen ohne Migration — das führt zu einem Crash beim Start.
+
+```swift
+enum SchemaV1: VersionedSchema {
+    static var models: [any PersistentModel.Type] { [Property.self, StatusEntry.self, ExtraordinaryCost.self, RentGuarantee.self, InvestmentCalculation.self] }
+    static var versionIdentifier = Schema.Version(1, 0, 0)
+}
+```
+
+Aktuelle Version: **v1.0.0**
+
+---
+
+## Debug-Seeding
+
+Im `DEBUG`-Build wird beim leeren Datenbestand automatisch die Dresdner ETW als Testimmobilie eingefügt:
+
+```swift
+#if DEBUG
+if modelContext.isEmpty {
+    SeedData.insertDresdnerETW(into: modelContext)
+}
+#endif
+```
+
+`SeedData.swift` liegt in `Utilities/` und ist vom Release-Build ausgeschlossen.
+
+---
+
+## Logging
+
+`os.log` für Berechnungsfehler und unerwartete Zustände. Nicht User-Facing, aber im Feld debuggbar via Console.app.
+
+```swift
+import OSLog
+let logger = Logger(subsystem: "com.deinname.ImmobilienPortfolio", category: "calculations")
+// Verwendung z.B.:
+logger.error("remainingDebt: division by zero, loanAmount=\(loanAmount)")
+```
+
+Kategorien: `calculations`, `persistence`, `migration`
+
+---
+
+## Onboarding / Leerer Startzustand
+
+Erster App-Start ohne Immobilien zeigt einen Empty-State in der Detail-Spalte:
+
+```
+[Icon: Gebäude]
+Noch keine Immobilien
+
+Füge deine erste Immobilie hinzu
+um Rendite, Cashflow und Steuereffekt
+im Blick zu behalten.
+
+[Button: Erste Immobilie hinzufügen]
+```
+
+Der Button öffnet direkt den `AddPropertyWizard`.
+
+---
+
 ## Bewusste Nicht-Entscheidungen
 
 | Thema | Entscheidung | Begründung |
