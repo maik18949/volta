@@ -569,17 +569,147 @@ portfolio_cash_on_cash =
 
 ## 11. Investment-Rechner
 
-Eigenständige Entität. Alle Felder identisch mit Immobilie — aber ohne Statushistorie und ohne Realität-Tracking.
+Eigenständige Entität für Kaufkandidaten vor dem Erwerb. Enthält alle Felder aus `Property` außer:
+- `status_history` — kein Realität-Tracking vor dem Kauf
+- `extraordinary_costs` — keine laufende Kostenverfolgung
+- `rent_guarantee` — nicht relevant vor dem Kauf
 
-Zusätzliche Felder:
+### Zusätzliche Felder
 
-| Feldname | Typ | Zweck |
+| Feldname | Typ | Pflicht | Zweck |
+|---|---|---|---|
+| `name` | String | ✓ | Anzeigename in der Liste (z.B. "ETW Dresden Neustadt") |
+| `target_rent_monthly` | Currency | — | Angestrebte Kaltmiete — Alias oder Überschreibung von `cold_rent_monthly` |
+| `promoted_property_id` | UUID? | — | Verknüpfung zur entstandenen Immobilie nach Promote |
+| `is_promoted` | Bool | — | Flag: wurde als Immobilie übernommen |
+| `promoted_at` | Date? | — | Zeitpunkt der Übernahme |
+| `notes` | Text | — | Notizen zur Kaufentscheidung |
+
+> **Nicht implementiert (v2):** `target_rent_confidence` (Sicher / Wahrscheinlich / Schätzung) — kein Recheneffekt in v1, für späteres Warnsymbol / Sensitivitäts-Preset vorgemerkt.
+
+---
+
+### KPIs & Pflichtfelder
+
+KPIs schalten sich still frei sobald genügend Daten vorhanden sind. Kein Bestätigen-Button — Live-Berechnung via `@Observable`.
+
+| Stufe | Felder | Freischaltet |
 |---|---|---|
-| `target_rent_monthly` | Currency | Angestrebte Miete bei Kauf |
-| `target_rent_confidence` | Enum | Sicher / Wahrscheinlich / Schätzung |
-| `notes` | Text | Notizen zur Kaufentscheidung |
+| **1 — Sofort** | `name`, `purchase_price`, `cold_rent_monthly` | Kaufpreisfaktor, Bruttorendite |
+| **2 — Finanzierung** | `loan_amount`, `interest_rate`, `amortization_rate` | Cashflow vor Steuer, DSCR, Break-Even-Miete, LTV, Cash-on-Cash |
+| **3 — Kosten** | `hoa_fee_non_recoverable`, `property_management`, `maintenance_reserve` | Nettorendite, genauerer Cashflow |
+| **4 — Steuer** | `marginal_tax_rate`, `building_value`, `depreciation_rate` | Cashflow nach Steuer |
 
-Aktion: **"Als Immobilie übernehmen"** → alle Felder werden in neue Immobilie kopiert, Statushistorie startet leer.
+Fehlende KPIs zeigen `—` in der Anzeige.
+
+### KPI-Definitionen
+
+| Priorität | KPI | Formel |
+|---|---|---|
+| 🥇 | **Kaufpreisfaktor** | `purchase_price / (cold_rent_monthly * 12)` |
+| 🥇 | **Bruttorendite** | `(cold_rent_monthly * 12) / purchase_price` |
+| 🥈 | **Cashflow/Monat vor Steuer** | `effective_income - monthly_mortgage - operating_costs_non_recoverable_monthly` |
+| 🥈 | **Cashflow/Monat nach Steuer** | `cashflow_before_tax + tax_effect_monthly` |
+| 🥈 | **Nettorendite** | `net_operating_income_yearly / total_investment` |
+| 🥉 | **Cash-on-Cash** | `cashflow_after_debt_yearly / equity_used` |
+| ➕ | **Break-Even-Miete** | `operating_costs_non_recoverable_monthly + monthly_mortgage` |
+| ➕ | **DSCR** | `net_operating_income_yearly / debt_service_annual` |
+| ➕ | **LTV** | `loan_amount / total_investment` |
+
+Formeln folgen denselben Definitionen wie Sektion 10.
+
+---
+
+### Sensitivitätsanalyse
+
+5 Parameter individuell per Slider verstellbar. KPI-Panel aktualisiert sich live beim Bewegen.
+
+| Parameter | Bereich | Schritt |
+|---|---|---|
+| Kaltmiete | ±20% des Basiswerts | 10 € |
+| Zinssatz | ±2 Prozentpunkte | 0,1% |
+| Kaufpreis | ±15% des Basiswerts | 1.000 € |
+| Leerstandsquote | ±10 Prozentpunkte | 1% |
+| Instandhaltungsrücklage | ±100 €/Mon | 5 € |
+
+> Slider-Positionen sind **nicht persistent** — beim Schließen zurückgesetzt. Nur Basisdaten werden gespeichert.
+
+---
+
+### UI-Layout
+
+```
+┌─ KPI-PANEL (fixiert, scrollt nicht mit) ────────────────────┐
+│  Kaufpreisfaktor 24,3×    Bruttorendite     4,1%            │
+│  Cashflow/Mon   −87 €     Nettorendite      3,2%            │
+│  Cash-on-Cash    3,8%     Break-Even-Miete  780 €           │
+│  DSCR            0,82     LTV               81,4%           │
+│                  * nach Steuer: +43 €/Mon                   │
+├─ EINGABE (scrollbar, alle Sektionen immer offen) ───────────┤
+│  [Kauf]               [Einnahmen]                           │
+│  [Finanzierung]       [Kosten]                              │
+│  [AfA & Steuer]                                             │
+├─ SENSITIVITÄTSANALYSE ──────────────────────────────────────┤
+│  Miete     ────●──────  950 €   Zinssatz ──────●────  4,5% │
+│  Kaufpreis ────●──────  263k €  Leerstand ──●───────  5%   │
+│  Instandh. ────●──────  50 €/Mon                           │
+└─────────────────────────────────────────────────────────────┘
+```
+
+Listenansicht (Sidebar-Karte):
+
+```
+┌─────────────────────────────────────────────┐
+│ ETW Dresden Neustadt         ✓ übernommen   │
+│ Dresden · 263.600 €                         │
+│ Bruttorendite 4,1%   Kaufpreisfaktor  24×   │
+│ Cashflow/Mon −87 €   Nettorendite    3,2%   │
+└─────────────────────────────────────────────┘
+```
+
+Sortierung: zuletzt bearbeitet zuerst. `—` wenn Finanzierung fehlt. Badge `✓ übernommen` wenn `is_promoted = true`.
+
+---
+
+### Promote-Flow ("Als Immobilie übernehmen")
+
+```
+[Button: "Als Immobilie übernehmen"]
+         ↓
+Confirmation Sheet:
+"Kaufkandidat wird als neue Immobilie ins Portfolio aufgenommen.
+ Dieser Eintrag bleibt als Referenz erhalten."
+         ↓
+→ Neues Property-Objekt mit allen Feldern aus InvestmentCalculation
+→ status_history startet leer (normaler Onboarding-Flow greift)
+→ is_promoted = true
+→ promoted_property_id = neue Property.id
+→ promoted_at = heute
+→ Badge "✓ übernommen" in Listenansicht
+→ Link "→ Zur Immobilie" im KPI-Panel
+```
+
+Der Eintrag wird **nicht gelöscht** — bleibt als Prognose-Referenz für späteren Soll/Ist-Vergleich.
+
+---
+
+### Dateistruktur
+
+```
+Models/
+  InvestmentCalculation.swift          # SwiftData Model
+
+ViewModels/
+  InvestmentCalculatorViewModel.swift  # @Observable, KPI-Berechnungen, Sensitivität
+
+Views/InvestmentCalculator/
+  InvestmentCalculatorListView.swift   # Sidebar-Liste aller Kaufkandidaten
+  InvestmentCalculatorDetailView.swift # Fixierter KPI-Panel + scrollbare Eingabe
+  InvestmentKPIPanel.swift             # Fixierter KPI-Bereich
+  InvestmentInputSections.swift        # Scrollbare Eingabefelder
+  InvestmentSensitivityView.swift      # Slider-Bereich
+  InvestmentPromoteSheet.swift         # Confirmation Sheet für Promote
+```
 
 ---
 
@@ -620,4 +750,5 @@ Aktion: **"Als Immobilie übernehmen"** → alle Felder werden in neue Immobilie
 | 17 | Neu | Realität-KPIs (Ist vs. Soll) |
 | 18 | Neu | Portfolio-KPIs (aggregiert) |
 | 19 | Neu | Investment-Rechner mit Promote-Funktion |
+| 22 | Investment-Rechner | Vollständig ausgearbeitet: Liste, KPI-Freischaltlogik, 8 KPIs, Sensitivitätsanalyse, Promote-Flow, UI-Layout |
 | 21 | Objektdaten | `has_fitted_kitchen` ergänzt (Einbauküche ja/nein) |
