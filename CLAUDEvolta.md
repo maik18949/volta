@@ -103,96 +103,99 @@ ImmobilienPortfolio/
 
 ### Property (Haupt-Entity)
 
+// Hinweis iCloud/CloudKit-Kompatibilität:
+// Alle nicht-optionalen Felder haben Default-Werte damit SwiftData Migrationen
+// bei aktiviertem CloudKit-Sync korrekt funktionieren.
 ```swift
 @Model
 class Property {
     // Stammdaten
-    var id: UUID
-    var name: String
-    var address: String
-    var city: String
-    var state: String
-    var postalCode: String
-    var propertyType: PropertyType          // Enum
-    var acquisitionType: AcquisitionType    // Enum
+    var id: UUID = UUID()
+    var name: String = ""
+    var address: String = ""
+    var city: String = ""
+    var state: String = ""
+    var postalCode: String = ""
+    var propertyType: PropertyType = .apartment
+    var acquisitionType: AcquisitionType = .kauf
     var yearBuilt: Int?
-    var notes: String
+    var notes: String = ""
 
     // Objektdaten
-    var livingAreaSqm: Double
+    var livingAreaSqm: Double = 0.0
     var usableAreaSqm: Double?
     var landAreaSqm: Double?
     var rooms: Double?
     var bedrooms: Int?
     var bathrooms: Int?
     var floorLevel: Int?
-    var hasBalcony: Bool
-    var hasTerrace: Bool
-    var hasGarden: Bool
-    var hasBasement: Bool
+    var hasBalcony: Bool = false
+    var hasTerrace: Bool = false
+    var hasGarden: Bool = false
+    var hasBasement: Bool = false
     var basementSizeSqm: Double?
-    var hasFittedKitchen: Bool
+    var hasFittedKitchen: Bool = false
     var parkingType: ParkingType?
-    var parkingCount: Int
+    var parkingCount: Int = 0
     var heatingType: HeatingType?
     var energyEfficiencyClass: EnergyClass?
     var condition: PropertyCondition?
     var lastRenovationYear: Int?
 
     // Kauf
-    var purchaseDate: Date
-    var economicTransferDate: Date          // Wirtschaftlicher Übergang — steuert AfA-Beginn
-    var purchasePriceUnit: Double
-    var purchasePriceParking: Double
-    var landTransferTax: Double
-    var notaryCosts: Double
-    var landRegistryCosts: Double
-    var agentFee: Double
-    var appraisalCosts: Double
-    var renovationCosts: Double
-    var renovationAfaEligible: Double       // Aktivierungspflichtig
+    var purchaseDate: Date = Date()
+    var economicTransferDate: Date = Date()   // Wirtschaftlicher Übergang — steuert AfA-Beginn
+    var purchasePriceUnit: Double = 0.0
+    var purchasePriceParking: Double = 0.0
+    var landTransferTax: Double = 0.0
+    var notaryCosts: Double = 0.0
+    var landRegistryCosts: Double = 0.0
+    var agentFee: Double = 0.0
+    var appraisalCosts: Double = 0.0
+    var renovationModernizationCosts: Double = 0.0
+    var renovationAfaEligible: Double = 0.0   // Aktivierungspflichtig
 
     // Einnahmen (Prognose)
-    var coldRentMonthly: Double
-    var parkingRentMonthly: Double
-    var otherIncomeMonthly: Double
-    var serviceChargeRecoverableMonthly: Double
-    var vacancyRateAssumption: Double
+    var coldRentMonthly: Double = 0.0
+    var parkingRentMonthly: Double = 0.0
+    var otherIncomeMonthly: Double = 0.0
+    var serviceChargeRecoverableMonthly: Double = 0.0
+    var vacancyRateAssumption: Double = 0.03
     var rentMarketSqm: Double?
 
     // Kosten
-    var hoaFeeTotalMonthly: Double          // Hausgeld gesamt
-    var hoaFeeRecoverableMonthly: Double    // davon umlagefähig
-    var propertyTaxAnnual: Double
-    var propertyManagementAnnual: Double
-    var maintenanceReserveMonthly: Double
-    var propertyInsuranceAnnual: Double
-    var otherCostsMonthly: Double
+    var hoaFeeTotalMonthly: Double = 0.0      // Hausgeld gesamt
+    var hoaFeeRecoverableMonthly: Double = 0.0 // davon umlagefähig
+    var propertyTaxAnnual: Double = 0.0
+    var propertyManagementAnnual: Double = 0.0
+    var maintenanceReserveMonthly: Double = 0.0
+    var propertyInsuranceAnnual: Double = 0.0
+    var otherCostsMonthly: Double = 0.0
 
     // Finanzierung
-    var loanAmount: Double
-    var interestRate: Double
-    var amortizationRate: Double
-    var fixedInterestPeriodYears: Int
-    var loanStartDate: Date
-    var monthlyMortgageActual: Double?      // Override falls Bank abweicht
-    var remainingDebtManual: Double?        // Abgleich laut Kontoauszug
+    var loanAmount: Double = 0.0
+    var interestRate: Double = 0.0
+    var amortizationRate: Double = 0.0
+    var fixedInterestPeriodYears: Int = 10
+    var loanStartDate: Date = Date()
+    var monthlyMortgageActual: Double?        // Override falls Bank abweicht
+    var remainingDebtCurrent: Double?         // Abgleich laut Kontoauszug
 
     // AfA & Steuer
-    var landValue: Double                   // Aus Regierungs-Excel
-    var buildingValue: Double               // Aus Regierungs-Excel
-    var depreciationRate: Double            // 0.02 / 0.025 / individuell
-    var marginalTaxRate: Double             // Grenzsteuersatz
+    var landValue: Double = 0.0               // Aus Regierungs-Excel
+    var buildingValue: Double = 0.0           // Aus Regierungs-Excel
+    var depreciationRate: Double = 0.02       // 0.02 / 0.025 / individuell
+    var marginalTaxRate: Double = 0.0         // Grenzsteuersatz
 
     // Mietgarantie (optional)
     var rentGuarantee: RentGuarantee?
 
     // Relationen
-    var statusHistory: [StatusEntry]        // Sortiert nach date aufsteigend
-    var extraordinaryCosts: [ExtraordinaryCost]
+    var statusHistory: [StatusEntry] = []     // Sortiert nach date aufsteigend
+    var extraordinaryCosts: [ExtraordinaryCost] = []
 
-    var createdAt: Date
-    var updatedAt: Date
+    var createdAt: Date = Date()
+    var updatedAt: Date = Date()
 }
 ```
 
