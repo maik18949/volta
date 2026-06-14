@@ -21,6 +21,7 @@ Portfolio
     ├── 9. Außerordentliche Kosten[] ← NEU
     └── 10. KPI System (berechnet)
 
+Mietgarantie (optional, 1:1 zu Immobilie)
 InvestmentRechner (eigenständig, promotable zu Immobilie)
 ```
 
@@ -407,7 +408,7 @@ Für jeden Kalendermonat M:
 Wenn beim Anlegen eines Objekts `economic_transfer_date` in der Vergangenheit liegt, führt die App einen Pflicht-Onboarding-Schritt durch:
 
 ```
-1. Hinweis: "Deine Immobilie hat einen Übergangsdatum in der Vergangenheit.
+1. Hinweis: "Deine Immobilie hat ein Übergangsdatum in der Vergangenheit.
              Bitte erfasse den bisherigen Nutzungsverlauf."
 
 2. Nutzer legt Statuseinträge an, beginnend ab economic_transfer_date
@@ -455,6 +456,8 @@ Je nach aktivem Status für Monat M:
 | **Cashflow nach Steuer** | Σ | Σ | Σ |
 
 > **Hinweis:** `operating_costs_recoverable_monthly` enthält umlagefähige Kosten (Grundsteuer, Gebäudeversicherung, umlagefähiger Hausgeld-Anteil) — bei Vermietung trägt der Mieter diese. `operating_costs_non_recoverable_monthly` enthält nicht-umlagefähige Kosten (Verwaltung, Instandhaltungsrücklage, nicht-umlagefähiger Hausgeld-Anteil) — diese trägt der Eigentümer immer.
+
+> **Hinweis Eigennutzung / Renovierung:** Werden wie `Leerstand` behandelt — `income_actual_monthly = 0`, Eigentümer trägt umlagefähige Kosten vollständig. Steuerlich: Eigennutzung erzeugt kein V+V-Ergebnis für diese Monate.
 
 ---
 
@@ -580,7 +583,7 @@ Aktion: **"Als Immobilie übernehmen"** → alle Felder werden in neue Immobilie
 
 ---
 
-## Mietgarantie (optional, pro Immobilie)
+## 12. Mietgarantie (optional, pro Immobilie)
 
 | Feldname | Typ | Beispiel |
 |---|---|---|
@@ -617,5 +620,4 @@ Aktion: **"Als Immobilie übernehmen"** → alle Felder werden in neue Immobilie
 | 17 | Neu | Realität-KPIs (Ist vs. Soll) |
 | 18 | Neu | Portfolio-KPIs (aggregiert) |
 | 19 | Neu | Investment-Rechner mit Promote-Funktion |
-| 20 | [nicht vergeben] | — |
 | 21 | Objektdaten | `has_fitted_kitchen` ergänzt (Einbauküche ja/nein) |

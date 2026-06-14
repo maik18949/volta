@@ -106,6 +106,8 @@ ImmobilienPortfolio/
 // Hinweis iCloud/CloudKit-Kompatibilität:
 // Alle nicht-optionalen Felder haben Default-Werte damit SwiftData Migrationen
 // bei aktiviertem CloudKit-Sync korrekt funktionieren.
+// Kind-Entitäten (StatusEntry, ExtraordinaryCost, RentGuarantee) haben optionale
+// property-Referenz aus demselben Grund — in der App immer gesetzt.
 ```swift
 @Model
 class Property {
@@ -186,6 +188,7 @@ class Property {
     var buildingValue: Double = 0.0           // Aus Regierungs-Excel
     var depreciationRate: Double = 0.02       // 0.02 / 0.025 / individuell
     var marginalTaxRate: Double = 0.0         // Grenzsteuersatz
+    var landGuidelineValueSqm: Double?        // Bodenrichtwert €/m² — informativ, kein Berechnungsfeld
 
     // Mietgarantie (optional)
     var rentGuarantee: RentGuarantee?
@@ -204,11 +207,11 @@ class Property {
 ```swift
 @Model
 class StatusEntry {
-    var id: UUID
-    var property: Property
-    var statusFrom: Date
-    var status: PropertyStatus              // Enum
-    var incomeActualMonthly: Double         // Tatsächliche Einnahmen in diesem Zeitraum
+    var id: UUID = UUID()
+    var property: Property?
+    var statusFrom: Date = Date()
+    var status: PropertyStatus = .vermietet  // Enum
+    var incomeActualMonthly: Double = 0.0    // Tatsächliche Einnahmen in diesem Zeitraum
     var notes: String?
 }
 
@@ -226,11 +229,11 @@ enum PropertyStatus: String, Codable, CaseIterable {
 ```swift
 @Model
 class ExtraordinaryCost {
-    var id: UUID
-    var property: Property
-    var costMonth: Date                     // Auf ersten Tag des Monats normalisieren
-    var amount: Double
-    var category: ExtraordinaryCostCategory // Enum
+    var id: UUID = UUID()
+    var property: Property?
+    var costMonth: Date = Date()            // Auf ersten Tag des Monats normalisieren
+    var amount: Double = 0.0
+    var category: ExtraordinaryCostCategory = .sonstiges // Enum
     var descriptionText: String?
 }
 
@@ -240,6 +243,21 @@ enum ExtraordinaryCostCategory: String, Codable, CaseIterable {
     case gutachter = "Gutachter"
     case rechtskosten = "Rechtskosten"
     case sonstiges = "Sonstiges"
+}
+```
+
+### RentGuarantee
+
+```swift
+@Model
+class RentGuarantee {
+    var id: UUID = UUID()
+    var property: Property?
+    var guaranteeProvider: String = ""
+    var guaranteeAmountMonthly: Double = 0.0
+    var guaranteeStartDate: Date = Date()
+    var guaranteeEndDate: Date = Date()
+    var guaranteeNotes: String = ""
 }
 ```
 
@@ -300,7 +318,7 @@ func cashflowActual(for month: Date) -> (beforeTax: Double, afterTax: Double) {
     case .vermietet:
         ownerBorneRecoverableCosts = 0
     case .leerstandMietgarantie, .leerstand, .eigennutzung, .renovierung:
-        ownerBorneRecoverableCosts = hoaFeeRecoverableMonthly + propertyTaxMonthly
+        ownerBorneRecoverableCosts = hoaFeeRecoverableMonthly + propertyTaxMonthly + propertyInsuranceMonthly
     }
 
     let extraordinary = extraordinaryCosts(for: month).reduce(0) { $0 + $1.amount }
@@ -389,7 +407,7 @@ Beispiel DSCR: Wert 0.77 → "Unter 1.0 — bei aktuellen Zinsen strukturell nor
 - Fehlende optionale Felder: in Berechnungen als `0` behandeln, in UI als "–" anzeigen
 - Kein `try!` oder `force unwrap` in Berechnungsschicht
 
-### Trennnung von Concerns
+### Trennung von Concerns
 - **Models:** Nur Datenhaltung, keine Logik
 - **Calculations/:** Pure Swift-Funktionen, kein SwiftUI, kein SwiftData — unit-testbar
 - **ViewModels:** Bindeglied zwischen Calculations und Views
