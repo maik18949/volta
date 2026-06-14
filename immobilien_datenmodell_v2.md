@@ -237,9 +237,13 @@ operating_costs_non_recoverable_monthly =
 operating_costs_non_recoverable_yearly =
   operating_costs_non_recoverable_monthly * 12
 
+operating_costs_total_yearly =
+  (operating_costs_recoverable_monthly + operating_costs_non_recoverable_monthly) * 12
+
 operating_expense_ratio =
-  operating_costs_non_recoverable_yearly / effective_gross_income_yearly
+  operating_costs_total_yearly / effective_gross_income_yearly
   [nur wenn effective_gross_income_yearly > 0]
+  [Branchenstandard: alle Bewirtschaftungskosten inkl. umlagefähiger Anteile]
 ```
 
 ---
