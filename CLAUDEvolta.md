@@ -489,9 +489,65 @@ Konfliktauflösung: SwiftData / CloudKit löst Konflikte automatisch via Last-Wr
 
 ## Testing-Strategie
 
-- `Calculations/`-Layer vollständig unit-testbar (pure functions, kein SwiftUI)
-- Testdaten: Dresdner ETW als Referenz-Fixture (alle Werte bekannt und verifiziert)
-- Keine UI-Tests initial — Fokus auf Berechnungskorrektheit
+### Pyramide
+
+```
+            UI-Tests          ← 0 initial (bewusste Entscheidung)
+        ViewModel-Tests       ← Wenige, nur für Integrationspfade
+    Unit Tests (Calculations) ← Hauptfokus
+```
+
+### Priorität 1 — Unit Tests: `Calculations/` (Ziel: 90%+)
+
+Alle Formeln sind pure functions ohne Side Effects — exakt das, was unit-testbar ist.
+
+| Datei | Was testen |
+|---|---|
+| `KPICalculator` | `grossYield`, `netYield`, `capRate`, `cashOnCash`, `dscr`, `mietmultiplikator`, `breakEvenRent` |
+| `CashflowCalculator` | Cashflow je Status (vermietet / leerstand / mietgarantie), außerordentliche Kosten, Steuereffekt |
+| `DepreciationCalculator` | AfA-Basis-Formel, anteilige AfA im Erwerbsjahr, verschiedene `depreciationRate`-Szenarien |
+| `AmortizationCalculator` | `remainingDebt(atMonth:)`, Tilgungsplan-Korrektheit, `monthlyMortgageActual`-Override |
+| `TaxCalculator` | `taxableIncomeVV`, `taxEffectYearly`, negativer Steuereffekt = Erstattung |
+
+**Kritische Edge Cases:**
+- Division durch 0: kein Kaufpreis, kein Eigenkapital, kein Schuldenservice
+- `monthlyMortgageActual = nil` → Fallback auf berechneten Wert
+- AfA-Beginn genau an `economicTransferDate` (erster voller Monat)
+- Cashflow bei `leerstandMietgarantie` vs. `leerstand` (umlagefähige Kosten-Logik)
+- `effective_gross_income_yearly` bei 0% Leerstand vs. 100% Leerstand
+
+**Fixture:** Dresdner ETW mit allen bekannten Werten als gemeinsames `TestFixtures.swift` — einmal definiert, in allen Calculator-Tests genutzt. Jede KPI wird gegen den händisch verifizierten Sollwert geprüft (Golden-Master-Ansatz).
+
+### Priorität 2 — ViewModel-Tests (Ziel: 70%)
+
+Nur für nicht-triviale Aggregations- und Statuslogik-Pfade:
+
+| ViewModel | Was testen |
+|---|---|
+| `PropertyViewModel` | `activeStatus(for: month)` — korrekte Statusauswahl aus Statushistorie |
+| `PropertyViewModel` | Cashflow-YTD-Aggregation über mehrere Monate mit Statuswechsel |
+| `PortfolioViewModel` | Portfolio-KPIs korrekt über 2+ Immobilien aggregiert |
+| `InvestmentCalculatorViewModel` | KPI-Freischaltlogik (Stufen 1–4), Sensitivitäts-Berechnung |
+
+Kein SwiftData in ViewModel-Tests — In-Memory-`ModelContainer` oder Property als Teststub.
+
+### Priorität 3 — Datenintegrität
+
+Gezielte Tests für Invarianten, die die App voraussetzt:
+
+- Erster `StatusEntry` muss `status_from == economicTransferDate` sein
+- `cost_month` in `ExtraordinaryCost` ist immer auf ersten Tag des Monats normalisiert
+- `building_share_ratio + land_share_ratio ≈ 1.0` (aus Regierungs-Excel-Werten)
+- Promote-Flow: `InvestmentCalculation` → `Property` kopiert alle Felder korrekt
+
+### Bewusst ausgelassen
+
+| Bereich | Begründung |
+|---|---|
+| UI-Tests | Kleines Einzel-Nutzer-Tool, Wartungskosten zu hoch initial |
+| SwiftData CRUD | Framework-Code — Apple testet das selbst |
+| Formatters/Extensions | Triviale Wrapper ohne eigene Logik |
+| iCloud Sync | Nicht aktiv, kein Backend |
 
 ---
 
