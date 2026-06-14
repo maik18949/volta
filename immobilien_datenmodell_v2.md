@@ -224,22 +224,26 @@ property_insurance_monthly =
   property_insurance_annual / 12
 
 operating_costs_recoverable_monthly =
-  hoa_fee_recoverable_monthly
+  hoa_fee_recoverable_monthly +
+  property_tax_monthly +
+  property_insurance_monthly
 
 operating_costs_non_recoverable_monthly =
   hoa_fee_non_recoverable_monthly +
   maintenance_reserve_monthly +
   property_management_monthly +
-  property_insurance_monthly +
-  property_tax_monthly +
   other_costs_monthly
 
 operating_costs_non_recoverable_yearly =
   operating_costs_non_recoverable_monthly * 12
 
+operating_costs_total_yearly =
+  (operating_costs_recoverable_monthly + operating_costs_non_recoverable_monthly) * 12
+
 operating_expense_ratio =
-  operating_costs_non_recoverable_yearly / effective_gross_income_yearly
+  operating_costs_total_yearly / effective_gross_income_yearly
   [nur wenn effective_gross_income_yearly > 0]
+  [Branchenstandard: alle Bewirtschaftungskosten inkl. umlagefähiger Anteile]
 ```
 
 ---
@@ -299,7 +303,7 @@ remaining_debt(t) =                         ← dynamisch, t = Monate seit loan_
   - monthly_mortgage * ((1 + interest_rate/12)^t - 1) / (interest_rate/12)
 
 ltv_ratio =
-  remaining_debt(heute) / purchase_price
+  remaining_debt(heute) / total_investment
 ```
 
 ---
@@ -316,7 +320,9 @@ ltv_ratio =
 | `marginal_tax_rate` | Percent | 42% | ✓ |
 | `land_guideline_value_sqm` | Currency | 745 €/m² | — |
 
-> **Hinweis `land_value` / `building_value`:** Absolute Werte aus dem Regierungs-Excel (Sachwertverfahren). Beide Werte sollten sich zu `purchase_price` (Wohnung ohne Stellplatz) addieren.
+> **Hinweis `land_value` / `building_value`:** Absolute Werte aus dem Regierungs-Excel (Sachwertverfahren). Beide Werte sollten sich zu `purchase_price` (inkl. Stellplatz, sofern wirtschaftlich verbunden) addieren.
+
+> **Hinweis Stellplatz & AfA:** `purchase_price_parking` nur befüllen wenn der Stellplatz wirtschaftlich mit der Wohnung verbunden ist (gleicher Mieter, selbes WEG-Gebäude) und im Sachwertverfahren bereits enthalten ist. Ein separates Grundbuchblatt schließt den wirtschaftlichen Nutzungszusammenhang nicht aus. Nicht verbundene Stellplätze als separates Objekt anlegen.
 
 > **Hinweis `depreciation_rate`:** Standard 2% (ab 1925), 2,5% (vor 1925), oder individuell per Gutachten (z.B. 3,84% bei verkürzter Restnutzungsdauer). Gutachten-Satz ist steuerlich günstiger aber erfordert Sachverständigengutachten.
 
@@ -391,6 +397,26 @@ Für jeden Kalendermonat M:
   aktiver_status = Status dessen status_from ≤ M und kein neuerer Eintrag existiert
 ```
 
+### Validierungsregel: Erster Statuseintrag
+
+> Der erste Eintrag in der Statushistorie MUSS `status_from = economic_transfer_date` haben.
+> Monate vor dem ersten Statuseintrag sind undefiniert und werden aus allen Berechnungen ausgeschlossen.
+
+### Onboarding-Flow: economic_transfer_date in der Vergangenheit
+
+Wenn beim Anlegen eines Objekts `economic_transfer_date` in der Vergangenheit liegt, führt die App einen Pflicht-Onboarding-Schritt durch:
+
+```
+1. Hinweis: "Deine Immobilie hat einen Übergangsdatum in der Vergangenheit.
+             Bitte erfasse den bisherigen Nutzungsverlauf."
+
+2. Nutzer legt Statuseinträge an, beginnend ab economic_transfer_date
+   → Mindestens ein Eintrag ab economic_transfer_date erforderlich
+   → Weitere Einträge für Statuswechsel (z.B. Leerstand → Vermietet)
+
+3. Speichern erst möglich wenn erster Eintrag = economic_transfer_date gesetzt
+```
+
 ---
 
 ## 9. Außerordentliche Kosten (Realität)
@@ -423,13 +449,12 @@ Je nach aktivem Status für Monat M:
 | Kreditrate | `−monthly_mortgage` | `−monthly_mortgage` | `−monthly_mortgage` |
 | Nicht umlagefähige Kosten | `−operating_costs_non_recoverable_monthly` | `−operating_costs_non_recoverable_monthly` | `−operating_costs_non_recoverable_monthly` |
 | Umlagefähige Kosten | 0 (Mieter trägt) | `−operating_costs_recoverable_monthly` | `−operating_costs_recoverable_monthly` |
-| Grundsteuer | 0 (Mieter trägt) | `−property_tax_monthly` | `−property_tax_monthly` |
 | Außerordentliches | `−Summe für M` | `−Summe für M` | `−Summe für M` |
 | **Cashflow vor Steuer** | Σ | Σ | Σ |
 | Steuereffekt (anteilig) | `tax_effect_monthly` | `tax_effect_monthly` | `tax_effect_monthly` |
 | **Cashflow nach Steuer** | Σ | Σ | Σ |
 
-> **Hinweis:** `operating_costs_non_recoverable_monthly` enthält bereits `hoa_fee_non_recoverable_monthly` (nicht umlagefähiger Hausgeld-Anteil), Verwaltung, Rücklage etc. — diese fallen immer an unabhängig vom Status.
+> **Hinweis:** `operating_costs_recoverable_monthly` enthält umlagefähige Kosten (Grundsteuer, Gebäudeversicherung, umlagefähiger Hausgeld-Anteil) — bei Vermietung trägt der Mieter diese. `operating_costs_non_recoverable_monthly` enthält nicht-umlagefähige Kosten (Verwaltung, Instandhaltungsrücklage, nicht-umlagefähiger Hausgeld-Anteil) — diese trägt der Eigentümer immer.
 
 ---
 
@@ -466,7 +491,7 @@ dscr_noi =
   [nur wenn debt_service_annual > 0]
 
 ltv_ratio =
-  remaining_debt(heute) / purchase_price
+  remaining_debt(heute) / total_investment
 
 rent_per_sqm_cold =
   cold_rent_monthly / living_area_sqm
@@ -475,8 +500,7 @@ mietmultiplikator =
   purchase_price / gross_income_yearly
 
 break_even_rent_monthly =
-  (operating_costs_non_recoverable_monthly + monthly_mortgage)
-  - operating_costs_recoverable_monthly
+  operating_costs_non_recoverable_monthly + monthly_mortgage
 ```
 
 ---
@@ -492,6 +516,11 @@ cashflow_actual_monthly_avg =
 
 vacancy_rate_actual =
   Monate_mit_status_Leerstand / Gesamtmonate_seit_Übergang
+
+non_rental_rate_actual =
+  (Monate_mit_status_Leerstand + Monate_mit_status_Eigennutzung + Monate_mit_status_Renovierung)
+  / Gesamtmonate_seit_Übergang
+  [alle Monate ohne Mieteinnahmen — für realen Cashflow-Vergleich]
 
 soll_ist_abweichung_monthly =
   cashflow_actual_monthly_avg - cashflow_after_debt_monthly
@@ -588,4 +617,5 @@ Aktion: **"Als Immobilie übernehmen"** → alle Felder werden in neue Immobilie
 | 17 | Neu | Realität-KPIs (Ist vs. Soll) |
 | 18 | Neu | Portfolio-KPIs (aggregiert) |
 | 19 | Neu | Investment-Rechner mit Promote-Funktion |
+| 20 | [nicht vergeben] | — |
 | 21 | Objektdaten | `has_fitted_kitchen` ergänzt (Einbauküche ja/nein) |
