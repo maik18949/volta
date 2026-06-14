@@ -293,7 +293,7 @@ interest_annual =
 principal_annual =
   principal_monthly_calc * 12
 
-loan_end_date =
+fixed_interest_end_date =
   loan_start_date + fixed_interest_period_years
 
 equity_used =
@@ -500,7 +500,7 @@ rent_per_sqm_cold =
   cold_rent_monthly / living_area_sqm
 
 mietmultiplikator =
-  purchase_price / gross_income_yearly
+  purchase_price / (cold_rent_yearly + parking_rent_yearly)
 
 break_even_rent_monthly =
   operating_costs_non_recoverable_monthly + monthly_mortgage
