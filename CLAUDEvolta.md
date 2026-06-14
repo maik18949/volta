@@ -617,6 +617,29 @@ if modelContext.isEmpty {
 
 ---
 
+## Crash Reporting
+
+Native MetricKit — kein externes SDK, kein Datenschutzproblem.
+
+```swift
+import MetricKit
+
+class AppDelegate: NSObject, NSApplicationDelegate, MXMetricManagerSubscriber {
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        MXMetricManager.shared.add(self)
+    }
+
+    func didReceive(_ payloads: [MXDiagnosticPayload]) {
+        // Payload als JSON in ~/Library/Logs/ImmobilienPortfolio/ schreiben
+        // Nutzer kann bei Bedarf manuell einsenden
+    }
+}
+```
+
+Logs landen lokal, kein automatischer Upload. Bei gemeldeten Abstürzen schickt der Nutzer die Log-Datei manuell.
+
+---
+
 ## Logging
 
 `os.log` für Berechnungsfehler und unerwartete Zustände. Nicht User-Facing, aber im Feld debuggbar via Console.app.
