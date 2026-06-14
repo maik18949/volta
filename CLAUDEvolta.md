@@ -348,22 +348,32 @@ let taxEffectMonthly = taxEffectYearly / 12
 
 ## Navigationsstruktur
 
+Schmale Sidebar links für Hauptnavigation, breiter Content-Bereich rechts.
+
 ```
-NavigationSplitView
-├── Sidebar
-│   ├── Portfolio-Übersicht
-│   ├── [Immobilie 1]
-│   ├── [Immobilie 2]
-│   ├── ...
-│   ├── Portfolio-KPIs
-│   └── Investment-Rechner
-│
-└── Detail (TabView)
-    ├── Übersicht      — Statische KPIs, immer sichtbar
-    ├── Cashflow       — Soll/Ist nebeneinander + Statushistorie
-    ├── Steuer         — AfA, Werbungskosten, zvE-Effekt
-    ├── Finanzierung   — Tilgungsplan, LTV-Kurve
-    └── Einstellungen  — Alle Stammdaten bearbeiten
+┌─────────┬──────────────────────────────────────────┐
+│ 🏠      │  Portfolio                               │
+│ 📊      │  ┌─ Aggregierte KPIs ─────────────────┐ │
+│ ⚙️      │  │  LTV 68%  Rendite 4,1%  CF −87€    │ │
+│         │  └────────────────────────────────────┘ │
+│         │                                          │
+│         │  ┌──────────┐  ┌──────────┐             │
+│         │  │ ETW      │  │ MFH      │             │
+│         │  │ Dresden  │  │ Berlin   │             │
+│         │  └──────────┘  └──────────┘             │
+└─────────┴──────────────────────────────────────────┘
+```
+
+**Sidebar-Einträge:** Portfolio · Investment-Rechner · Einstellungen
+
+**Portfolio-Sektion (Startseite):**
+- Oben: Aggregierte Portfolio-KPIs (Gesamt-LTV, Portfolio-Rendite, Gesamt-Cashflow)
+- Darunter: Alle Immobilien als Karten-Grid
+- Klick auf Karte → Immobilien-Detailansicht (voller Content-Bereich)
+
+**Immobilien-Detailansicht (TabView):**
+```
+Übersicht | Cashflow | Steuer | Finanzierung | Einstellungen
 ```
 
 ---
