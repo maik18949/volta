@@ -176,7 +176,6 @@ struct CashflowTab: View {
     }
 
     private func deleteEntry(_ entry: StatusEntry) {
-        vm.property.statusHistory.removeAll { $0.id == entry.id }
         modelContext.delete(entry)
     }
 

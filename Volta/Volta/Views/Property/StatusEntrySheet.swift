@@ -8,13 +8,23 @@ struct StatusEntrySheet: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
 
-    @State private var statusFrom: Date = Date()
-    @State private var status: PropertyStatus = .vermietet
-    @State private var incomeActualMonthly: Double = 0.0
-    @State private var notes: String = ""
+    @State private var statusFrom: Date
+    @State private var status: PropertyStatus
+    @State private var incomeActualMonthly: Double
+    @State private var notes: String
 
     private var isEditing: Bool { entry != nil }
     private var title: String { isEditing ? "Status bearbeiten" : "Status hinzufügen" }
+    private var canSave: Bool { !status.hasIncome || incomeActualMonthly > 0 }
+
+    init(property: Property, entry: StatusEntry? = nil) {
+        self.property = property
+        self.entry = entry
+        _statusFrom = State(initialValue: entry?.statusFrom ?? Date())
+        _status = State(initialValue: entry?.status ?? .vermietet)
+        _incomeActualMonthly = State(initialValue: entry?.incomeActualMonthly ?? 0.0)
+        _notes = State(initialValue: entry?.notes ?? "")
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -26,7 +36,6 @@ struct StatusEntrySheet: View {
         }
         .frame(minWidth: 420, idealWidth: 480)
         .background(Color.appContentBackground)
-        .onAppear { loadEntry() }
     }
 
     private var header: some View {
@@ -87,17 +96,9 @@ struct StatusEntrySheet: View {
             Button(isEditing ? "Speichern" : "Hinzufügen") { save() }
                 .buttonStyle(.borderedProminent)
                 .tint(.appAccent)
-                .disabled(incomeActualMonthly == 0)
+                .disabled(!canSave)
         }
         .padding(20)
-    }
-
-    private func loadEntry() {
-        guard let entry else { return }
-        statusFrom = entry.statusFrom
-        status = entry.status
-        incomeActualMonthly = entry.incomeActualMonthly
-        notes = entry.notes ?? ""
     }
 
     private func save() {
