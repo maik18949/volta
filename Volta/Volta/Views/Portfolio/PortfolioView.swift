@@ -42,5 +42,8 @@ struct PortfolioView: View {
                 .tint(.appAccent)
             }
         }
+        .sheet(isPresented: $showingAddWizard) {
+            AddPropertyWizard()
+        }
     }
 }
