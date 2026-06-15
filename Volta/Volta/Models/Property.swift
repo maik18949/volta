@@ -10,6 +10,17 @@ enum PropertyType: String, Codable, CaseIterable {
     case gewerbe = "Gewerbe"
     case grundstuck = "Grundstück"
     case sonstiges = "Sonstiges"
+
+    var displayName: String {
+        switch self {
+        case .apartment: return "Eigentumswohnung"
+        case .einfamilienhaus: return "Einfamilienhaus"
+        case .mehrfamilienhaus: return "Mehrfamilienhaus"
+        case .gewerbe: return "Gewerbe"
+        case .grundstuck: return "Grundstück"
+        case .sonstiges: return "Sonstiges"
+        }
+    }
 }
 
 enum AcquisitionType: String, Codable, CaseIterable {

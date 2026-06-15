@@ -22,7 +22,7 @@ struct WizardStepObjektdaten: View {
             }
             .font(.appBody)
 
-            HStack(spacing: 24) {
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Stellplatz").font(.appCaption).foregroundStyle(Color.appSecondaryText)
                     Picker("", selection: $state.parkingType) {
@@ -30,7 +30,7 @@ struct WizardStepObjektdaten: View {
                         ForEach(ParkingType.allCases, id: \.self) { t in
                             Text(t.rawValue).tag(Optional(t))
                         }
-                    }.pickerStyle(.menu).frame(width: 160)
+                    }.pickerStyle(.menu)
                 }
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Heizung").font(.appCaption).foregroundStyle(Color.appSecondaryText)
@@ -39,7 +39,7 @@ struct WizardStepObjektdaten: View {
                         ForEach(HeatingType.allCases, id: \.self) { t in
                             Text(t.rawValue).tag(Optional(t))
                         }
-                    }.pickerStyle(.menu).frame(width: 160)
+                    }.pickerStyle(.menu)
                 }
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Energieklasse").font(.appCaption).foregroundStyle(Color.appSecondaryText)
@@ -48,7 +48,7 @@ struct WizardStepObjektdaten: View {
                         ForEach(EnergyClass.allCases, id: \.self) { t in
                             Text(t.rawValue).tag(Optional(t))
                         }
-                    }.pickerStyle(.menu).frame(width: 100)
+                    }.pickerStyle(.menu)
                 }
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Zustand").font(.appCaption).foregroundStyle(Color.appSecondaryText)
@@ -57,7 +57,7 @@ struct WizardStepObjektdaten: View {
                         ForEach(PropertyCondition.allCases, id: \.self) { t in
                             Text(t.rawValue).tag(Optional(t))
                         }
-                    }.pickerStyle(.menu).frame(width: 180)
+                    }.pickerStyle(.menu)
                 }
             }
         }

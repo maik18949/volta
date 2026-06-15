@@ -193,10 +193,11 @@ struct AddPropertyWizard: View {
         p.marginalTaxRate = wizardState.marginalTaxRate
 
         if wizardState.requiresStatusOnboarding {
+            let income = wizardState.firstStatus.hasIncome ? wizardState.firstStatusIncome : 0.0
             let entry = StatusEntry(
                 statusFrom: wizardState.firstStatusDate.firstDayOfMonth,
                 status: wizardState.firstStatus,
-                incomeActualMonthly: wizardState.firstStatusIncome,
+                incomeActualMonthly: income,
                 notes: wizardState.firstStatusNotes.isEmpty ? nil : wizardState.firstStatusNotes
             )
             entry.property = p

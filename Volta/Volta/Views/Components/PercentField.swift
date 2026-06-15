@@ -10,7 +10,7 @@ struct PercentField: View {
 
     var body: some View {
         HStack {
-            Text(label + (isRequired ? " *" : ""))
+            Text(label)
                 .font(.appBody)
                 .foregroundStyle(Color.appPrimaryText)
             Spacer()

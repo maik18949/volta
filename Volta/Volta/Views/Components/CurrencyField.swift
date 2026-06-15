@@ -10,7 +10,7 @@ struct CurrencyField: View {
 
     var body: some View {
         HStack {
-            Text(label + (isRequired ? " *" : ""))
+            Text(label)
                 .font(.appBody)
                 .foregroundStyle(Color.appPrimaryText)
             Spacer()
@@ -21,7 +21,7 @@ struct CurrencyField: View {
                 .focused($isFocused)
                 .onChange(of: isFocused) { _, focused in
                     if focused {
-                        text = value == 0 ? "" : String(format: "%.2f", value)
+                        text = value == 0 ? "" : String(format: "%.2f", value).replacingOccurrences(of: ".", with: ",")
                     } else {
                         commitValue()
                     }

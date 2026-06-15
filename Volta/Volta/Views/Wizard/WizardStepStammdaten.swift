@@ -41,7 +41,7 @@ struct WizardStepStammdaten: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Objekttyp").font(.appCaption).foregroundStyle(Color.appSecondaryText)
                     Picker("", selection: $state.propertyType) {
-                        ForEach(PropertyType.allCases, id: \.self) { t in Text(t.rawValue).tag(t) }
+                        ForEach(PropertyType.allCases, id: \.self) { t in Text(t.displayName).tag(t) }
                     }
                     .pickerStyle(.menu)
                     .frame(width: 180)

@@ -4,6 +4,7 @@ import SwiftData
 struct SettingsTab: View {
     @Bindable var property: Property
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.dismiss) private var dismiss
 
     private var landPlusBuildingDeviation: Double? {
         let sum = property.landValue + property.buildingValue
@@ -72,7 +73,7 @@ struct SettingsTab: View {
             }
             labeledField("Typ") {
                 Picker("", selection: $property.propertyType) {
-                    ForEach(PropertyType.allCases, id: \.self) { t in Text(t.rawValue).tag(t) }
+                    ForEach(PropertyType.allCases, id: \.self) { t in Text(t.displayName).tag(t) }
                 }.frame(width: 200)
             }
         }
@@ -183,6 +184,7 @@ struct SettingsTab: View {
             SectionHeader(title: "Gefahr")
             Button(role: .destructive) {
                 modelContext.delete(property)
+                dismiss()
             } label: {
                 Label("Immobilie löschen", systemImage: "trash")
                     .foregroundStyle(Color.appNegative)

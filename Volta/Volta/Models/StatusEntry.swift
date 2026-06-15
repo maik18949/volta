@@ -7,6 +7,13 @@ enum PropertyStatus: String, Codable, CaseIterable {
     case leerstand = "Leerstand"
     case eigennutzung = "Eigennutzung"
     case renovierung = "Renovierung"
+
+    var hasIncome: Bool {
+        switch self {
+        case .vermietet, .leerstandMietgarantie, .eigennutzung: return true
+        case .leerstand, .renovierung: return false
+        }
+    }
 }
 
 @Model
