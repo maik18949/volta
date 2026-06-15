@@ -41,7 +41,8 @@ struct VoltaApp: App {
     #if DEBUG
     private func seedIfEmpty() {
         let context = sharedModelContainer.mainContext
-        let descriptor = FetchDescriptor<Property>()
+        var descriptor = FetchDescriptor<Property>()
+        descriptor.predicate = #Predicate { $0.name == "ETW Dresden Neustadt" }
         let count = (try? context.fetchCount(descriptor)) ?? 0
         if count == 0 {
             SeedData.insertDresdnerETW(into: context)

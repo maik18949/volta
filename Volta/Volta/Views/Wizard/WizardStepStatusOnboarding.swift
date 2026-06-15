@@ -31,7 +31,9 @@ struct WizardStepStatusOnboarding: View {
                 }.pickerStyle(.segmented)
             }
 
-            CurrencyField(label: "Einnahmen in diesem Zeitraum/Monat *", value: $state.firstStatusIncome)
+            if state.firstStatus.hasIncome {
+                CurrencyField(label: "Einnahmen in diesem Zeitraum/Monat *", value: $state.firstStatusIncome)
+            }
 
             VStack(alignment: .leading, spacing: 4) {
                 Text("Notiz (optional)").font(.appCaption).foregroundStyle(Color.appSecondaryText)

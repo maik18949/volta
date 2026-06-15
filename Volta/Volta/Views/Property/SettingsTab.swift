@@ -4,6 +4,8 @@ import SwiftData
 struct SettingsTab: View {
     @Bindable var property: Property
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.dismiss) private var dismiss
+    @State private var showDeleteConfirm = false
 
     private var landPlusBuildingDeviation: Double? {
         let sum = property.landValue + property.buildingValue
@@ -72,7 +74,7 @@ struct SettingsTab: View {
             }
             labeledField("Typ") {
                 Picker("", selection: $property.propertyType) {
-                    ForEach(PropertyType.allCases, id: \.self) { t in Text(t.rawValue).tag(t) }
+                    ForEach(PropertyType.allCases, id: \.self) { t in Text(t.displayName).tag(t) }
                 }.frame(width: 200)
             }
         }
@@ -182,12 +184,25 @@ struct SettingsTab: View {
         VStack(alignment: .leading, spacing: 8) {
             SectionHeader(title: "Gefahr")
             Button(role: .destructive) {
-                modelContext.delete(property)
+                showDeleteConfirm = true
             } label: {
                 Label("Immobilie löschen", systemImage: "trash")
                     .foregroundStyle(Color.appNegative)
             }
             .buttonStyle(.bordered)
+            .confirmationDialog(
+                "\(property.name) löschen?",
+                isPresented: $showDeleteConfirm,
+                titleVisibility: .visible
+            ) {
+                Button("Löschen", role: .destructive) {
+                    modelContext.delete(property)
+                    dismiss()
+                }
+                Button("Abbrechen", role: .cancel) {}
+            } message: {
+                Text("Diese Aktion kann nicht rückgängig gemacht werden.")
+            }
         }
     }
 

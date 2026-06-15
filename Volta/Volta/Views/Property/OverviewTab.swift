@@ -71,7 +71,7 @@ struct OverviewTab: View {
             SectionHeader(title: "Objektdaten")
 
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 4) {
-                infoRow(label: "Typ", value: vm.property.propertyType.rawValue)
+                infoRow(label: "Typ", value: vm.property.propertyType.displayName)
                 infoRow(label: "Baujahr", value: vm.property.yearBuilt.map { String($0) } ?? "–")
                 infoRow(label: "Wohnfläche", value: "\(String(format: "%.2f", vm.property.livingAreaSqm)) m²")
                 infoRow(label: "Zimmer", value: vm.property.rooms.map { String(format: "%.1f", $0) } ?? "–")

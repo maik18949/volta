@@ -1,8 +1,12 @@
 import SwiftUI
+import SwiftData
 
 struct CashflowTab: View {
     let vm: PropertyViewModel
+    @Environment(\.modelContext) private var modelContext
     @State private var selectedYear: Int = Calendar.current.component(.year, from: Date())
+    @State private var showAddSheet = false
+    @State private var editingEntry: StatusEntry? = nil
 
     private var availableYears: [Int] {
         let start = Calendar.current.component(.year, from: vm.property.economicTransferDate)
@@ -20,6 +24,12 @@ struct CashflowTab: View {
             .padding(24)
         }
         .background(Color.appContentBackground)
+        .sheet(isPresented: $showAddSheet) {
+            StatusEntrySheet(property: vm.property)
+        }
+        .sheet(item: $editingEntry) { entry in
+            StatusEntrySheet(property: vm.property, entry: entry)
+        }
     }
 
     private var sollIstSection: some View {
@@ -98,40 +108,75 @@ struct CashflowTab: View {
 
     private var statusHistorySection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            SectionHeader(title: "Statushistorie")
+            HStack {
+                SectionHeader(title: "Statushistorie")
+                Spacer()
+                Button { showAddSheet = true } label: {
+                    Image(systemName: "plus.circle")
+                        .foregroundStyle(Color.appAccent)
+                }
+                .buttonStyle(.plain)
+            }
 
             if vm.property.statusHistory.isEmpty {
                 Text("Noch kein Statuseintrag vorhanden.")
                     .font(.appBody)
                     .foregroundStyle(Color.appSecondaryText)
             } else {
+                let sorted = vm.property.statusHistory.sorted(by: { $0.statusFrom < $1.statusFrom })
                 VStack(spacing: 0) {
-                    ForEach(vm.property.statusHistory.sorted(by: { $0.statusFrom < $1.statusFrom })) { entry in
-                        HStack {
-                            StatusBadge(status: entry.status)
-                            Text("ab \(entry.statusFrom, format: .dateTime.month().year())")
-                                .font(.appCaption)
-                                .foregroundStyle(Color.appSecondaryText)
-                            Spacer()
-                            Text(Formatters.formatCurrency(entry.incomeActualMonthly) + "/Mon")
-                                .font(.appMono)
-                                .foregroundStyle(Color.appPrimaryText)
-                            if let notes = entry.notes, !notes.isEmpty {
-                                Text(notes)
-                                    .font(.appCaption)
-                                    .foregroundStyle(Color.appSecondaryText)
-                                    .lineLimit(1)
-                            }
+                    ForEach(sorted) { entry in
+                        statusEntryRow(entry)
+                        if entry.id != sorted.last?.id {
+                            Divider().padding(.leading, 12)
                         }
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                        Divider().padding(.leading, 12)
                     }
                 }
                 .background(Color.appCardBackground)
                 .clipShape(RoundedRectangle(cornerRadius: 10))
             }
         }
+    }
+
+    @ViewBuilder
+    private func statusEntryRow(_ entry: StatusEntry) -> some View {
+        HStack {
+            StatusBadge(status: entry.status)
+            Text("ab \(entry.statusFrom, format: .dateTime.day().month().year())")
+                .font(.appCaption)
+                .foregroundStyle(Color.appSecondaryText)
+            Spacer()
+            Text(Formatters.formatCurrency(entry.incomeActualMonthly) + "/Mon")
+                .font(.appMono)
+                .foregroundStyle(Color.appPrimaryText)
+            if let notes = entry.notes, !notes.isEmpty {
+                Text(notes)
+                    .font(.appCaption)
+                    .foregroundStyle(Color.appSecondaryText)
+                    .lineLimit(1)
+                    .frame(maxWidth: 160, alignment: .trailing)
+            }
+            Menu {
+                Button { editingEntry = entry } label: {
+                    Label("Bearbeiten", systemImage: "pencil")
+                }
+                Divider()
+                Button(role: .destructive) { deleteEntry(entry) } label: {
+                    Label("Löschen", systemImage: "trash")
+                }
+            } label: {
+                Image(systemName: "ellipsis.circle")
+                    .foregroundStyle(Color.appSecondaryText)
+            }
+            .buttonStyle(.plain)
+            .frame(width: 28)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+    }
+
+    private func deleteEntry(_ entry: StatusEntry) {
+        modelContext.delete(entry)
     }
 
     private var extraordinaryCostsSection: some View {
