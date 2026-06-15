@@ -1,31 +1,36 @@
-//
-//  VoltaApp.swift
-//  Volta
-//
-//  Created by Maik Schlarmann on 13.06.26.
-//
-
 import SwiftUI
 import SwiftData
+import OSLog
+
+private let logger = Logger(subsystem: "com.volta.ImmobilienPortfolio", category: "persistence")
 
 @main
 struct VoltaApp: App {
-    var sharedModelContainer: ModelContainer = {
+    var sharedModelContainer: ModelContainer
+
+    init() {
         let schema = Schema([
-            Item.self,
+            Property.self,
+            StatusEntry.self,
+            ExtraordinaryCost.self,
+            RentGuarantee.self,
+            InvestmentCalculation.self,
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
-
         do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
+            sharedModelContainer = try ModelContainer(for: schema, configurations: [modelConfiguration])
         } catch {
+            logger.error("ModelContainer init failed: \(error.localizedDescription)")
             fatalError("Could not create ModelContainer: \(error)")
         }
-    }()
+    }
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            // ContentView is added in Plan 2.
+            // Temporary placeholder:
+            Text("Immobilien Portfolio Manager")
+                .frame(minWidth: 900, minHeight: 600)
         }
         .modelContainer(sharedModelContainer)
     }
