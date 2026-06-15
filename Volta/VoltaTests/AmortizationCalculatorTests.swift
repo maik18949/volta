@@ -72,7 +72,8 @@ final class AmortizationCalculatorTests: XCTestCase {
             months: 12
         )
         XCTAssertEqual(schedule.count, 12)
-        XCTAssertEqual(schedule[0].remainingDebt, f.loanAmount, accuracy: 1.0)
+        // After the first payment, remaining debt equals loanAmount minus principal repaid in month 1.
+        XCTAssertEqual(schedule[0].remainingDebt, 229_581.32, accuracy: 1.0)
     }
 
     func test_amortizationSchedule_interestPlusPrincipalEqualsPayment() {
