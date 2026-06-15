@@ -1,32 +1,51 @@
-//
-//  VoltaApp.swift
-//  Volta
-//
-//  Created by Maik Schlarmann on 13.06.26.
-//
-
 import SwiftUI
 import SwiftData
+import OSLog
+
+private let logger = Logger(subsystem: "com.volta.ImmobilienPortfolio", category: "persistence")
 
 @main
 struct VoltaApp: App {
-    var sharedModelContainer: ModelContainer = {
+    var sharedModelContainer: ModelContainer
+
+    init() {
         let schema = Schema([
-            Item.self,
+            Property.self,
+            StatusEntry.self,
+            ExtraordinaryCost.self,
+            RentGuarantee.self,
+            InvestmentCalculation.self,
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
-
         do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
+            sharedModelContainer = try ModelContainer(for: schema, configurations: [modelConfiguration])
         } catch {
+            logger.error("ModelContainer init failed: \(error.localizedDescription)")
             fatalError("Could not create ModelContainer: \(error)")
         }
-    }()
+    }
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            AppShellView()
+                .frame(minWidth: 900, minHeight: 600)
+                .onAppear {
+                    #if DEBUG
+                    seedIfEmpty()
+                    #endif
+                }
         }
         .modelContainer(sharedModelContainer)
     }
+
+    #if DEBUG
+    private func seedIfEmpty() {
+        let context = sharedModelContainer.mainContext
+        let descriptor = FetchDescriptor<Property>()
+        let count = (try? context.fetchCount(descriptor)) ?? 0
+        if count == 0 {
+            SeedData.insertDresdnerETW(into: context)
+        }
+    }
+    #endif
 }
