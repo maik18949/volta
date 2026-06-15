@@ -70,7 +70,6 @@ class WizardState {
     var fixedInterestPeriodYears: Int = 10
     var loanStartDate: Date = Date()
     var monthlyMortgageActual: Double = 0.0
-    var remainingDebtCurrent: Double = 0.0
 
     // AfA & Steuer
     var landValue: Double = 0.0

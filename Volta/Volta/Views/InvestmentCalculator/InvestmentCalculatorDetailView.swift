@@ -3,9 +3,11 @@ import SwiftUI
 struct InvestmentCalculatorDetailView: View {
     let calculation: InvestmentCalculation
     @State private var showingPromoteSheet = false
+    @State private var vm: InvestmentCalculatorViewModel
 
-    private var vm: InvestmentCalculatorViewModel {
-        InvestmentCalculatorViewModel(calculation: calculation)
+    init(calculation: InvestmentCalculation) {
+        self.calculation = calculation
+        _vm = State(initialValue: InvestmentCalculatorViewModel(calculation: calculation))
     }
 
     var body: some View {

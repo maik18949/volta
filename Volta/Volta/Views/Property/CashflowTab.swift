@@ -64,7 +64,7 @@ struct CashflowTab: View {
 
     @ViewBuilder
     private func monthRow(date: Date, month: Int) -> some View {
-        let monthName = DateFormatter().monthSymbols[month - 1]
+        let monthName = Calendar.current.monthSymbols[month - 1]
         let soll = vm.cashflowAfterDebtMonthly
         let actual = vm.cashflowActual(for: date)
         let ist = actual?.afterTax

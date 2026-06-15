@@ -98,10 +98,6 @@ class PropertyViewModel {
 
     var debtServiceAnnual: Double { monthlyMortgage * 12.0 }
 
-    var interestAnnual: Double {
-        TaxCalculator.interestAnnual(loanAmount: property.loanAmount, interestRate: property.interestRate)
-    }
-
     var remainingDebtNow: Double {
         guard let monthsElapsed = property.loanStartDate.monthsBetween(Date()) else {
             return property.loanAmount
@@ -112,6 +108,11 @@ class PropertyViewModel {
             monthlyPayment: monthlyMortgage,
             atMonth: monthsElapsed
         )
+    }
+
+    // Uses current remaining debt as basis — a closer approximation than original loan amount for established properties.
+    var interestAnnual: Double {
+        TaxCalculator.interestAnnual(loanAmount: remainingDebtNow, interestRate: property.interestRate)
     }
 
     // MARK: - AfA & Steuer

@@ -54,6 +54,9 @@ struct InvestmentPromoteSheet: View {
         p.parkingRentMonthly = calculation.parkingRentMonthly
         p.otherIncomeMonthly = calculation.otherIncomeMonthly
         p.vacancyRateAssumption = calculation.vacancyRateAssumption
+        // InvestmentCalculation only captures the non-recoverable HOA portion.
+        // Set total = nonRecoverable and recoverable = 0 so PropertyViewModel computes the right value.
+        // User should update hoaFeeTotalMonthly and hoaFeeRecoverableMonthly in Einstellungen after promoting.
         p.hoaFeeTotalMonthly = calculation.hoaFeeNonRecoverableMonthly
         p.hoaFeeRecoverableMonthly = 0
         p.propertyManagementAnnual = calculation.propertyManagementAnnual

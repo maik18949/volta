@@ -2,7 +2,7 @@ import SwiftUI
 import SwiftData
 
 struct InvestmentCalculatorListView: View {
-    @Query(sort: \InvestmentCalculation.updatedAt, order: .reverse) private var calculations: [InvestmentCalculation]
+    @Query(sort: \InvestmentCalculation.createdAt, order: .reverse) private var calculations: [InvestmentCalculation]
     @Environment(\.modelContext) private var modelContext
     @State private var selectedCalc: InvestmentCalculation?
 

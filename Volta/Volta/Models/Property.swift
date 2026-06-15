@@ -133,7 +133,6 @@ class Property {
     var fixedInterestPeriodYears: Int = 10
     var loanStartDate: Date = Date()
     var monthlyMortgageActual: Double?
-    var remainingDebtCurrent: Double?
 
     // AfA & Steuer
     var landValue: Double = 0.0

@@ -187,7 +187,6 @@ struct AddPropertyWizard: View {
         p.fixedInterestPeriodYears = wizardState.fixedInterestPeriodYears
         p.loanStartDate = wizardState.loanStartDate
         p.monthlyMortgageActual = wizardState.monthlyMortgageActual > 0 ? wizardState.monthlyMortgageActual : nil
-        p.remainingDebtCurrent = wizardState.remainingDebtCurrent > 0 ? wizardState.remainingDebtCurrent : nil
         p.landValue = wizardState.landValue
         p.buildingValue = wizardState.buildingValue
         p.depreciationRate = wizardState.depreciationRate
