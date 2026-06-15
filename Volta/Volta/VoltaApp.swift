@@ -27,11 +27,25 @@ struct VoltaApp: App {
 
     var body: some Scene {
         WindowGroup {
-            // ContentView is added in Plan 2.
-            // Temporary placeholder:
-            Text("Immobilien Portfolio Manager")
+            AppShellView()
                 .frame(minWidth: 900, minHeight: 600)
+                .onAppear {
+                    #if DEBUG
+                    seedIfEmpty()
+                    #endif
+                }
         }
         .modelContainer(sharedModelContainer)
     }
+
+    #if DEBUG
+    private func seedIfEmpty() {
+        let context = sharedModelContainer.mainContext
+        let descriptor = FetchDescriptor<Property>()
+        let count = (try? context.fetchCount(descriptor)) ?? 0
+        if count == 0 {
+            SeedData.insertDresdnerETW(into: context)
+        }
+    }
+    #endif
 }
