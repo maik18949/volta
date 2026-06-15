@@ -34,8 +34,7 @@ struct AppShellView: View {
                     PortfolioView()
                 }
             case .investmentCalculator:
-                Text("Investment-Rechner — kommt in Plan 5")
-                    .foregroundStyle(Color.appSecondaryText)
+                InvestmentCalculatorListView()
             case .settings:
                 Text("Einstellungen")
                     .foregroundStyle(Color.appSecondaryText)
@@ -46,5 +45,5 @@ struct AppShellView: View {
 
 #Preview {
     AppShellView()
-        .modelContainer(for: Property.self, inMemory: true)
+        .modelContainer(for: [Property.self, InvestmentCalculation.self], inMemory: true)
 }
