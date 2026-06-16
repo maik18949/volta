@@ -137,6 +137,18 @@ class Property {
     var propertyInsuranceAnnual: Double = 0.0
     var otherCostsMonthly: Double = 0.0
 
+    // Stellplatz (nur relevant wenn hasParking = true)
+    var hasParking: Bool = false
+    var hoaFeeParkingTotalMonthly: Double = 0.0
+    var isHoaParkingSplit: Bool = false
+    var hoaFeeParkingRecoverableMonthly: Double = 0.0
+    var hoaFeeParkingMaintenanceReserveMonthly: Double = 0.0
+    var parkingPropertyTaxAnnual: Double = 0.0
+
+    // Hausgeld Wohnung — optionale Aufteilung
+    var isHoaUnitSplit: Bool = false
+    var hoaFeeMaintenanceReserveUnitMonthly: Double = 0.0
+
     // Finanzierung
     var loanAmount: Double = 0.0
     var interestRate: Double = 0.0
