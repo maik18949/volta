@@ -51,4 +51,21 @@ extension Date {
     var remainingMonthsInYear: Int {
         13 - self.month
     }
+
+    /// Day of the month (1–31), UTC.
+    var day: Int {
+        Date.utcCalendar.component(.day, from: self)
+    }
+
+    /// Total number of days in this date's calendar month, UTC.
+    func daysInMonth() -> Int {
+        Date.utcCalendar.range(of: .day, in: .month, for: self)?.count ?? 30
+    }
+
+    /// Returns a Date for a specific day within a year/month (UTC).
+    static func firstDay(year: Int, month: Int, day: Int) -> Date {
+        var comps = DateComponents()
+        comps.year = year; comps.month = month; comps.day = day
+        return utcCalendar.date(from: comps) ?? Date()
+    }
 }
