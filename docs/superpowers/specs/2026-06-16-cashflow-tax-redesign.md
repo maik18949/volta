@@ -12,18 +12,33 @@ Die bisherige Steuer- und Cashflow-Berechnung enthält mehrere grundlegende Fehl
 2. **Divisor immer 12** — im Erwerbsjahr müssen nur die tatsächlichen Eigentumsmonate gezählt werden
 3. **Prognose-Einnahmen statt Ist** — `effectiveGrossIncomeYearly` (mit Leerstandsquote) wird für die Ist-Berechnung verwendet
 4. **Status-abhängige Kosten fehlen im Steuerabzug** — umlagefähige Kosten und Grundsteuer Wohnung sind nur bei Leerstand/Mietgarantie absetzbar, bei Vermietung nicht
-5. **Kein WE/Stellplatz-Split** — TE-Kosten (umlagefähig Stellplatz, Grundsteuer Stellplatz) werden fälschlicherweise auf 0 gesetzt wenn vermietet, obwohl der Eigentümer sie immer trägt
+5. **Kein WE/Stellplatz-Split** — Stellplatz-Kosten werden fälschlicherweise auf 0 gesetzt wenn vermietet, obwohl der Eigentümer sie immer trägt
 6. **Zinsen vor Besitzübergang** werden nicht berücksichtigt (sind als vorweggenommene Werbungskosten absetzbar)
 7. **Zinsjahr-Grenze** nicht gecheckt — Darlehensmonate aus Vorjahren dürfen nicht in das aktuelle Steuerjahr einfließen
+8. **Zinsen nicht amortisierend** — fixer Monatsbetrag statt exakter Zinsanteil je Monat laut Tilgungsplan
 
 ---
 
-## Grundregeln (aus Excel abgeleitet und steuerrechtlich verifiziert)
+## Einnahmenlogik je Status
+
+| Status | Einnahme kommt von |
+|--------|-------------------|
+| Vermietet | `coldRentMonthly + parkingRentMonthly` aus Einstellungen (automatisch) |
+| Leerstand + Mietgarantie | Betrag aus `StatusEntry.incomeActualMonthly` (manuell beim Anlegen des Eintrags) |
+| Leerstand | 0 (automatisch) |
+| Eigennutzung | 0 (automatisch) |
+| Renovierung | 0 (automatisch) |
+
+`StatusEntry.incomeActualMonthly` wird nur für Mietgarantie-Einträge genutzt und nur dann im UI angezeigt. Bei allen anderen Status wird das Feld ignoriert.
+
+---
+
+## Grundregeln (steuerrechtlich verifiziert)
 
 ### Status-Logik: Wer trägt welche Kosten?
 
-| Kostenart | Vermietet | Leerstand / Mietgarantie |
-|-----------|-----------|--------------------------|
+| Kostenart | Vermietet | Leerstand / Mietgarantie / Eigennutzung / Renovierung |
+|-----------|-----------|------------------------------------------------------|
 | Umlagefähige Kosten Wohnung | Mieter zahlt → 0 für Eigentümer | Eigentümer trägt → absetzbar |
 | Grundsteuer Wohnung | Mieter zahlt via NK-Abrechnung → 0 | Eigentümer zahlt direkt → absetzbar |
 | Umlagefähige Kosten Stellplatz | **Eigentümer trägt immer** | **Eigentümer trägt immer** |
@@ -36,12 +51,57 @@ Die bisherige Steuer- und Cashflow-Berechnung enthält mehrere grundlegende Fehl
 
 | Posten | Zeitraum |
 |--------|---------|
-| Zinsen | `max(loanStartDate, 1. Jan Y)` bis `31. Dez Y` |
+| Zinsen | `max(loanStartDate, 1. Jan Y)` bis `31. Dez Y`, amortisierend je Monat |
 | AfA | Erwerbsjahr: anteilig ab `economicTransferDate`; Folgejahre: voll |
 | Einnahmen | Ab `economicTransferDate` in Jahr Y |
 | Alle anderen Kosten | Ab `economicTransferDate` in Jahr Y |
 
 **Zinsen vor Besitzübergang** sind als vorweggenommene Werbungskosten absetzbar (§9 EStG, BFH-Rechtsprechung), solange das Darlehen nachweislich für den Erwerb verwendet wurde.
+
+**Zinsberechnung (amortisierend):** Für jeden Monat in Jahr Y wird der genaue Zinsanteil aus dem Tilgungsplan berechnet: `restschuld_zum_monatsbeginn × jahreszinssatz / 12`. Die Restschuld wird Monat für Monat akkumuliert basierend auf Darlehensbeginn, Zinssatz und monatlicher Rate. Diese Berechnung nutzt den bereits vorhandenen `AmortizationCalculator`.
+
+---
+
+## "Laufendes Jahr" — Hybrid-Berechnung
+
+Das laufende Jahr kombiniert tatsächliche Daten mit einer Projektion:
+
+| Zeitraum | Datenbasis |
+|----------|-----------|
+| Vergangene Monate (abgeschlossen) | Vollständig Ist aus Statushistorie |
+| Aktueller Monat: 1. bis heute (inkl.) | Ist aus Statushistorie |
+| Aktueller Monat: morgen bis Monatsende | Projektion mit aktuellem Status |
+| Zukünftige Monate im laufenden Jahr | Vollständig projiziert mit aktuellem Status |
+
+**Projektion:** Der letzte bekannte Status (letzter StatusEntry) wird für alle zukünftigen Tage/Monate fortgeschrieben. Einnahmen für projizierte Vermietet-Tage = `coldRentMonthly + parkingRentMonthly` (tagesanteilig).
+
+---
+
+## Tagesgenaue Proration
+
+Gilt für **alle** Berechnungen: Einnahmen, steuerliche Abzüge und Cashflow-Kosten.
+
+Wenn zwei StatusEntries in denselben Monat fallen (z.B. Mietgarantie bis 15. Juni, Vermietet ab 16. Juni):
+
+```
+Für jeden Status-Abschnitt im Monat:
+  tagesanteil = anzahlTageInDiesemAbschnitt / gesamtTageImMonat
+  einnahme  += statusEinnahme × tagesanteil
+  abzüge    += statusAbhängigeKosten × tagesanteil
+```
+
+Beispiel Juni (30 Tage), Mietgarantie 1.-15., Vermietet 16.-30.:
+```
+Einnahmen:
+  Mietgarantie (15 Tage): 999 × 15/30 = 499,50 €
+  Vermietet    (15 Tage): 959 × 15/30 = 479,50 €
+  Gesamt:                               979,00 €
+
+Umlagefähige Kosten Wohnung (steuerlich):
+  Mietgarantie (15 Tage): 225,60 × 15/30 = 112,80 € (absetzbar)
+  Vermietet    (15 Tage): 225,60 × 15/30 =   0,00 € (Mieter zahlt)
+  Gesamt absetzbar:                          112,80 €
+```
 
 ---
 
@@ -67,6 +127,16 @@ var hoaFeeParkingMaintenanceReserveMonthly: Double = 0.0      // NEU: Rücklage 
 var parkingPropertyTaxAnnual: Double = 0.0                    // NEU
 ```
 
+### Abgeleitete Werte (nicht gespeichert)
+
+```swift
+// Wohnung
+hoaFeeNonRecoverableUnitMonthly = hoaFeeTotalMonthly - hoaFeeRecoverableMonthly - hoaFeeMaintenanceReserveUnitMonthly
+
+// Stellplatz
+hoaFeeParkingNonRecoverableMonthly = hoaFeeParkingTotalMonthly - hoaFeeParkingRecoverableMonthly - hoaFeeParkingMaintenanceReserveMonthly
+```
+
 ### Bestehende Felder — Semantikänderung
 
 | Feld | Bisher | Neu |
@@ -75,88 +145,111 @@ var parkingPropertyTaxAnnual: Double = 0.0                    // NEU
 | `propertyTaxAnnual` | WE+TE kombiniert | nur Wohnung (Grundsteuer Wohnung) |
 | `hoaFeeTotalMonthly` | Hausgeld gesamt | Hausgeld Wohnung gesamt |
 | `hoaFeeRecoverableMonthly` | umlagefähig gesamt | umlagefähig Wohnung |
-| `maintenanceReserveMonthly` | zusätzliche Rücklage | bleibt: externe Rücklage (z.B. Einfamilienhaus ohne WEG) |
+| `maintenanceReserveMonthly` | zusätzliche Rücklage | bleibt: externe Rücklage außerhalb WEG (z.B. Einfamilienhaus) |
 
 ### Migration
 
 Alle neuen Felder haben `= 0` / `= false` als SwiftData-Default. Bestehende Daten bleiben intakt.
 
-**Auto-Migration:** Wenn `purchasePriceParking > 0` in bestehenden Daten → `hasParking = true` wird automatisch gesetzt.
+**Auto-Migration:** `purchasePriceParking > 0` → `hasParking = true` automatisch.
 
 **Manuelle Nacharbeit durch Nutzer:**
 - `propertyTaxAnnual` auf Wohnung-Anteil korrigieren (war WE+TE kombiniert)
 - `parkingPropertyTaxAnnual` nachtragen wenn Stellplatz vorhanden
-- Hausgeld-Aufteilung (umlagefähig, Rücklage) ergänzen wenn gewünscht
+- Hausgeld-Aufteilung ergänzen wenn gewünscht
 
 ---
 
 ## Berechnungslogik
 
-### Hilfsfunktionen (neue Datumserweiterungen)
+### Hilfsfunktionen
 
 ```
-ownershipMonths(in year: Int, economicTransferDate: Date) -> Int
-  → Anzahl Monate in Jahr Y ab economicTransferDate
+// Monate in Jahr Y nach economicTransferDate
+ownershipMonths(in year: Int, economicTransferDate: Date) -> [Month]
 
-interestMonths(in year: Int, loanStartDate: Date) -> Int
-  → Anzahl Monate in Jahr Y ab max(loanStartDate, 1. Jan Y)
+// Zinsanteil für einen bestimmten Monat (amortisierend)
+interestForMonth(_ month: Date, loanStartDate: Date, loanAmount: Double,
+                 interestRate: Double, monthlyPayment: Double) -> Double
 
-isAcquisitionYear(_ year: Int, economicTransferDate: Date) -> Bool
-  → year == Calendar.year(of: economicTransferDate)
+// Ist der Monat abgeschlossen (inkl. heutiger Tag als letzter Ist-Tag)?
+isPastOrCurrentMonth(_ month: Date) -> Bool  // true wenn Monat <= laufender Monat
+
+// Tage eines Status-Abschnitts innerhalb eines Monats
+daysInMonth(_ month: Date, from: Date, to: Date) -> Int
 ```
 
-### TaxCalculator — neue Methode `annualTaxableIncome`
+### Monatseinnahme (tagesgenau, Ist + Projektion)
+
+```
+func incomeForMonth(_ month: Date, statusHistory: [StatusEntry],
+                    coldRentMonthly: Double, parkingRentMonthly: Double) -> Double:
+  abschnitte = statusAbschnitte(für: month, aus: statusHistory)
+  // Für Tage nach heute im laufenden Monat: letzter bekannter Status
+  gesamt = 0
+  für jeden abschnitt (von: start, bis: end, status: s):
+    tagesanteil = tage(start, end) / tageImMonat(month)
+    einnahme = einnahmeProMonat(status: s, coldRent, parkingRent)
+    gesamt += einnahme × tagesanteil
+  return gesamt
+```
+
+### TaxCalculator — `annualTaxableIncome`
 
 ```
 Inputs:
   - year: Int
   - statusHistory: [StatusEntry]
   - economicTransferDate: Date
-  - loanStartDate: Date
-  - monthlyInterest: Double
+  - loanStartDate: Date, loanAmount: Double, interestRate: Double, monthlyPayment: Double
   - afaBasis: Double, depreciationRate: Double
-  - hoaUnitNonRecoverableMonthly: Double      (= hoaTotal - hoaRecoverable - hoaRücklage, wenn split)
-  - hoaUnitRecoverableMonthly: Double         (umlagefähig Wohnung)
-  - hoaUnitSplitComplete: Bool                (ob Aufteilung vollständig)
-  - hoaParkingNonRecoverableMonthly: Double
+  - hoaUnitNonRecoverableMonthly: Double      (abgeleitet: total - recoverable - reserve)
+  - hoaUnitRecoverableMonthly: Double
+  - hoaUnitSplitComplete: Bool
+  - hoaParkingNonRecoverableMonthly: Double   (abgeleitet, 0 wenn kein Stellplatz)
   - hoaParkingRecoverableMonthly: Double
-  - propertyTaxUnitMonthly: Double            (Grundsteuer Wohnung / 12)
-  - propertyTaxParkingMonthly: Double         (Grundsteuer Stellplatz / 12)
+  - propertyTaxUnitMonthly: Double
+  - propertyTaxParkingMonthly: Double
   - propertyManagementMonthly: Double
   - otherCostsMonthly: Double
+  - coldRentMonthly: Double
+  - parkingRentMonthly: Double
 
 Berechnung:
   1. eigentumsMonateImJahr = ownershipMonths(year, economicTransferDate)
-  2. zinsMonate = interestMonths(year, loanStartDate)
-  3. zinsenJahr = monthlyInterest × zinsMonate
-  4. afaJahr = isAcquisitionYear(year) 
-               ? depreciationMonthly × eigentumsMonateImJahr
+  
+  2. zinsenJahr = Σ interestForMonth(m, loanStartDate, ...) 
+                 für alle Monate m in Jahr Y 
+                 ab max(loanStartDate, 1. Jan Y)
+  
+  3. afaJahr = isAcquisitionYear(year)
+               ? afaBasis × depreciationRate / 12 × eigentumsMonateAnzahl
                : afaBasis × depreciationRate
-  5. Für jeden Eigentumsmonat:
-       status = activeStatus(for: month)
-       einnahmen += status.incomeActualMonthly
-       if status != .vermietet: leerstandMonate += 1
-  6. Abzüge:
-     immer (× eigentumsMonateImJahr):
+  
+  4. Für jeden Eigentumsmonat (tagesgenau):
+     - einnahmen += incomeForMonth(m, ...)
+     - leerstandTageAnteil += (leerstandTage im Monat / tageImMonat)
+     - vermietungsTageAnteil += (vermietungsTage im Monat / tageImMonat)
+  
+  5. Abzüge (in Monatseinheiten, tagesgenau):
+     immer (× eigentumsMonateAnzahl):
        - hoaUnitNonRecoverableMonthly
        - hoaParkingNonRecoverableMonthly
        - propertyManagementMonthly
        - propertyTaxParkingMonthly
        - otherCostsMonthly
-     nur Leerstandsmonate (× leerstandMonate):
+     nur Leerstand-Anteil (× leerstandTageAnteil):
        - hoaUnitRecoverableMonthly
        - propertyTaxUnitMonthly
-     nie:
-       - Instandhaltungsrücklage
-       - Tilgung
-  7. return einnahmen - zinsenJahr - afaJahr - summeAbzüge
+  
+  6. return einnahmen - zinsenJahr - afaJahr - summeAbzüge
 ```
 
 ### TaxCalculator — Steuereffekt
 
 ```
-taxEffectYearly = |annualTaxableIncome| × marginalTaxRate  (wenn negativ)
-taxEffectMonthly = taxEffectYearly ÷ eigentumsMonateImJahr
+taxEffectYearly  = max(0, -annualTaxableIncome) × marginalTaxRate
+taxEffectMonthly = taxEffectYearly ÷ eigentumsMonateAnzahlImJahr
 ```
 
 ### CashflowCalculator — `ownerBorneRecoverableCosts` (überarbeitet)
@@ -165,24 +258,24 @@ taxEffectMonthly = taxEffectYearly ÷ eigentumsMonateImJahr
 Inputs:
   - status: PropertyStatus
   - hoaUnitRecoverableMonthly: Double
-  - hoaParkingRecoverableMonthly: Double      ← NEU, immer abziehen
+  - hoaParkingRecoverableMonthly: Double   (immer abziehen)
   - propertyTaxUnitMonthly: Double
-  - propertyTaxParkingMonthly: Double         ← NEU, immer abziehen
+  - propertyTaxParkingMonthly: Double      (immer abziehen)
 
 Logik:
   unitPart    = (status == .vermietet) ? 0 : hoaUnitRecoverable + propertyTaxUnit
-  parkingPart = hoaParkingRecoverable + propertyTaxParking   ← immer
+  parkingPart = hoaParkingRecoverable + propertyTaxParking
   return unitPart + parkingPart
 ```
 
-### CashflowCalculator — `cashflowBeforeTax`
+### CashflowCalculator — `cashflowBeforeTax` (monatlich, tagesgenau)
 
 ```
-+ incomeActualMonthly
-- monthlyMortgage                              (Zinsen + Tilgung, echter Abfluss)
++ incomeForMonth(...)                          (tagesgenau, Ist + Projektion)
+- monthlyMortgage                              (Zinsen + Tilgung)
 - hoaUnitNonRecoverableMonthly                 (inkl. Rücklage — echter Abfluss)
-- hoaParkingNonRecoverableMonthly              (immer)
-- ownerBorneRecoverableCosts(...)              (status-abhängig)
+- hoaParkingNonRecoverableMonthly              (immer, tagesanteilig wenn mid-month)
+- ownerBorneRecoverableCosts(...)              (status-abhängig, tagesanteilig)
 - propertyManagementMonthly
 - maintenanceReserveMonthly                    (externe Rücklage falls vorhanden)
 - extraordinaryCosts
@@ -197,65 +290,92 @@ Logik:
 ```
 Kaufpreis *: [___]
 ☑ Stellplatz vorhanden
-  ↳ Kaufpreis Wohnung *: [___]
+  ↳ Kaufpreis Wohnung *:    [___]
     Kaufpreis Stellplatz *: [___]
-    Gesamtkaufpreis: [automatisch = Wohnung + Stellplatz]
+    Gesamtkaufpreis:        [automatisch = Wohnung + Stellplatz, readonly]
 ```
 
-Wenn kein Stellplatz: nur ein Kaufpreisfeld, kein Gesamtkaufpreis nötig.
+Wenn kein Stellplatz: nur ein Kaufpreisfeld.
 
 ### Wizard / Settings — Schritt "Kosten"
 
 ```
 HAUSGELD WOHNUNG
   Hausgeld gesamt/Monat *: [___]
-  [Aufteilen ▼]
-    davon umlagefähig/Monat: [___]
-    davon nicht umlagefähig/Monat: [___]  ← readonly: gesamt - umlagefähig - rücklage
+  [▶ Aufteilen]  (Toggle)
+    davon umlagefähig/Monat:          [___]
     davon Instandhaltungsrücklage/Monat: [___]
-  ⚠ Aufteilung unvollständig — Steuerberechnung ungenau  (wenn nicht vollständig)
+    davon nicht umlagefähig/Monat:    [readonly = gesamt - umlagefähig - rücklage]
+  ⚠ Validierung: umlagefähig + rücklage darf nicht > gesamt sein
+  ⚠ "Hausgeld aufteilen für genaue steuerliche Berechnung" (wenn nicht aufgeteilt)
 
 HAUSGELD STELLPLATZ  (nur wenn hasParking)
   [gleiche Struktur wie Wohnung]
 
 GRUNDSTEUER
-  Grundsteuer Wohnung/Jahr *: [___]
-  Grundsteuer Stellplatz/Jahr: [___]  (nur wenn hasParking)
+  Grundsteuer Wohnung/Jahr *:    [___]
+  Grundsteuer Stellplatz/Jahr:   [___]  (nur wenn hasParking)
 
-Hausverwaltung/Jahr: [___]
-Instandhaltungsrücklage/Monat (zusätzl.): [___]
-Sonstige Kosten/Monat: [___]
+Hausverwaltung/Jahr:                [___]
+Instandhaltungsrücklage/Monat (zusätzl., außerhalb WEG): [___]
+Sonstige Kosten/Monat:              [___]
 ```
+
+### StatusEntry-Sheet
+
+Das Feld `Einnahme/Monat` wird nur angezeigt wenn Status = **Leerstand + Mietgarantie**. Bei allen anderen Status entfällt die Eingabe.
 
 ### Steuer-Tab
 
 ```
 IST — Laufendes Jahr YYYY
-  Einnahmen (tatsächlich, aus Statushistorie)
-  − Zinsen (ab Darlehensstart in YYYY)
-  − AfA (anteilig ab Besitzübergang / voll in Folgejahren)
+  (Jan–[letzter-abg.-Monat] tatsächlich · [akt. Monat] anteilig · Rest projiziert)
+
+  Einnahmen                              [X.XXX €]
+  − Zinsen (amortisierend, ab Darlehensstart)
+  − AfA (anteilig / voll)
   − Nicht umlagefähige Kosten Wohnung
   − Nicht umlagefähige Kosten Stellplatz
-  − Umlagefähige Kosten Wohnung (nur Leerstandsmonate: X von Y)
-  − Grundsteuer Wohnung (nur Leerstandsmonate)
+  − Umlagefähige Kosten Wohnung          (X,X Monate Leerstand von Y)
+  − Grundsteuer Wohnung                  (X,X Monate Leerstand von Y)
   − Umlagefähige Kosten Stellplatz
   − Grundsteuer Stellplatz
   − Hausverwaltung
+  ─────────────────────────────────────
   = Steuerliches Ergebnis
   × Grenzsteuersatz
   = Steuererstattung Jahr
   ÷ Eigentumsmonate
   = Steuereffekt ∅ monatlich
 
-  ⚠ Hausgeld aufteilen für genaue Berechnung  (falls unvollständig)
+  ⚠ "Für genaue Berechnung Hausgeld aufteilen" (falls unvollständig)
 
-SOLL — Prognose (Vollvermietung)
-  [bestehender Block, unverändert]
+SOLL — Prognose
+  Jahr: [Picker, Standard = nächstes Kalenderjahr, in-memory]
+  [Zurücksetzen auf Einstellungswerte]
+
+  Kaltmiete/Monat:    [Regler, Default = Einstellung]
+  Parkingmiete/Monat: [Regler, Default = Einstellung]
+  Hausgeld gesamt:    [Regler, Default = Einstellung]
+
+  Einnahmen (Vollvermietung, 12 Monate)
+  − Zinsen (amortisierend für gewähltes Jahr)
+  − AfA
+  − Nicht umlagefähige Kosten
+  − Umlagefähige Kosten Stellplatz
+  − Grundsteuer Stellplatz
+  − Hausverwaltung
+  ─────────────────────────────────────
+  = Steuerliches Ergebnis (Prognose)
+  × Grenzsteuersatz
+  = Steuererstattung (Prognose)
+  ÷ 12
+  = Steuereffekt ∅ monatlich (Prognose)
 ```
 
 ### Cashflow-Tab
 
-Tabellenstruktur unverändert. `afterTax` pro Monat verwendet jetzt den Ist-Steuereffekt (jährlicher Durchschnitt ÷ Eigentumsmonate). Kein Per-Monat-Status-Splitting des Steuereffekts.
+Tabellenstruktur unverändert. `afterTax` verwendet den Ist-Steuereffekt des laufenden Jahres (jährlicher Durchschnitt ÷ Eigentumsmonate). Kein Per-Monat-Status-Splitting.
 
 ---
 
@@ -263,76 +383,44 @@ Tabellenstruktur unverändert. `afterTax` pro Monat verwendet jetzt den Ist-Steu
 
 | Zustand | Anzeige |
 |---------|---------|
-| `isHoaUnitSplit = false` | ⚠ Wohnung: Hausgeld aufteilen für genaue steuerliche Berechnung |
-| `isHoaUnitSplit = true` aber Felder unvollständig (recoverable=0 oder rücklage=0) | ⚠ Wohnung: Aufteilung unvollständig |
-| `hasParking && !isHoaParkingSplit` | ⚠ Stellplatz: Hausgeld aufteilen für genaue steuerliche Berechnung |
-| `hasParking && isHoaParkingSplit` aber Felder unvollständig | ⚠ Stellplatz: Aufteilung unvollständig |
-| Jede aktive Warnung | Steuer-Tab zeigt: "Für genaue Ist-Berechnung Hausgeld aufteilen (Einstellungen)" |
+| `isHoaUnitSplit = false` | ⚠ Hausgeld Wohnung aufteilen für genaue steuerliche Berechnung |
+| `isHoaUnitSplit = true`, Felder unvollständig | ⚠ Aufteilung Wohnung unvollständig |
+| `hasParking && !isHoaParkingSplit` | ⚠ Hausgeld Stellplatz aufteilen für genaue steuerliche Berechnung |
+| `hasParking && isHoaParkingSplit`, unvollständig | ⚠ Aufteilung Stellplatz unvollständig |
+| Jede aktive Warnung | Steuer-Tab: "Für genaue Ist-Berechnung Hausgeld aufteilen (Einstellungen)" |
 
-**Fallback-Berechnung bei fehlender Aufteilung:**
+**Validierung Hausgeld-Aufteilung:** `umlagefähig + rücklage ≤ gesamt` — Fehler wenn überschritten, Speichern blockiert.
+
+**Fallback bei fehlender Aufteilung:**
 - Nicht umlagefähig Wohnung = `hoaFeeTotalMonthly - hoaFeeRecoverableMonthly` (enthält Rücklage → leichte Steuerüberoptimierung)
-- Umlagefähig Wohnung = `hoaFeeRecoverableMonthly` (falls > 0, sonst 0)
-- Stellplatz-Kosten = 0 wenn keine Aufteilung
+- Stellplatz-Kosten = 0 wenn `!isHoaParkingSplit`
 
 ---
 
 ## Tests
 
-Bestehende Tests werden aktualisiert auf neue Signatur. Neue Tests:
+Bestehende Tests werden aktualisiert. Neue Tests:
 
+**Steuerberechnung:**
 - `test_annualTaxableIncome_acquisitionYear_prorated`
 - `test_annualTaxableIncome_fullYear_noProration`
 - `test_annualTaxableIncome_mixedStatus_leerstandAndVermietet`
-- `test_interestMonths_loanStartedPriorYear`
-- `test_interestMonths_loanStartedCurrentYear`
-- `test_ownerBorneRecoverable_vermietet_parkingAlwaysIncluded`
-- `test_ownerBorneRecoverable_leerstand_unitAndParkingIncluded`
+- `test_annualTaxableIncome_loanStartedPriorYear_correctInterestMonths`
 - `test_taxEffectMonthly_divisorIsOwnershipMonths`
 
----
+**Zinsen:**
+- `test_interestForMonth_amortizing_correctDecline`
+- `test_interestForMonth_loanStartedPriorYear`
+- `test_interestForMonth_loanStartedCurrentYear`
 
-## Einnahmenlogik je Status
+**Tagesproration:**
+- `test_incomeForMonth_midMonthStatusChange`
+- `test_costs_midMonthProration_leerstandToVermietet`
+- `test_ownerBorneRecoverable_vermietet_parkingAlwaysIncluded`
+- `test_ownerBorneRecoverable_leerstand_unitAndParkingIncluded`
 
-| Status | Einnahme kommt von |
-|--------|-------------------|
-| Vermietet | `coldRentMonthly + parkingRentMonthly` aus Einstellungen (automatisch) |
-| Leerstand + Mietgarantie | Betrag aus `StatusEntry.incomeActualMonthly` (manuell beim Anlegen) |
-| Leerstand | 0 (automatisch) |
-| Eigennutzung | 0 (automatisch) |
-| Renovierung | 0 (automatisch) |
-
-`StatusEntry.incomeActualMonthly` wird nur noch für Mietgarantie-Einträge genutzt. Bei allen anderen Status wird das Feld ignoriert und die Einnahme automatisch abgeleitet.
-
----
-
-## Mid-Month Status-Wechsel (Tagesgenau)
-
-Wenn zwei StatusEntries in denselben Monat fallen (z.B. Mietgarantie bis 15. Juni, Vermietet ab 16. Juni), wird die Einnahme **tagesgenau anteilig** berechnet:
-
-```
-Für jeden StatusEntry-Abschnitt im Monat:
-  anteil = anzahlTageInDiesemAbschnitt / gesamtTageImMonat
-  einnahme += statusEinnahme × anteil
-```
-
-Beispiel Juni (30 Tage):
-```
-Mietgarantie 1.-15. (15 Tage): 999 × 15/30 = 499,50 €
-Vermietet   16.-30. (15 Tage): 999 × 15/30 = 479,50 €  (959 Kaltmiete × 15/30)
-Gesamt Juni:                                  979,00 €
-```
-
-Diese Logik gilt auch für die Kostenberechnung (umlagefähige Kosten, Grundsteuer) und die Steuerberechnung (Leerstandstage vs. Vermietungstage).
-
----
-
-## Prognose-Parametrisierung
-
-- **Basis**: aktuelle Einstellungswerte der Immobilie (Kaltmiete, Hausgeld, Kosten, Zinsen etc.)
-- **Anpassung**: Regler / Eingabefelder direkt in der Prognose-Ansicht (nicht in den Einstellungen)
-- **Speicherung**: In-Memory — Änderungen bleiben in der App-Session erhalten aber werden **nicht** in die Datenbank geschrieben
-- **Zurücksetzen**: Button "Zurücksetzen" stellt alle Prognose-Parameter auf die aktuellen Einstellungswerte zurück
-- **Anpassbare Parameter**: mindestens Kaltmiete, Parkingmiete, Hausgeld (erweiterbar)
+**Hybrid-Berechnung:**
+- `test_currentMonthSplit_pastDaysActual_futureDaysProjected`
 
 ---
 
