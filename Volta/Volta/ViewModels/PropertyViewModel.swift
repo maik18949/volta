@@ -54,28 +54,40 @@ class PropertyViewModel {
 
     // MARK: - Kosten
 
-    var hoaFeeNonRecoverableMonthly: Double {
-        property.hoaFeeTotalMonthly - property.hoaFeeRecoverableMonthly
-    }
-
     var propertyTaxMonthly: Double { property.propertyTaxAnnual / 12.0 }
+    var propertyTaxUnitMonthly: Double { property.propertyTaxAnnual / 12.0 }
+    var propertyTaxParkingMonthly: Double { property.parkingPropertyTaxAnnual / 12.0 }
 
     var propertyManagementMonthly: Double { property.propertyManagementAnnual / 12.0 }
-
     var propertyInsuranceMonthly: Double { property.propertyInsuranceAnnual / 12.0 }
 
-    var operatingCostsNonRecoverableMonthly: Double {
-        KPICalculator.operatingCostsNonRecoverableMonthly(
-            hoaFeeNonRecoverable: hoaFeeNonRecoverableMonthly,
-            maintenanceReserve: property.maintenanceReserveMonthly,
-            propertyManagementMonthly: propertyManagementMonthly,
-            otherCostsMonthly: property.otherCostsMonthly
-        )
+    // Hausgeld Wohnung — nicht umlagefähig für Steuer (ohne Instandhaltungsrücklage)
+    var hoaFeeNonRecoverableUnitMonthly: Double {
+        property.isHoaUnitSplit
+            ? property.hoaFeeTotalMonthly - property.hoaFeeRecoverableMonthly - property.hoaFeeMaintenanceReserveUnitMonthly
+            : property.hoaFeeTotalMonthly - property.hoaFeeRecoverableMonthly
     }
 
-    var operatingCostsNonRecoverableYearly: Double {
-        operatingCostsNonRecoverableMonthly * 12.0
+    // Hausgeld Stellplatz — nicht umlagefähig für Steuer
+    var hoaFeeNonRecoverableParkingMonthly: Double {
+        property.isHoaParkingSplit
+            ? property.hoaFeeParkingTotalMonthly - property.hoaFeeParkingRecoverableMonthly - property.hoaFeeParkingMaintenanceReserveMonthly
+            : property.hoaFeeParkingTotalMonthly
     }
+
+    // Cashflow-Kosten nicht umlagefähig (inkl. Rücklage — echter Geldabfluss)
+    var operatingCostsNonRecoverableMonthly: Double {
+        let hoaUnit = property.isHoaUnitSplit
+            ? hoaFeeNonRecoverableUnitMonthly + property.hoaFeeMaintenanceReserveUnitMonthly
+            : property.hoaFeeTotalMonthly - property.hoaFeeRecoverableMonthly
+        let hoaParking = property.isHoaParkingSplit
+            ? hoaFeeNonRecoverableParkingMonthly + property.hoaFeeParkingMaintenanceReserveMonthly
+            : property.hoaFeeParkingTotalMonthly
+        return hoaUnit + hoaParking + propertyManagementMonthly
+            + property.maintenanceReserveMonthly + property.otherCostsMonthly
+    }
+
+    var operatingCostsNonRecoverableYearly: Double { operatingCostsNonRecoverableMonthly * 12.0 }
 
     var operatingCostsRecoverableMonthly: Double {
         KPICalculator.operatingCostsRecoverableMonthly(
@@ -129,12 +141,55 @@ class PropertyViewModel {
         DepreciationCalculator.depreciationMonthly(afaBasis: afaBasis, rate: property.depreciationRate)
     }
 
-    // NOTE: These are temporary stubs — replaced in Task 7 ViewModel rewire
-    var taxableIncomeVV: Double { 0 }
-
-    var taxEffectMonthly: Double {
-        TaxCalculator.taxEffectMonthly(taxEffectYearly: 0, ownershipMonths: 12)
+    var ownershipMonthsCurrentYear: Int {
+        let year = Calendar.current.component(.year, from: Date())
+        let transferYear = property.economicTransferDate.year
+        if year > transferYear { return 12 }
+        if year < transferYear { return 0 }
+        return 13 - property.economicTransferDate.month
     }
+
+    var annualTaxableIncomeCurrentYear: Double {
+        TaxCalculator.annualTaxableIncome(
+            year: Calendar.current.component(.year, from: Date()),
+            statusHistory: property.statusHistory,
+            economicTransferDate: property.economicTransferDate,
+            loanStartDate: property.loanStartDate,
+            loanAmount: property.loanAmount,
+            interestRate: property.interestRate,
+            monthlyPayment: monthlyMortgage,
+            afaBasis: afaBasis,
+            depreciationRate: property.depreciationRate,
+            hoaUnitNonRecoverableMonthly: hoaFeeNonRecoverableUnitMonthly,
+            hoaUnitRecoverableMonthly: property.hoaFeeRecoverableMonthly,
+            hoaParkingNonRecoverableMonthly: hoaFeeNonRecoverableParkingMonthly,
+            hoaParkingRecoverableMonthly: property.hoaFeeParkingRecoverableMonthly,
+            propertyTaxUnitMonthly: propertyTaxUnitMonthly,
+            propertyTaxParkingMonthly: propertyTaxParkingMonthly,
+            propertyManagementMonthly: propertyManagementMonthly,
+            otherCostsMonthly: property.otherCostsMonthly,
+            coldRentMonthly: property.coldRentMonthly,
+            parkingRentMonthly: property.parkingRentMonthly
+        )
+    }
+
+    var taxEffectYearlyCurrentYear: Double {
+        TaxCalculator.taxEffectYearly(
+            taxableIncomeVV: annualTaxableIncomeCurrentYear,
+            marginalTaxRate: property.marginalTaxRate
+        )
+    }
+
+    var taxEffectMonthlyCurrentYear: Double {
+        TaxCalculator.taxEffectMonthly(
+            taxEffectYearly: taxEffectYearlyCurrentYear,
+            ownershipMonths: ownershipMonthsCurrentYear
+        )
+    }
+
+    // Keep old name for views still referencing it (TaxTab stub; replaced in Task 10)
+    var taxableIncomeVV: Double { annualTaxableIncomeCurrentYear }
+    var taxEffectMonthly: Double { taxEffectMonthlyCurrentYear }
 
     var interestCurrentYear: Double {
         AmortizationCalculator.interestForCalendarYear(
@@ -143,6 +198,77 @@ class PropertyViewModel {
             loanAmount: property.loanAmount,
             interestRate: property.interestRate,
             monthlyPayment: monthlyMortgage
+        )
+    }
+
+    var afaCurrentYear: Double {
+        let year = Calendar.current.component(.year, from: Date())
+        let months = ownershipMonthsCurrentYear
+        if year == property.economicTransferDate.year {
+            return (afaBasis * property.depreciationRate / 12.0) * Double(months)
+        }
+        return afaBasis * property.depreciationRate
+    }
+
+    var annualIncomeCurrentYear: Double {
+        let year = Calendar.current.component(.year, from: Date())
+        return (1...12).reduce(0.0) { sum, month in
+            let d = Date.firstDay(year: year, month: month)
+            guard StatusPeriodCalculator.ownershipDayFraction(
+                month: d, economicTransferDate: property.economicTransferDate) > 0 else { return sum }
+            return sum + StatusPeriodCalculator.incomeForMonth(
+                d, statusHistory: property.statusHistory, today: Date(),
+                coldRentMonthly: property.coldRentMonthly,
+                parkingRentMonthly: property.parkingRentMonthly)
+        }
+    }
+
+    var recoverableUnitLeerstandDeductionCurrentYear: Double {
+        let year = Calendar.current.component(.year, from: Date())
+        return (1...12).reduce(0.0) { sum, month in
+            let d = Date.firstDay(year: year, month: month)
+            let ownerFraction = StatusPeriodCalculator.ownershipDayFraction(
+                month: d, economicTransferDate: property.economicTransferDate)
+            guard ownerFraction > 0 else { return sum }
+            let leerstand = StatusPeriodCalculator.leerstandDayFraction(
+                month: d, statusHistory: property.statusHistory, today: Date())
+            return sum + property.hoaFeeRecoverableMonthly * ownerFraction * leerstand
+        }
+    }
+
+    var grundsteuerUnitLeerstandDeductionCurrentYear: Double {
+        let year = Calendar.current.component(.year, from: Date())
+        return (1...12).reduce(0.0) { sum, month in
+            let d = Date.firstDay(year: year, month: month)
+            let ownerFraction = StatusPeriodCalculator.ownershipDayFraction(
+                month: d, economicTransferDate: property.economicTransferDate)
+            guard ownerFraction > 0 else { return sum }
+            let leerstand = StatusPeriodCalculator.leerstandDayFraction(
+                month: d, statusHistory: property.statusHistory, today: Date())
+            return sum + propertyTaxUnitMonthly * ownerFraction * leerstand
+        }
+    }
+
+    func prognoseTaxableIncome(year: Int, coldRent: Double, parkingRent: Double, hoaTotal: Double) -> Double {
+        let hoaNonRecovUnitRatio: Double = property.hoaFeeTotalMonthly > 0
+            ? hoaFeeNonRecoverableUnitMonthly / property.hoaFeeTotalMonthly : 0
+        let progHoaUnit = hoaTotal * hoaNonRecovUnitRatio
+        return TaxCalculator.prognoseAnnualTaxableIncome(
+            year: year,
+            loanStartDate: property.loanStartDate,
+            loanAmount: property.loanAmount,
+            interestRate: property.interestRate,
+            monthlyPayment: monthlyMortgage,
+            afaBasis: afaBasis,
+            depreciationRate: property.depreciationRate,
+            hoaUnitNonRecoverableMonthly: progHoaUnit,
+            hoaParkingNonRecoverableMonthly: hoaFeeNonRecoverableParkingMonthly,
+            hoaParkingRecoverableMonthly: property.hoaFeeParkingRecoverableMonthly,
+            propertyTaxParkingMonthly: propertyTaxParkingMonthly,
+            propertyManagementMonthly: propertyManagementMonthly,
+            otherCostsMonthly: property.otherCostsMonthly,
+            coldRentMonthly: coldRent,
+            parkingRentMonthly: parkingRent
         )
     }
 
@@ -167,7 +293,7 @@ class PropertyViewModel {
     var cashflowAfterTaxMonthly: Double {
         CashflowCalculator.cashflowAfterTax(
             cashflowBeforeTax: cashflowAfterDebtMonthly,
-            taxEffectMonthly: taxEffectMonthly
+            taxEffectMonthly: taxEffectMonthlyCurrentYear
         )
     }
 
@@ -239,24 +365,33 @@ class PropertyViewModel {
     var currentStatus: StatusEntry? { activeStatus(for: Date()) }
 
     func cashflowActual(for month: Date) -> (beforeTax: Double, afterTax: Double)? {
-        guard let status = activeStatus(for: month),
-              month.firstDayOfMonth >= property.economicTransferDate.firstDayOfMonth else {
-            return nil
-        }
+        guard month.firstDayOfMonth >= property.economicTransferDate.firstDayOfMonth else { return nil }
+        guard !property.statusHistory.isEmpty else { return nil }
+
+        let income = StatusPeriodCalculator.incomeForMonth(
+            month, statusHistory: property.statusHistory, today: Date(),
+            coldRentMonthly: property.coldRentMonthly,
+            parkingRentMonthly: property.parkingRentMonthly)
+
+        let activeEntry = property.statusHistory
+            .sorted { $0.statusFrom < $1.statusFrom }
+            .last { $0.statusFrom.firstDayOfMonth <= month.firstDayOfMonth }
+
         let ownerRecoverable = CashflowCalculator.ownerBorneRecoverableCosts(
-            status: status.status,
+            status: activeEntry?.status ?? .leerstand,
             hoaUnitRecoverableMonthly: property.hoaFeeRecoverableMonthly,
             hoaParkingRecoverableMonthly: property.hoaFeeParkingRecoverableMonthly,
-            propertyTaxUnitMonthly: propertyTaxMonthly,
-            propertyTaxParkingMonthly: property.parkingPropertyTaxAnnual / 12.0
+            propertyTaxUnitMonthly: propertyTaxUnitMonthly,
+            propertyTaxParkingMonthly: propertyTaxParkingMonthly
         )
+
         let monthStart = month.firstDayOfMonth
         let extraordinary = property.extraordinaryCosts
             .filter { $0.costMonth.firstDayOfMonth == monthStart }
             .reduce(0) { $0 + $1.amount }
 
         let beforeTax = CashflowCalculator.cashflowBeforeTax(
-            incomeActualMonthly: status.incomeActualMonthly,
+            incomeActualMonthly: income,
             monthlyMortgage: monthlyMortgage,
             operatingCostsNonRecoverableMonthly: operatingCostsNonRecoverableMonthly,
             ownerBorneRecoverableMonthly: ownerRecoverable,
@@ -264,7 +399,7 @@ class PropertyViewModel {
         )
         let afterTax = CashflowCalculator.cashflowAfterTax(
             cashflowBeforeTax: beforeTax,
-            taxEffectMonthly: taxEffectMonthly
+            taxEffectMonthly: taxEffectMonthlyCurrentYear
         )
         return (beforeTax, afterTax)
     }
