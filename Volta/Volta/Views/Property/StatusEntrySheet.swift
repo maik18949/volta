@@ -15,7 +15,7 @@ struct StatusEntrySheet: View {
 
     private var isEditing: Bool { entry != nil }
     private var title: String { isEditing ? "Status bearbeiten" : "Status hinzufügen" }
-    private var canSave: Bool { !status.hasIncome || incomeActualMonthly > 0 }
+    private var canSave: Bool { status != .leerstandMietgarantie || incomeActualMonthly > 0 }
 
     init(property: Property, entry: StatusEntry? = nil) {
         self.property = property
@@ -72,8 +72,8 @@ struct StatusEntrySheet: View {
                 .frame(width: 260)
             }
 
-            if status.hasIncome {
-                CurrencyField(label: "Einnahmen/Monat *", value: $incomeActualMonthly, isRequired: true)
+            if status == .leerstandMietgarantie {
+                CurrencyField(label: "Mietgarantie-Betrag/Monat *", value: $incomeActualMonthly, isRequired: true)
                     .padding(.vertical, 4)
                     .background(Color.appCardBackground)
                     .clipShape(RoundedRectangle(cornerRadius: 8))
@@ -102,7 +102,7 @@ struct StatusEntrySheet: View {
     }
 
     private func save() {
-        let income = status.hasIncome ? incomeActualMonthly : 0.0
+        let income = status == .leerstandMietgarantie ? incomeActualMonthly : 0.0
         if let entry {
             entry.statusFrom = statusFrom
             entry.status = status
