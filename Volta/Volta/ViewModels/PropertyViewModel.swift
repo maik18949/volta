@@ -245,9 +245,10 @@ class PropertyViewModel {
         }
         let ownerRecoverable = CashflowCalculator.ownerBorneRecoverableCosts(
             status: status.status,
-            hoaFeeRecoverableMonthly: property.hoaFeeRecoverableMonthly,
-            propertyTaxMonthly: propertyTaxMonthly,
-            propertyInsuranceMonthly: propertyInsuranceMonthly
+            hoaUnitRecoverableMonthly: property.hoaFeeRecoverableMonthly,
+            hoaParkingRecoverableMonthly: property.hoaFeeParkingRecoverableMonthly,
+            propertyTaxUnitMonthly: propertyTaxMonthly,
+            propertyTaxParkingMonthly: property.parkingPropertyTaxAnnual / 12.0
         )
         let monthStart = month.firstDayOfMonth
         let extraordinary = property.extraordinaryCosts

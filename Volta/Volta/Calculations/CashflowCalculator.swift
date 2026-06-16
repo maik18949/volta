@@ -2,20 +2,21 @@ import Foundation
 
 enum CashflowCalculator {
 
-    /// Umlagefähige Kosten die der Eigentümer trägt, abhängig vom Status.
-    /// Bei Vermietung zahlt der Mieter — Eigentümer trägt 0.
-    /// Bei Leerstand/Eigennutzung/Renovierung trägt der Eigentümer die vollen umlagefähigen Kosten.
+    /// Umlagefähige Kosten die der Eigentümer trägt.
+    /// WE-Kosten: nur bei Nicht-Vermietung. Stellplatz-Kosten: immer.
     static func ownerBorneRecoverableCosts(
         status: PropertyStatus,
-        hoaFeeRecoverableMonthly: Double,
-        propertyTaxMonthly: Double,
-        propertyInsuranceMonthly: Double
+        hoaUnitRecoverableMonthly: Double,
+        hoaParkingRecoverableMonthly: Double,
+        propertyTaxUnitMonthly: Double,
+        propertyTaxParkingMonthly: Double
     ) -> Double {
+        let parkingPart = hoaParkingRecoverableMonthly + propertyTaxParkingMonthly
         switch status {
         case .vermietet:
-            return 0.0
-        case .leerstandMietgarantie, .leerstand, .eigennutzung, .renovierung:
-            return hoaFeeRecoverableMonthly + propertyTaxMonthly + propertyInsuranceMonthly
+            return parkingPart
+        default:
+            return hoaUnitRecoverableMonthly + propertyTaxUnitMonthly + parkingPart
         }
     }
 
