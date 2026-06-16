@@ -48,6 +48,34 @@ enum AmortizationCalculator {
         return loanAmount * factor - monthlyPayment * (factor - 1.0) / r
     }
 
+    /// Total interest paid within a calendar year, using the amortization schedule.
+    /// Only counts months that fall within `year`. Months before loanStartDate are excluded.
+    static func interestForCalendarYear(
+        year: Int,
+        loanStartDate: Date,
+        loanAmount: Double,
+        interestRate: Double,
+        monthlyPayment: Double
+    ) -> Double {
+        guard loanAmount > 0, interestRate > 0, monthlyPayment > 0 else { return 0 }
+        guard loanStartDate.year <= year else { return 0 }
+
+        let yearEnd = Date.firstDay(year: year, month: 12, day: 31)
+        guard let totalMonths = loanStartDate.monthsBetween(yearEnd), totalMonths > 0 else { return 0 }
+
+        let schedule = amortizationSchedule(
+            loanAmount: loanAmount,
+            interestRate: interestRate,
+            monthlyPayment: monthlyPayment,
+            loanStartDate: loanStartDate,
+            months: totalMonths + 1
+        )
+
+        return schedule
+            .filter { $0.date.year == year }
+            .reduce(0.0) { $0 + $1.interest }
+    }
+
     /// Tilgungsplan als Array von AnnuityRow, beginnend ab loanStartDate.
     static func amortizationSchedule(
         loanAmount: Double,

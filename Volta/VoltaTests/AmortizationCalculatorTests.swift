@@ -88,4 +88,37 @@ final class AmortizationCalculatorTests: XCTestCase {
             XCTAssertEqual(row.interest + row.principal, row.payment, accuracy: 0.01)
         }
     }
+
+    func test_interestForCalendarYear_2025_threeMonths() {
+        let result = AmortizationCalculator.interestForCalendarYear(
+            year: 2025,
+            loanStartDate: TestFixtures.loanStartDate,    // Oct 1 2025
+            loanAmount: TestFixtures.loanAmount,          // 230000
+            interestRate: TestFixtures.interestRate,      // 0.043
+            monthlyPayment: TestFixtures.monthlyMortgageActual  // 1242.85
+        )
+        XCTAssertEqual(result, 2467.99, accuracy: 1.0)
+    }
+
+    func test_interestForCalendarYear_2026_fullYear() {
+        let result = AmortizationCalculator.interestForCalendarYear(
+            year: 2026,
+            loanStartDate: TestFixtures.loanStartDate,
+            loanAmount: TestFixtures.loanAmount,
+            interestRate: TestFixtures.interestRate,
+            monthlyPayment: TestFixtures.monthlyMortgageActual
+        )
+        XCTAssertEqual(result, 9734.81, accuracy: 1.0)
+    }
+
+    func test_interestForCalendarYear_beforeLoanStart_isZero() {
+        let result = AmortizationCalculator.interestForCalendarYear(
+            year: 2024,
+            loanStartDate: TestFixtures.loanStartDate,
+            loanAmount: TestFixtures.loanAmount,
+            interestRate: TestFixtures.interestRate,
+            monthlyPayment: TestFixtures.monthlyMortgageActual
+        )
+        XCTAssertEqual(result, 0.0, accuracy: 0.01)
+    }
 }
