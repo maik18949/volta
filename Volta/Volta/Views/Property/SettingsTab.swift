@@ -82,8 +82,27 @@ struct SettingsTab: View {
 
     private var kaufSection: some View {
         formSection(title: "Kauf & Nebenkosten") {
-            CurrencyField(label: "Kaufpreis Wohnung *", value: $property.purchasePriceUnit, isRequired: true)
-            CurrencyField(label: "Kaufpreis Stellplatz", value: $property.purchasePriceParking)
+            if property.hasParking {
+                CurrencyField(label: "Kaufpreis Wohnung *", value: $property.purchasePriceUnit, isRequired: true)
+                CurrencyField(label: "Kaufpreis Stellplatz *", value: $property.purchasePriceParking, isRequired: true)
+                labeledField("Gesamtkaufpreis") {
+                    Text(Formatters.formatCurrency(property.purchasePriceUnit + property.purchasePriceParking))
+                        .font(.appMono).foregroundStyle(Color.appSecondaryText)
+                }
+            } else {
+                CurrencyField(label: "Kaufpreis *", value: $property.purchasePriceUnit, isRequired: true)
+            }
+            labeledField("Stellplatz vorhanden") {
+                Toggle("", isOn: $property.hasParking)
+                    .labelsHidden()
+                    .onChange(of: property.hasParking) { _, newValue in
+                        if !newValue {
+                            property.purchasePriceParking = 0
+                            property.hoaFeeParkingTotalMonthly = 0
+                            property.parkingPropertyTaxAnnual = 0
+                        }
+                    }
+            }
             CurrencyField(label: "Grunderwerbsteuer", value: $property.landTransferTax)
             CurrencyField(label: "Notarkosten", value: $property.notaryCosts)
             CurrencyField(label: "Grundbuchkosten", value: $property.landRegistryCosts)
@@ -110,14 +129,67 @@ struct SettingsTab: View {
 
     private var kostenSection: some View {
         formSection(title: "Laufende Kosten") {
-            CurrencyField(label: "Hausgeld gesamt/Monat *", value: $property.hoaFeeTotalMonthly, isRequired: true)
-            CurrencyField(label: "davon umlagefähig/Monat *", value: $property.hoaFeeRecoverableMonthly, isRequired: true)
-            CurrencyField(label: "Grundsteuer/Jahr *", value: $property.propertyTaxAnnual, isRequired: true)
+            // -- Hausgeld Wohnung --
+            CurrencyField(label: "Hausgeld Wohnung/Monat *", value: $property.hoaFeeTotalMonthly, isRequired: true)
+            labeledField("Hausgeld aufteilen") {
+                Toggle("", isOn: $property.isHoaUnitSplit).labelsHidden()
+            }
+            if property.isHoaUnitSplit {
+                CurrencyField(label: "  davon umlagefähig/Monat", value: $property.hoaFeeRecoverableMonthly)
+                CurrencyField(label: "  davon Instandh.-Rücklage/Monat", value: $property.hoaFeeMaintenanceReserveUnitMonthly)
+                labeledField("  davon nicht umlagefähig/Monat") {
+                    let nonRec = property.hoaFeeTotalMonthly - property.hoaFeeRecoverableMonthly - property.hoaFeeMaintenanceReserveUnitMonthly
+                    Text(Formatters.formatCurrency(max(0, nonRec)))
+                        .font(.appMono)
+                        .foregroundStyle(nonRec < 0 ? Color.appNegative : Color.appSecondaryText)
+                }
+            } else {
+                CurrencyField(label: "davon umlagefähig/Monat", value: $property.hoaFeeRecoverableMonthly)
+                hoaWarningRow("Hausgeld Wohnung aufteilen für genaue steuerliche Berechnung")
+            }
+
+            // -- Hausgeld Stellplatz --
+            if property.hasParking {
+                Divider().padding(.leading, 12)
+                CurrencyField(label: "Hausgeld Stellplatz/Monat", value: $property.hoaFeeParkingTotalMonthly)
+                if property.hoaFeeParkingTotalMonthly > 0 {
+                    labeledField("Stellplatz Hausgeld aufteilen") {
+                        Toggle("", isOn: $property.isHoaParkingSplit).labelsHidden()
+                    }
+                    if property.isHoaParkingSplit {
+                        CurrencyField(label: "  davon umlagefähig/Monat", value: $property.hoaFeeParkingRecoverableMonthly)
+                        CurrencyField(label: "  davon Rücklage/Monat", value: $property.hoaFeeParkingMaintenanceReserveMonthly)
+                    } else {
+                        hoaWarningRow("Stellplatz Hausgeld aufteilen für genaue Berechnung")
+                    }
+                }
+            }
+
+            // -- Grundsteuer --
+            Divider().padding(.leading, 12)
+            CurrencyField(label: "Grundsteuer Wohnung/Jahr *", value: $property.propertyTaxAnnual, isRequired: true)
+            if property.hasParking {
+                CurrencyField(label: "Grundsteuer Stellplatz/Jahr", value: $property.parkingPropertyTaxAnnual)
+            }
+
+            // -- Sonstige --
+            Divider().padding(.leading, 12)
             CurrencyField(label: "Hausverwaltung/Jahr", value: $property.propertyManagementAnnual)
-            CurrencyField(label: "Instandhaltungsrücklage/Monat", value: $property.maintenanceReserveMonthly)
+            CurrencyField(label: "Instandh.-Rücklage extern/Monat", value: $property.maintenanceReserveMonthly)
             CurrencyField(label: "Gebäudeversicherung/Jahr", value: $property.propertyInsuranceAnnual)
             CurrencyField(label: "Sonstige Kosten/Monat", value: $property.otherCostsMonthly)
         }
+    }
+
+    @ViewBuilder
+    private func hoaWarningRow(_ message: String) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: "exclamationmark.circle")
+                .font(.caption).foregroundStyle(Color(hex: "#D97706"))
+            Text(message)
+                .font(.appCaption).foregroundStyle(Color(hex: "#D97706"))
+        }
+        .padding(.horizontal, 12).padding(.vertical, 6)
     }
 
     private var finanzierungSection: some View {
@@ -151,9 +223,14 @@ struct SettingsTab: View {
         }
     }
 
+    private var hoaUnitSplitInvalid: Bool {
+        property.isHoaUnitSplit &&
+        (property.hoaFeeRecoverableMonthly + property.hoaFeeMaintenanceReserveUnitMonthly) > property.hoaFeeTotalMonthly
+    }
+
     @ViewBuilder
     private var warningsSection: some View {
-        if showLandBuildingWarning || showHighLTVWarning {
+        if showLandBuildingWarning || showHighLTVWarning || hoaUnitSplitInvalid {
             VStack(alignment: .leading, spacing: 8) {
                 SectionHeader(title: "Hinweise")
                 if showLandBuildingWarning {
@@ -161,6 +238,9 @@ struct SettingsTab: View {
                 }
                 if showHighLTVWarning {
                     warningRow("Darlehensbetrag übersteigt den Kaufpreis (Vollfinanzierung inkl. Nebenkosten). Bitte prüfen.")
+                }
+                if hoaUnitSplitInvalid {
+                    warningRow("Umlagefähig + Rücklage übersteigt das Hausgeld Wohnung. Bitte Aufteilung prüfen.")
                 }
             }
         }
