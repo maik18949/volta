@@ -146,9 +146,17 @@ struct CashflowTab: View {
                 .font(.appCaption)
                 .foregroundStyle(Color.appSecondaryText)
             Spacer()
-            Text(Formatters.formatCurrency(entry.incomeActualMonthly) + "/Mon")
-                .font(.appMono)
-                .foregroundStyle(Color.appPrimaryText)
+            Group {
+                switch entry.status {
+                case .vermietet:
+                    Text("Aus Einstellungen").font(.appCaption).foregroundStyle(Color.appSecondaryText)
+                case .leerstandMietgarantie:
+                    Text(Formatters.formatCurrency(entry.incomeActualMonthly) + "/Mon")
+                        .font(.appMono).foregroundStyle(Color.appPrimaryText)
+                default:
+                    Text("0 €/Mon").font(.appCaption).foregroundStyle(Color.appSecondaryText)
+                }
+            }
             if let notes = entry.notes, !notes.isEmpty {
                 Text(notes)
                     .font(.appCaption)
