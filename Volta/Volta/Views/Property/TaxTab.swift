@@ -64,7 +64,7 @@ struct TaxTab: View {
                        value: "−" + Formatters.formatCurrency(vm.operatingCostsNonRecoverableYearly),
                        valueColor: .appNegative)
                 taxRow(label: "− Zinsen",
-                       value: "−" + Formatters.formatCurrency(vm.interestAnnual),
+                       value: "−" + Formatters.formatCurrency(vm.interestCurrentYear),
                        valueColor: .appNegative)
                 taxRow(label: "− AfA",
                        value: "−" + Formatters.formatCurrency(vm.depreciationYearly),

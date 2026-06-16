@@ -36,7 +36,7 @@ struct FinancingTab: View {
                 KPICard(label: "Zinssatz", value: Formatters.formatPercentOneDecimal(vm.property.interestRate), width: 140)
                 KPICard(label: "Tilgungssatz", value: Formatters.formatPercentOneDecimal(vm.property.amortizationRate), width: 140)
                 KPICard(label: "Monatliche Rate", value: Formatters.formatCurrency(vm.monthlyMortgage), width: 160)
-                KPICard(label: "Zinsen / Jahr", value: Formatters.formatCurrencyRounded(vm.interestAnnual), width: 160)
+                KPICard(label: "Zinsen / Jahr", value: Formatters.formatCurrencyRounded(vm.interestCurrentYear), width: 160)
                 KPICard(label: "Zinsbindungsende",
                         value: Calendar.current.date(
                             byAdding: .year, value: vm.property.fixedInterestPeriodYears,

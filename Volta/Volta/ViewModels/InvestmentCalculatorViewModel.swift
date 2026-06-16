@@ -85,7 +85,7 @@ class InvestmentCalculatorViewModel {
     var debtServiceAnnual: Double { monthlyMortgage * 12 }
 
     var interestAnnual: Double {
-        TaxCalculator.interestAnnual(loanAmount: calculation.loanAmount, interestRate: effectiveInterestRate)
+        calculation.loanAmount * effectiveInterestRate
     }
 
     var operatingCostsNonRecoverableMonthly: Double {
@@ -128,19 +128,16 @@ class InvestmentCalculatorViewModel {
     }
 
     var taxableIncomeVV: Double {
-        TaxCalculator.taxableIncomeVV(
-            effectiveGrossIncomeYearly: effectiveGrossIncomeYearly,
-            operatingCostsNonRecoverableYearly: operatingCostsNonRecoverableYearly,
-            interestAnnual: interestAnnual,
-            depreciationYearly: depreciationYearly
-        )
+        effectiveGrossIncomeYearly
+            - operatingCostsNonRecoverableYearly
+            - interestAnnual
+            - depreciationYearly
     }
 
     var taxEffectMonthly: Double {
-        TaxCalculator.taxEffectMonthly(
-            taxableIncomeVV: taxableIncomeVV,
-            marginalTaxRate: calculation.marginalTaxRate
-        )
+        let yearly = TaxCalculator.taxEffectYearly(
+            taxableIncomeVV: taxableIncomeVV, marginalTaxRate: calculation.marginalTaxRate)
+        return TaxCalculator.taxEffectMonthly(taxEffectYearly: yearly, ownershipMonths: 12)
     }
 
     var cashflowAfterTaxMonthly: Double {

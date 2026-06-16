@@ -110,11 +110,6 @@ class PropertyViewModel {
         )
     }
 
-    // Uses current remaining debt as basis — a closer approximation than original loan amount for established properties.
-    var interestAnnual: Double {
-        TaxCalculator.interestAnnual(loanAmount: remainingDebtNow, interestRate: property.interestRate)
-    }
-
     // MARK: - AfA & Steuer
 
     var afaBasis: Double {
@@ -134,19 +129,20 @@ class PropertyViewModel {
         DepreciationCalculator.depreciationMonthly(afaBasis: afaBasis, rate: property.depreciationRate)
     }
 
-    var taxableIncomeVV: Double {
-        TaxCalculator.taxableIncomeVV(
-            effectiveGrossIncomeYearly: effectiveGrossIncomeYearly,
-            operatingCostsNonRecoverableYearly: operatingCostsNonRecoverableYearly,
-            interestAnnual: interestAnnual,
-            depreciationYearly: depreciationYearly
-        )
-    }
+    // NOTE: These are temporary stubs — replaced in Task 7 ViewModel rewire
+    var taxableIncomeVV: Double { 0 }
 
     var taxEffectMonthly: Double {
-        TaxCalculator.taxEffectMonthly(
-            taxableIncomeVV: taxableIncomeVV,
-            marginalTaxRate: property.marginalTaxRate
+        TaxCalculator.taxEffectMonthly(taxEffectYearly: 0, ownershipMonths: 12)
+    }
+
+    var interestCurrentYear: Double {
+        AmortizationCalculator.interestForCalendarYear(
+            year: Calendar.current.component(.year, from: Date()),
+            loanStartDate: property.loanStartDate,
+            loanAmount: property.loanAmount,
+            interestRate: property.interestRate,
+            monthlyPayment: monthlyMortgage
         )
     }
 
