@@ -327,55 +327,98 @@ Das Feld `Einnahme/Monat` wird nur angezeigt wenn Status = **Leerstand + Mietgar
 
 ### Steuer-Tab
 
+Zwei Sektionen in einer Glass-Card, getrennt durch blaue Gradient-Linie.
+
 ```
-IST — Laufendes Jahr YYYY
+LAUFENDES JAHR YYYY                                    [Badge: Ist]
   (Jan–[letzter-abg.-Monat] tatsächlich · [akt. Monat] anteilig · Rest projiziert)
 
   Einnahmen                              [X.XXX €]
-  − Zinsen (amortisierend, ab Darlehensstart)
-  − AfA (anteilig / voll)
-  − Nicht umlagefähige Kosten Wohnung
-  − Nicht umlagefähige Kosten Stellplatz
-  − Umlagefähige Kosten Wohnung          (X,X Monate Leerstand von Y)
-  − Grundsteuer Wohnung                  (X,X Monate Leerstand von Y)
-  − Umlagefähige Kosten Stellplatz
-  − Grundsteuer Stellplatz
-  − Hausverwaltung
-  ─────────────────────────────────────
-  = Steuerliches Ergebnis
-  × Grenzsteuersatz
-  = Steuererstattung Jahr
-  ÷ Eigentumsmonate
-  = Steuereffekt ∅ monatlich
+  Zinsen                                 [X.XXX €]   (amortisierend, ab Darlehensstart)
+  AfA                                    [X.XXX €]   (anteilig / voll)
+  Nicht umlagef. Kosten Wohnung          [X.XXX €]
+  Nicht umlagef. Kosten Stellplatz       [X.XXX €]   (nur wenn hasParking)
+  Umlagef. Kosten Wohnung                [X.XXX €]   (× Leerstand-Tagesanteil)
+  Grundsteuer Wohnung                    [X.XXX €]   (× Leerstand-Tagesanteil)
+  Umlagef. Kosten Stellplatz             [X.XXX €]   (immer, nur wenn hasParking)
+  Grundsteuer Stellplatz                 [X.XXX €]   (immer, nur wenn hasParking)
+  Hausverwaltung                         [X.XXX €]
+  ──────────────── Steuerliches Ergebnis ──────────────
+  Steuereffekt / Mon                     [+XXX €]    (fett, grün oder rot)
 
-  ⚠ "Für genaue Berechnung Hausgeld aufteilen" (falls unvollständig)
+━━━━━━━━━━━━━━━ (Blauer Gradient-Divider) ━━━━━━━━━━━━━━━
 
-SOLL — Prognose
-  Jahr: [Picker, Standard = nächstes Kalenderjahr, in-memory]
-  [Zurücksetzen auf Einstellungswerte]
+PROGNOSE                                               [Badge: Prognose]
+  Jahr: [Picker ← → Standard = nächstes Kalenderjahr, in-memory, nicht gespeichert]
 
-  Kaltmiete/Monat:    [Regler, Default = Einstellung]
-  Parkingmiete/Monat: [Regler, Default = Einstellung]
-  Hausgeld gesamt:    [Regler, Default = Einstellung]
-
-  Einnahmen (Vollvermietung, 12 Monate)
-  − Zinsen (amortisierend für gewähltes Jahr)
-  − AfA
-  − Nicht umlagefähige Kosten
-  − Umlagefähige Kosten Stellplatz
-  − Grundsteuer Stellplatz
-  − Hausverwaltung
-  ─────────────────────────────────────
-  = Steuerliches Ergebnis (Prognose)
-  × Grenzsteuersatz
-  = Steuererstattung (Prognose)
-  ÷ 12
-  = Steuereffekt ∅ monatlich (Prognose)
+  Einnahmen                              [X.XXX €]   (Vollvermietung, 12 Monate)
+  Zinsen                                 [X.XXX €]   (amortisierend für gewähltes Jahr)
+  AfA                                    [X.XXX €]
+  Nicht umlagef. Kosten Wohnung          [X.XXX €]
+  Nicht umlagef. Kosten Stellplatz       [X.XXX €]   (nur wenn hasParking)
+  Umlagef. Kosten Stellplatz             [X.XXX €]   (immer, nur wenn hasParking)
+  Grundsteuer Stellplatz                 [X.XXX €]   (immer, nur wenn hasParking)
+  Hausverwaltung                         [X.XXX €]
+  ──────────────── Steuerliches Ergebnis (Prognose) ───
+  Steuereffekt / Mon                     [+XXX €]    (fett, grün oder rot)
 ```
+
+**Wichtig Prognose:**
+- Keine Regler/Slider — alle Werte kommen direkt aus den Einstellungen
+- Jahr-Picker ist in-memory only (kein Speichern, kein Reset-Button nötig)
+- Nimmt Vollvermietung an (12 Monate, kein Leerstand-Abzug für WE)
+- Werte ändern sich automatisch wenn Einstellungen geändert werden
+
+⚠ "Für genaue Berechnung Hausgeld aufteilen (→ Einstellungen)" wenn Aufteilung fehlt
+
+---
 
 ### Cashflow-Tab
 
-Tabellenstruktur unverändert. `afterTax` verwendet den Ist-Steuereffekt des laufenden Jahres (jährlicher Durchschnitt ÷ Eigentumsmonate). Kein Per-Monat-Status-Splitting.
+Zwei Sektionen:
+
+#### 1. Prognose-Monat (kompakte Karte oben)
+
+Zeigt einen typischen Monat im Vermietungs-Zustand (Best-Case-Szenario, Werte aus Einstellungen):
+
+```
+Cashflow nach Steuer: [−24 € / Mon]    (groß, 22px, fett)
+Vor Steuer: [−424 €]    Steuereffekt: [+399 €]    (rechts, kleiner)
+```
+
+#### 2. Monatliche Übersicht (vollständige Tabelle)
+
+Horizontale Tabelle: Positionen als Zeilen, Monate als Spalten. **Kein horizontaler Scroll** — alle Spalten passen in die verfügbare Breite. Letzte zwei Spalten: **Ø Monat** und **Total** (separat, nicht kombiniert).
+
+**Spalten:**
+```
+Position | Jan | Feb | ... | Dez | Ø Monat | Total
+```
+
+Spaltenheader zeigt Monat + Status-Tag (z.B. "Feb / Mietgarantie").
+
+**Zeilen (in dieser Reihenfolge):**
+```
+Miete
+Kreditrate
+Nicht umlagef. Kosten (WE & TE)
+Umlagef. Kosten (WE)
+Umlagef. Kosten (TE)
+Verwaltung
+Grundsteuer (WE)
+Grundsteuer (TE)
+Instandhaltungsrücklage (WE + TE)
+──── Zusammenfassung ────            (blauer Trennstrich)
+Cashflow vor Steuern                 (fett)
+Steuererstattung (Ø monatlich)      (blau)
+Cashflow nach Steuern               (fett, rot oder grün)
+```
+
+**Regeln:**
+- Positiv = grün, Negativ = rot, kein Sonder-Hintergrund für statusabhängige Zeilen
+- Stellplatz-Zeilen (TE) nur anzeigen wenn `hasParking = true`
+- Steuererstattung ist der monatliche Durchschnitt aus dem Ist-Steuereffekt des laufenden Jahres (jährlicher Steuereffekt ÷ Eigentumsmonate) — kann je Monat leicht variieren wenn Statuswechsel den Divisor beeinflussen
+- Ø Monat und Total als separate Spalten ganz rechts, leicht blau hinterlegt
 
 ---
 
