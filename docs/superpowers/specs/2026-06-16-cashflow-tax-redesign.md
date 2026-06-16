@@ -291,9 +291,53 @@ Bestehende Tests werden aktualisiert auf neue Signatur. Neue Tests:
 
 ---
 
+## Einnahmenlogik je Status
+
+| Status | Einnahme kommt von |
+|--------|-------------------|
+| Vermietet | `coldRentMonthly + parkingRentMonthly` aus Einstellungen (automatisch) |
+| Leerstand + Mietgarantie | Betrag aus `StatusEntry.incomeActualMonthly` (manuell beim Anlegen) |
+| Leerstand | 0 (automatisch) |
+| Eigennutzung | 0 (automatisch) |
+| Renovierung | 0 (automatisch) |
+
+`StatusEntry.incomeActualMonthly` wird nur noch für Mietgarantie-Einträge genutzt. Bei allen anderen Status wird das Feld ignoriert und die Einnahme automatisch abgeleitet.
+
+---
+
+## Mid-Month Status-Wechsel (Tagesgenau)
+
+Wenn zwei StatusEntries in denselben Monat fallen (z.B. Mietgarantie bis 15. Juni, Vermietet ab 16. Juni), wird die Einnahme **tagesgenau anteilig** berechnet:
+
+```
+Für jeden StatusEntry-Abschnitt im Monat:
+  anteil = anzahlTageInDiesemAbschnitt / gesamtTageImMonat
+  einnahme += statusEinnahme × anteil
+```
+
+Beispiel Juni (30 Tage):
+```
+Mietgarantie 1.-15. (15 Tage): 999 × 15/30 = 499,50 €
+Vermietet   16.-30. (15 Tage): 999 × 15/30 = 479,50 €  (959 Kaltmiete × 15/30)
+Gesamt Juni:                                  979,00 €
+```
+
+Diese Logik gilt auch für die Kostenberechnung (umlagefähige Kosten, Grundsteuer) und die Steuerberechnung (Leerstandstage vs. Vermietungstage).
+
+---
+
+## Prognose-Parametrisierung
+
+- **Basis**: aktuelle Einstellungswerte der Immobilie (Kaltmiete, Hausgeld, Kosten, Zinsen etc.)
+- **Anpassung**: Regler / Eingabefelder direkt in der Prognose-Ansicht (nicht in den Einstellungen)
+- **Speicherung**: In-Memory — Änderungen bleiben in der App-Session erhalten aber werden **nicht** in die Datenbank geschrieben
+- **Zurücksetzen**: Button "Zurücksetzen" stellt alle Prognose-Parameter auf die aktuellen Einstellungswerte zurück
+- **Anpassbare Parameter**: mindestens Kaltmiete, Parkingmiete, Hausgeld (erweiterbar)
+
+---
+
 ## Nicht im Scope
 
 - Eigennutzung steuerlich (kein V+V-Einkommen, eigene Regeln)
 - Immobilienverkauf mid-year
-- Tagesgenauer Status-Wechsel (Monatsgenauigkeit reicht)
 - Mehrere Stellplätze
