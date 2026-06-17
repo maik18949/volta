@@ -5,144 +5,45 @@
 
 ---
 
-## Property — Alle Felder
-
-### Stammdaten
-
-```swift
-var name: String
-var address: String
-var city: String
-var state: String
-var postalCode: String
-var propertyType: PropertyType        // .apartment, .house, ...
-var acquisitionType: AcquisitionType  // .kauf, ...
-var yearBuilt: Int?
-var notes: String
-```
-
-### Objektdaten
-
-```swift
-var livingAreaSqm: Double
-var usableAreaSqm: Double
-var landAreaSqm: Double
-var rooms: Double?
-var bedrooms: Int
-var bathrooms: Int
-var hasBalcony: Bool
-var hasTerrace: Bool
-var hasGarden: Bool
-var hasBasement: Bool
-var hasFittedKitchen: Bool
-var heatingType: HeatingType?
-var energyEfficiencyClass: EnergyClass?
-var condition: PropertyCondition?
-var lastRenovationYear: Int?
-```
-
-### Kauf & Nebenkosten
-
-```swift
-var purchaseDate: Date
-var economicTransferDate: Date          // Besitzübergang — Startpunkt für AfA, Einnahmen, Kosten
-var purchasePriceUnit: Double           // Kaufpreis Wohnung
-var purchasePriceParking: Double        // Kaufpreis Stellplatz (nur wenn hasParking)
-var landTransferTax: Double             // Grunderwerbsteuer
-var notaryCosts: Double
-var landRegistryCosts: Double
-var agentFee: Double                    // Maklerprovision
-var appraisalCosts: Double              // Gutachterkosten
-var renovationModernizationCosts: Double
-var renovationAfaEligible: Double       // davon aktivierungspflichtig (erhöht AfA-Basis)
-```
-
-### Einnahmen (Prognose / Einstellungen)
-
-```swift
-var coldRentMonthly: Double             // Kaltmiete Wohnung
-var parkingRentMonthly: Double          // Parkingmiete (nur wenn hasParking)
-var otherIncomeMonthly: Double
-var vacancyRateAssumption: Double       // z.B. 0.03 = 3%
-var rentMarketSqm: Double               // informativ
-```
-
-### Kosten — Wohnung
-
-```swift
-var hoaFeeTotalMonthly: Double          // Hausgeld Wohnung gesamt
-var isHoaUnitSplit: Bool               // Toggle: Hausgeld aufteilen
-var hoaFeeRecoverableMonthly: Double    // umlagefähig Wohnung (nur wenn isHoaUnitSplit)
-var maintenanceReserveMonthly: Double   // Instandhaltungsrücklage Wohnung (nur wenn isHoaUnitSplit)
-// abgeleitet (readonly):
-// hoaFeeNonRecoverableMonthly = total - recoverable - reserve
-var propertyTaxAnnual: Double           // Grundsteuer Wohnung/Jahr
-var propertyManagementAnnual: Double    // Hausverwaltung
-var propertyInsuranceAnnual: Double     // Gebäudeversicherung (falls separat)
-var otherCostsMonthly: Double
-```
-
-### Kosten — Stellplatz
-
-```swift
-var hasParking: Bool                    // Master-Toggle für ALLE Stellplatz-Felder
-var hoaFeeParkingTotalMonthly: Double   // Hausgeld Stellplatz gesamt
-var isHoaParkingSplit: Bool            // Toggle: Hausgeld Stellplatz aufteilen
-var hoaFeeParkingRecoverableMonthly: Double     // umlagefähig Stellplatz
-var hoaFeeParkingMaintenanceReserveMonthly: Double  // Rücklage Stellplatz
-// abgeleitet (readonly):
-// hoaFeeParkingNonRecoverableMonthly = total - recoverable - reserve
-var propertyTaxParkingAnnual: Double    // Grundsteuer Stellplatz/Jahr
-```
-
-### Finanzierung
-
-```swift
-var loanAmount: Double
-var interestRate: Double                // z.B. 0.035 = 3,5%
-var amortizationRate: Double           // z.B. 0.02 = 2%
-var fixedInterestPeriodYears: Int      // Zinsbindung in Jahren
-var loanStartDate: Date
-var monthlyMortgageActual: Double?     // Tatsächliche Rate (optional, überschreibt Berechnung)
-```
-
-### AfA & Steuer
-
-```swift
-var landValue: Double                   // Grundstückswert (aus Regierungs-Excel)
-var buildingValue: Double               // Gebäudewert (aus Regierungs-Excel)
-var depreciationRate: Double            // AfA-Satz, z.B. 0.02 = 2% oder 0.03 = 3%
-var marginalTaxRate: Double             // Persönlicher Grenzsteuersatz
-```
-
-### Stellplatz-Typ (in Objektdaten)
-
-```swift
-var parkingType: ParkingType?          // .tiefgarage, .carport, .stellplatz, .garage, .keiner
-var parkingCount: Int
-```
-
-**Wichtig:** `parkingType` und `hasParking` sind getrennte Konzepte:
-- `parkingType` = Art des Stellplatzes (Objektdaten, informativ)
-- `hasParking` = ob steuerliche/finanzielle Stellplatz-Felder befüllt werden sollen
-
----
-
 ## Enums
+
+### AcquisitionType
+
+```swift
+enum AcquisitionType: String, CaseIterable {
+    case kauf      = "Kauf"
+    case erbschaft = "Erbschaft"
+    case schenkung = "Schenkung"
+    // ENTFERNT: kaufUndRenovierung, neubau
+}
+```
 
 ### ParkingType
 
 ```swift
 enum ParkingType: String, CaseIterable {
-    case tiefgarage = "Tiefgarage"
-    case carport    = "Carport"
-    case stellplatz = "Außenstellplatz"
-    case garage     = "Garage"
-    // KEIN .keiner — "Keiner" wird als Optional<ParkingType>.none dargestellt
+    case nichtVorhanden   = "Nicht vorhanden"
+    case tiefgarage       = "Tiefgarage"
+    case aussenstellplatz = "Außenstellplatz"
+    case garage           = "Garage"
+    // ENTFERNT: keiner, carport, doppelparker
 }
 ```
 
-**Bug-Fix:** In `WizardStepObjektdaten` war `Text("Keiner").tag(.none)` + `ForEach(ParkingType.allCases)` doppelt, weil `allCases` kein `.keiner` enthält. Korrekte Lösung: Picker mit `Optional<ParkingType>`, explizit `.none` als erste Option.
+**Wichtig:** `parkingType` ist nicht optional — Default ist `.nichtVorhanden`. Alle Stellplatz-Felder (Einnahmen, Kosten, Kauf) erscheinen nur wenn `parkingType != .nichtVorhanden`. Kein separates `hasParking`-Feld.
+
+### PropertyType
+
+```swift
+enum PropertyType: String, CaseIterable {
+    case apartment        = "Eigentumswohnung"
+    case einfamilienhaus  = "Einfamilienhaus"
+    case mehrfamilienhaus = "Mehrfamilienhaus"
+    case gewerbe          = "Gewerbe"
+    case grundstuck       = "Grundstück"
+    case sonstiges        = "Sonstiges"
+}
+```
 
 ### PropertyStatus
 
@@ -156,9 +57,215 @@ enum PropertyStatus {
 }
 ```
 
-### PropertyType, AcquisitionType, HeatingType, EnergyClass, PropertyCondition
+### HeatingType, EnergyClass, PropertyCondition
 
-— bestehende Enums, unverändert.
+— unverändert.
+
+---
+
+## Property — Gespeicherte Felder
+
+### Stammdaten
+
+```swift
+var name: String
+var address: String
+var city: String
+var state: String
+var postalCode: String
+var propertyType: PropertyType
+var acquisitionType: AcquisitionType      // Kauf / Erbschaft / Schenkung
+var yearBuilt: Int?
+var notes: String
+```
+
+### Objektdaten
+
+```swift
+var livingAreaSqm: Double
+var usableAreaSqm: Double?
+var landAreaSqm: Double?
+var rooms: Double?
+var bedrooms: Int?
+var bathrooms: Int?
+var floorLevel: Int?
+var hasBalcony: Bool
+var hasTerrace: Bool
+var hasGarden: Bool
+var hasBasement: Bool
+var basementSizeSqm: Double?
+var hasFittedKitchen: Bool
+var parkingType: ParkingType = .nichtVorhanden   // nicht optional, Default = .nichtVorhanden
+var parkingCount: Int = 0                         // nur relevant wenn != .nichtVorhanden
+var heatingType: HeatingType?
+var energyEfficiencyClass: EnergyClass?
+var condition: PropertyCondition?
+var lastRenovationYear: Int?
+```
+
+### Kauf & Nebenkosten
+
+```swift
+var purchaseDate: Date                    // Kaufdatum / Datum Erbschaft / Schenkung (Label je acquisitionType)
+var economicTransferDate: Date            // Wirtschaftlicher Übergang — AfA-Startpunkt
+var purchasePriceUnit: Double             // Kaufpreis Wohnung
+var purchasePriceParking: Double          // Kaufpreis Stellplatz (nur wenn parkingType != .nichtVorhanden)
+var landTransferTax: Double               // Grunderwerbsteuer
+var notaryCosts: Double
+var landRegistryCosts: Double
+var agentFee: Double                      // Maklerprovision
+var appraisalCosts: Double                // Gutachterkosten
+var renovationModernizationCosts: Double  // Renovierung gesamt
+var renovationAfaEligible: Double         // davon aktivierungspflichtig (erhöht AfA-Bemessungsgrundlage)
+```
+
+### Einnahmen
+
+```swift
+var coldRentMonthly: Double               // Kaltmiete / Monat (Nettomiete ohne NK)
+var parkingRentMonthly: Double            // Stellplatzmiete / Monat (nur wenn parkingType != .nichtVorhanden)
+var otherIncomeMonthly: Double            // Sonstige Einnahmen / Monat
+var vacancyRateAssumption: Double         // Angenommene Leerstandsquote, z.B. 3%
+var rentMarketSqm: Double?               // Marktmiete / m² (informativ)
+```
+
+### Kosten — Wohnung
+
+```swift
+var hoaFeeTotalMonthly: Double                   // Hausgeld Wohnung gesamt / Monat
+var isHoaUnitSplit: Bool = false                 // Toggle: Hausgeld aufteilen
+var hoaFeeRecoverableMonthly: Double             // davon umlagefähig / Monat (nur wenn isHoaUnitSplit)
+var hoaFeeMaintenanceReserveMonthly: Double      // davon Instandhaltungsrücklage / Monat (nur wenn isHoaUnitSplit)
+// hoaFeeNonRecoverableMonthly — abgeleitet: total - recoverable - reserve (siehe Berechnete Werte)
+var propertyTaxAnnual: Double                    // Grundsteuer Wohnung / Jahr
+var propertyManagementAnnual: Double             // Hausverwaltung / Jahr
+var propertyInsuranceAnnual: Double              // Gebäudeversicherung / Jahr (nur wenn nicht im Hausgeld enthalten)
+var otherCostsMonthly: Double                    // Sonstige Kosten / Monat
+```
+
+### Kosten — Stellplatz (nur wenn parkingType != .nichtVorhanden)
+
+```swift
+var hoaFeeParkingTotalMonthly: Double                    // Hausgeld Stellplatz gesamt / Monat
+var isHoaParkingSplit: Bool = false                      // Toggle: Hausgeld Stellplatz aufteilen
+var hoaFeeParkingRecoverableMonthly: Double              // davon umlagefähig / Monat (nur wenn isHoaParkingSplit)
+var hoaFeeParkingMaintenanceReserveMonthly: Double       // davon Rücklage / Monat (nur wenn isHoaParkingSplit)
+// hoaFeeParkingNonRecoverableMonthly — abgeleitet: total - recoverable - reserve (siehe Berechnete Werte)
+var propertyTaxParkingAnnual: Double                     // Grundsteuer Stellplatz / Jahr
+```
+
+### Finanzierung
+
+```swift
+var loanAmount: Double                    // Darlehensbetrag (Anfangsbetrag)
+var interestRate: Double                  // Zinssatz jährl., z.B. 3,50%
+var amortizationRate: Double              // Tilgungssatz jährl., z.B. 2,00%
+var fixedInterestPeriodYears: Int         // Zinsbindung in Jahren
+var loanStartDate: Date                   // Darlehensbeginn
+var monthlyMortgage: Double               // Monatsrate — im Wizard vorausgefüllt mit loanAmount × (rate + tilgung) / 12, direkt editierbar
+var equityContributed: Double             // Eigenkapital selbst eingebracht
+var brokerCommissionAgreement: Double     // Anteil aus Eigenprovisions-Vereinbarung (nicht Teil des Kaufpreises)
+```
+
+**Hinweis equityContributed vs equityUsed:**
+- `equityContributed` (gespeichert) = was der Nutzer selbst eingebracht hat
+- `equityUsed` (berechnet) = `totalInvestment − loanAmount`
+- `equityContributed + brokerCommissionAgreement` sollte `equityUsed` ergeben
+
+### AfA & Steuer
+
+```swift
+var landValue: Double                     // Grundstückswert (aus Regierungs-Excel)
+var buildingValue: Double                 // Gebäudewert (aus Regierungs-Excel)
+var depreciationRate: Double              // AfA-Satz, z.B. 2% (Altbau) oder 3% (Neubau ab 2023)
+var marginalTaxRate: Double               // Persönlicher Grenzsteuersatz, z.B. 42%
+```
+
+---
+
+## Berechnete Werte (nicht persistiert)
+
+### Kosten — abgeleitete Felder
+
+```swift
+hoaFeeNonRecoverableMonthly        = hoaFeeTotalMonthly − hoaFeeRecoverableMonthly − hoaFeeMaintenanceReserveMonthly
+hoaFeeParkingNonRecoverableMonthly = hoaFeeParkingTotalMonthly − hoaFeeParkingRecoverableMonthly − hoaFeeParkingMaintenanceReserveMonthly
+```
+
+### Investment
+
+```swift
+totalPurchasePrice    = purchasePriceUnit + purchasePriceParking
+closingCostsTotal     = landTransferTax + notaryCosts + landRegistryCosts + agentFee + appraisalCosts
+closingCostsRatio     = closingCostsTotal / totalPurchasePrice
+totalInvestment       = totalPurchasePrice + closingCostsTotal + renovationModernizationCosts
+equityUsed            = totalInvestment − loanAmount
+purchasePricePerSqm   = totalPurchasePrice / livingAreaSqm
+totalInvestmentPerSqm = totalInvestment / livingAreaSqm
+```
+
+### Einnahmen & Leerstand
+
+```swift
+totalColdRentMonthly       = coldRentMonthly + parkingRentMonthly + otherIncomeMonthly
+warmmieteMonthly           = coldRentMonthly + hoaFeeRecoverableMonthly + (propertyTaxAnnual / 12)
+rentPerSqm                 = coldRentMonthly / livingAreaSqm
+vacancyLossAnnual          = totalColdRentMonthly × 12 × vacancyRateAssumption
+effectiveGrossIncomeYearly = totalColdRentMonthly × 12 − vacancyLossAnnual
+```
+
+### Finanzierung
+
+```swift
+remainingDebtNow              = AmortizationCalculator.remainingDebt(atMonth: monthsElapsed)
+monthlyInterestPayment(m)     = AnnuityRow.interest für Monat m (aus Tilgungsplan)
+monthlyAmortizationPayment(m) = AnnuityRow.principal für Monat m (aus Tilgungsplan)
+fixedRateEndDate              = loanStartDate + fixedInterestPeriodYears Jahre
+remainingDebtAtFixedRateEnd   = remainingDebt(atMonth: fixedRateEndDate)
+interestAnnual(year)          = Σ AnnuityRow.interest für alle Monate in Jahr Y
+// BUG: PropertyViewModel nutzt aktuell remainingDebtNow × interestRate (Näherung) — muss auf Tilgungsplan umgestellt werden
+```
+
+### AfA
+
+```swift
+afaBemessungsgrundlage = buildingValue + (closingCostsTotal × buildingValue / totalPurchasePrice) + renovationAfaEligible
+depreciationYearly     = afaBemessungsgrundlage × depreciationRate  // anteilig im Erwerbsjahr
+```
+
+### KPIs
+
+```swift
+grossYield            = (coldRentMonthly + parkingRentMonthly) × 12 / totalPurchasePrice
+netYield              = NOI / totalInvestment
+capRate               = NOI / totalPurchasePrice
+cashOnCashReturn      = cashflowAfterDebtYearly / equityContributed  // fallback: equityUsed wenn equityContributed = 0
+dscrNOI               = NOI / (monthlyMortgage × 12)
+ltvRatio              = remainingDebtNow / totalInvestment
+mietmultiplikator     = totalPurchasePrice / ((coldRentMonthly + parkingRentMonthly) × 12)
+NOI                   = effectiveGrossIncomeYearly − operatingCostsNonRecoverableYearly  // ohne Kredit
+breakEvenRentMonthly  = operatingCostsNonRecoverableMonthly + monthlyMortgage
+operatingExpenseRatio = (nonRecoverableYearly + recoverableYearly) / (totalColdRentMonthly × 12)
+```
+
+**Steuerliches Ergebnis & Cashflow** — vollständige Formeln mit Vermietet/Leerstand-Logik in `spec-steuer-tab.md` und `spec-cashflow-tab.md`.
+
+---
+
+## Felder entfernt (vs. vorherige Version)
+
+| Feld | Grund |
+|------|-------|
+| `hasParking` | Ersetzt durch `parkingType != .nichtVorhanden` |
+| `serviceChargeRecoverableMonthly` | In Hausgeld-Aufteilung integriert |
+| `maintenanceReserveMonthly` | Umbenannt zu `hoaFeeMaintenanceReserveMonthly` (Teil des Hausgelds) |
+| `landGuidelineValueSqm` | Nicht benötigt |
+| `monthlyMortgageActual` | Ersetzt durch `monthlyMortgage` (direkt gespeichert, im Wizard editierbar) |
+| `AcquisitionType.kaufUndRenovierung` | Entfernt |
+| `AcquisitionType.neubau` | Entfernt |
+| `ParkingType.keiner` | Ersetzt durch `.nichtVorhanden` als Default |
+| `ParkingType.carport` | Entfernt |
+| `ParkingType.doppelparker` | Entfernt |
 
 ---
 
@@ -174,13 +281,11 @@ enum PropertyStatus {
 }
 ```
 
-`incomeActualMonthly` wird nur beim Status `.mietgarantie` im UI angezeigt und genutzt. Bei allen anderen Status ignoriert.
-
 ---
 
 ## WizardState
 
-Spiegelt alle `Property`-Felder exakt (außer `id`, `createdAt`, `updatedAt`). Mapping erfolgt in `AddPropertyWizard.saveProperty()`.
+Spiegelt alle `Property`-Felder exakt. Mapping in `AddPropertyWizard.saveProperty()`.
 
 Zusatzfelder nur in WizardState:
 ```swift
@@ -192,38 +297,12 @@ var firstStatusNotes: String
 
 ---
 
-## Abgeleitete Werte (nicht persistiert)
-
-```swift
-// Hausgeld Wohnung nicht-umlagefähig:
-hoaFeeNonRecoverableUnitMonthly = hoaFeeTotalMonthly - hoaFeeRecoverableMonthly - maintenanceReserveMonthly
-
-// Hausgeld Stellplatz nicht-umlagefähig:
-hoaFeeParkingNonRecoverableMonthly = hoaFeeParkingTotalMonthly - hoaFeeParkingRecoverableMonthly - hoaFeeParkingMaintenanceReserveMonthly
-
-// Monatliche Hypothekenrate (wenn kein Actual-Override):
-monthlyMortgageCalc = loanAmount × (interestRate + amortizationRate) / 12
-
-// Gesamtkaufpreis:
-totalPurchasePrice = purchasePriceUnit + purchasePriceParking
-
-// Gesamtinvestment:
-totalInvestment = totalPurchasePrice + landTransferTax + notaryCosts + landRegistryCosts
-                + agentFee + appraisalCosts + renovationModernizationCosts
-
-// Eingesetztes Eigenkapital:
-equityUsed = totalInvestment - loanAmount
-```
-
----
-
 ## Migration
 
-Alle neuen Felder haben `= 0` / `= false` als SwiftData-Default — bestehende Daten bleiben intakt.
-
-**Auto-Migration:** `purchasePriceParking > 0` → `hasParking = true` setzen beim ersten Laden.
+Alle neuen Felder: `= 0` / `= false` als SwiftData-Default — bestehende Daten bleiben intakt.
 
 **Manuelle Nacharbeit durch Nutzer:**
-- `propertyTaxAnnual` auf Wohnung-only-Anteil korrigieren (war früher WE+TE kombiniert)
+- `propertyTaxAnnual` auf Wohnung-only-Anteil korrigieren
 - `propertyTaxParkingAnnual` nachtragen wenn Stellplatz vorhanden
 - Hausgeld-Aufteilung ergänzen wenn steuerlich relevant
+- `equityContributed` nachtragen
