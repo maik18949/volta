@@ -55,8 +55,6 @@ StatusEntry und ExtraordinaryCost können dasselbe Datum haben — das ist erlau
 | Vermietet | Grün | Reguläre Vermietung |
 | Leerstand | Orange | Keine Einnahmen, Owner trägt alle Kosten |
 | Leerstand + Mietgarantie | Lila | Keine Mieter, aber Garantiezahlung |
-| Eigennutzung | Blau | Selbst bewohnt |
-| Renovierung | Grau | In Umbau / nicht vermietbar |
 
 ### Hinzufügen / Bearbeiten
 
@@ -74,11 +72,20 @@ Notizen:        [Textfeld]
 - Zwei StatusEntries dürfen nicht dasselbe Datum haben → Fehlermeldung beim Speichern
 - Datum darf nicht vor `economicTransferDate` liegen
 
+### Empty State
+
+Wenn keine StatusEntries vorhanden:
+
+```
+Noch kein Statusverlauf.
+[+ Ersten Status hinzufügen]   ← Button
+```
+
 ### Bearbeiten / Löschen
 
 - Jeder Eintrag kann bearbeitet oder gelöscht werden (Fehleingabe möglich)
 - Nach Änderung werden Steuer- und Cashflow-Berechnungen automatisch neu durchgeführt
-- Beim Löschen des ersten Eintrags: nächster Eintrag wird zum neuen Startpunkt
+- Beim Löschen des letzten Eintrags: Feed wird leer → Empty State erscheint
 
 ---
 
