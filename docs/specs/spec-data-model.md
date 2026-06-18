@@ -283,6 +283,27 @@ operatingExpenseRatio = (nonRecoverableYearly + recoverableYearly) / (totalColdR
 
 ---
 
+## ExtraordinaryCost
+
+Einmalige Ausgaben in einem bestimmten Monat. Verwaltet im Verlauf-Tab.
+
+```swift
+@Model class ExtraordinaryCost {
+    var date: Date                      // Datum der Ausgabe
+    var description: String             // z.B. "Vermietungsprovision", "WEG Sonderumlage"
+    var amount: Double                  // Betrag (positiv gespeichert, als Ausgabe behandelt)
+    var isDeductible: Bool              // steuerlich absetzbar (§9 EStG)?
+    var notes: String?
+    var property: Property
+}
+```
+
+**Wirkung:**
+- Immer: Cashflow-Abfluss im jeweiligen Monat
+- Nur wenn `isDeductible = true`: reduziert steuerliches Ergebnis → erhöht Steuererstattung
+
+---
+
 ## WizardState
 
 Spiegelt alle `Property`-Felder exakt. Mapping in `AddPropertyWizard.saveProperty()`.

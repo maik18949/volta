@@ -2,24 +2,34 @@
 
 Zeigt monatlichen Cashflow: oben eine Kompaktkarte für den Prognose-Monat, darunter die vollständige Jahrestabelle.
 
+**Datenquellen:** Cashflow-Tab liest Statusverlauf und außergewöhnliche Kosten aus dem Verlauf-Tab. Diese werden dort verwaltet, nicht hier.
+
 ---
 
 ## Card 1 — Prognose-Monat (kompakt)
 
-Typischer Monat bei Vollvermietung. Werte direkt aus Einstellungen — kein Ist.
+Typischer Monat bei wählbarem Szenario. Werte direkt aus Einstellungen — kein Ist.
 
 ```
 PROGNOSE / MONAT
+
+[Vollvermietung]  [Leerstand]                  ← Segmented Control / Toggle, Standard = Vollvermietung
 
 Cashflow nach Steuern:   [−24 € / Mon]        ← 22px, fett, rot oder grün
 Vor Steuer: [−424 €]    Steuereffekt: [+399 €]  ← kleiner, rechts
 ```
 
+**Toggle-Logik:**
+- `Vollvermietung`: Einnahmen = coldRentMonthly + parkingRentMonthly + otherIncomeMonthly; umlagef. Kosten WE/Grundsteuer WE = 0 (Mieter zahlt)
+- `Leerstand`: Einnahmen = 0; umlagef. Kosten WE + Grundsteuer WE trägt der Owner (voll)
+
+Toggle wird nicht gespeichert — in-memory pro Session.
+
 ---
 
 ## Card 2 — Jahrestabelle
 
-Monatliche Übersicht für das laufende Jahr. **Kein horizontaler Scroll** — alle Spalten passen in die Breite.
+Monatliche Übersicht für das laufende Jahr. Kein horizontaler Scroll — alle Spalten passen in die Breite.
 
 ### Spalten
 
@@ -27,74 +37,138 @@ Monatliche Übersicht für das laufende Jahr. **Kein horizontaler Scroll** — a
 Position | Jan | Feb | Mär | Apr | Mai | Jun | Jul | Aug | Sep | Okt | Nov | Dez | Ø Mon | Total
 ```
 
-**Spaltenheader:** Monat-Kürzel + Status-Tag darunter (z.B. "Feb / Mietgarantie", "Jun / Vermietet").
+**Spaltenheader:** Monat-Kürzel + Status-Badge darunter (z.B. "Feb / Mietgarantie", "Jun / Vermietet").
 
-Vergangene Monate = Ist-Werte. Laufender + zukünftige Monate = Projektion (grau markieren oder kursiv).
+Vergangene Monate = Ist-Werte. Laufender + zukünftige Monate = Projektion (grau oder kursiv).
 
 ### Zeilen (in dieser Reihenfolge)
 
 ```
-Miete
+Einnahmen                          ← coldRentMonthly + parkingRentMonthly + otherIncomeMonthly
 Kreditrate
+──── Kosten Wohnung ────
 Nicht umlagef. Kosten WE
-Nicht umlagef. Kosten TE      ← nur wenn hasParking
-Umlagef. Kosten WE
-Umlagef. Kosten TE            ← nur wenn hasParking
-Hausverwaltung
-Grundsteuer WE
-Grundsteuer TE                ← nur wenn hasParking
-Instandhaltungsrücklage WE+TE
-──── Zusammenfassung ────      (blauer Gradient-Trennstrich)
-Cashflow vor Steuern          (fett)
-Steuererstattung Ø / Mon      (blau)
-Cashflow nach Steuern         (fett, rot oder grün)
+Instandhaltungsrücklage WE
+Gebäudeversicherung                ← nur wenn propertyInsuranceAnnual > 0
+Verwaltung
+Sonstige Kosten                    ← nur wenn otherCostsMonthly > 0
+Umlagef. Kosten WE                 ← nur bei Leerstand / Mietgarantie
+Grundsteuer WE                     ← nur bei Leerstand / Mietgarantie
+──── Kosten Stellplatz ────         ← nur wenn parkingType != .nichtVorhanden
+Nicht umlagef. Kosten TE
+Instandhaltungsrücklage TE
+Umlagef. Kosten TE
+Grundsteuer TE
+──── Außergewöhnliche Kosten ────   ← nur wenn im jeweiligen Monat vorhanden
+[Beschreibung]                     ← je Eintrag eine Zeile, Betrag rot
+──── Zusammenfassung ────           (blauer Gradient-Trennstrich)
+Cashflow vor Steuern               (fett)
+Steuererstattung Ø / Mon           (blau)
+Cashflow nach Steuern              (fett, rot oder grün)
 ```
 
 ### Letzte zwei Spalten
 
-- **Ø Monat:** Durchschnitt über alle Eigentumsmonate im Jahr (nicht immer 12)
+- **Ø Monat:** Durchschnitt über alle Eigentumsmonate im Jahr
 - **Total:** Jahressumme über alle Eigentumsmonate
+
+**Außergewöhnliche Kosten in Ø Monat / Total:**
+- Zeile "Total" für außergewöhnliche Kosten: immer anzeigen, sobald ≥ 1 Eintrag im Jahr
+- Zeile "Ø Monat" für außergewöhnliche Kosten: nur anzeigen, wenn ≥ 2 Einträge im Jahr (sonst wäre Durchschnitt = Einzelwert und damit wenig aussagekräftig)
 
 Beide Spalten: leicht blaues Hintergrund-Tinting (`rgba(239,246,255,0.5)`).
 
 ### Wert-Regeln
 
 - Einnahmen: grün
-- Ausgaben: rot (als negativer Wert dargestellt: −XXX €)
-- Kein Sonder-Hintergrund für statusabhängige Zeilen — nur Wert-Farbe
+- Ausgaben: rot (als negativer Wert: −XXX €)
 - Zahlen: SF Mono, rechtsbündig
 
-### Steuererstattung
+---
 
-Monats-Durchschnitt aus dem Ist-Steuereffekt des laufenden Jahres:
-`jährlicherSteuereffekt ÷ Eigentumsmonate`
+## Berechnungsformel — Cashflow
 
-Gleicher Wert in allen Monatsspalten (nicht tagesgenau je Monat).
+### Unterschied Cashflow vs Steuerliches Ergebnis
+
+| Posten | Cashflow | Steuerliches Ergebnis |
+|--------|----------|----------------------|
+| Einnahmen | + | + |
+| Zinsen | − | − (§9 EStG) |
+| **Tilgung** | **−** | **Nein** — kein Werbungskosten |
+| **Instandhaltungsrücklage** | **−** | **Nein** — erst bei WEG-Entnahme |
+| Nicht umlagef. Kosten | − | − |
+| **AfA** | **Nein** — kein Geldabfluss | **−** (§7 EStG) |
+| Außergewöhnl. Kosten (absetzbar) | − | − |
+| Außergewöhnl. Kosten (nicht absetzbar) | − | Nein |
+
+### Was fließt wann?
+
+| Zeile | Vermietet | Leerstand | Mietgarantie |
+|-------|-----------|-----------|--------------|
+| Einnahmen | coldRent + parkingRent + otherIncome | 0 | incomeActualMonthly |
+| Kreditrate | − immer | − immer | − immer |
+| Nicht umlagef. Kosten WE | − immer | − immer | − immer |
+| Instandhaltungsrücklage WE | − immer | − immer | − immer |
+| Gebäudeversicherung | − immer (wenn > 0) | − immer (wenn > 0) | − immer (wenn > 0) |
+| Verwaltung | − immer | − immer | − immer |
+| Sonstige Kosten | − immer (wenn > 0) | − immer (wenn > 0) | − immer (wenn > 0) |
+| Umlagef. Kosten WE | **0** (Mieter zahlt) | − voll | − voll |
+| Grundsteuer WE | **0** (Mieter zahlt) | − voll | − voll |
+| Nicht umlagef. Kosten TE | − immer | − immer | − immer |
+| Instandhaltungsrücklage TE | − immer | − immer | − immer |
+| Umlagef. Kosten TE | − immer | − immer | − immer |
+| Grundsteuer TE | − immer | − immer | − immer |
+| Außergewöhnliche Kosten | − im jeweiligen Monat | − im jeweiligen Monat | − im jeweiligen Monat |
+
+### Vollständige Formel
+
+```
+cashflowVorSteuerMonatlich =
+    einnahmen                               // je Status (siehe Tabelle oben)
+  − monthlyMortgage                         // Zinsen + Tilgung
+  − hoaFeeNonRecoverableMonthly             // WE
+  − hoaFeeMaintenanceReserveMonthly         // WE Rücklage
+  − (propertyInsuranceAnnual / 12)          // nur wenn > 0
+  − (propertyManagementAnnual / 12)
+  − otherCostsMonthly                       // nur wenn > 0
+  − hoaFeeRecoverableMonthly                // WE: nur bei Leerstand / Mietgarantie
+  − (propertyTaxAnnual / 12)                // WE: nur bei Leerstand / Mietgarantie
+  − hoaFeeParkingNonRecoverableMonthly      // TE: nur wenn Stellplatz
+  − hoaFeeParkingMaintenanceReserveMonthly  // TE: nur wenn Stellplatz
+  − hoaFeeParkingRecoverableMonthly         // TE: nur wenn Stellplatz
+  − (propertyTaxParkingAnnual / 12)         // TE: nur wenn Stellplatz
+  − extraordinaryCosts(month)               // Summe aller Einträge im Monat
+
+cashflowNachSteuerMonatlich =
+    cashflowVorSteuerMonatlich
+  + monthlyTaxRefund
+```
+
+### Steuererstattung / Monat
+
+```
+monthlyTaxRefund = steuererstattungJahr / eigentumsMonate im Jahr
+```
+
+Gleicher Wert in allen Monatsspalten — kommt aus Steuer-Tab Berechnung.
 
 ---
 
-## Datenbasis
+## Datenbasis je Spalte
 
-| Spalte | Datenbasis |
-|--------|-----------|
-| Vergangene Monate | Vollständig Ist aus Statushistorie |
-| Laufender Monat | Ist bis heute + Projektion ab morgen |
-| Zukünftige Monate | Vollständig projiziert mit aktuellem Status |
+| Spalte | Einnahmen | Kosten |
+|--------|-----------|--------|
+| Vergangene Monate | Ist aus Statusverlauf | aktuelle Einstellungswerte |
+| Laufender Monat | Ist bis heute + Projektion Rest | aktuelle Einstellungswerte |
+| Zukünftige Monate | letzter bekannter Status fortgeschrieben | aktuelle Einstellungswerte |
 
-Projektion = letzter bekannter Status wird fortgeschrieben.
+Kosten kommen immer aus aktuellen Einstellungen — Hausgeld, Grundsteuer etc. ändern sich typischerweise nur zum Jahreswechsel.
 
 ---
 
-## Zeilen-Details
+## Warnungen
 
-| Zeile | Vermietet | Leerstand / sonst |
-|-------|-----------|-------------------|
-| Miete | coldRent + parkingRent | 0 oder Mietgarantie-Betrag |
-| Kreditrate | immer (Zinsen + Tilgung) | immer |
-| Nicht umlagef. Kosten WE | immer | immer |
-| Umlagef. Kosten WE | 0 (Mieter zahlt) | Eigentümer trägt |
-| Nicht umlagef. Kosten TE | immer (wenn hasParking) | immer |
-| Umlagef. Kosten TE | Eigentümer trägt immer | Eigentümer trägt immer |
-| Grundsteuer WE | 0 (NK-Abrechnung) | Eigentümer trägt |
-| Grundsteuer TE | immer (wenn hasParking) | immer |
-| Instandhaltungsrücklage | echter Cashflow-Abfluss | echter Cashflow-Abfluss |
+| Zustand | Anzeige |
+|---------|---------|
+| `isHoaUnitSplit = false` | ⚠ "Hausgeld Wohnung aufteilen für genaue Berechnung (→ Einstellungen)" |
+| `parkingType != .nichtVorhanden && !isHoaParkingSplit` | ⚠ "Hausgeld Stellplatz aufteilen für genaue Berechnung (→ Einstellungen)" |

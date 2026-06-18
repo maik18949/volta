@@ -10,14 +10,19 @@ Jede Datei ist in sich vollständig und beschreibt ein Feature oder Tab.
 | [spec-overview-tab.md](spec-overview-tab.md) | Übersicht-Tab: 4 Cards (Status/Cashflow, Rendite, Finanzierung, Objekt) |
 | [spec-cashflow-tab.md](spec-cashflow-tab.md) | Cashflow-Tab: Prognose-Karte + vollständige Jahrestabelle |
 | [spec-steuer-tab.md](spec-steuer-tab.md) | Steuer-Tab: Laufendes Jahr + Prognose, steuerrechtliche Grundlagen |
+| [spec-verlauf-tab.md](spec-verlauf-tab.md) | Verlauf-Tab: Statusverlauf + außergewöhnliche Kosten (gemeinsame Datenquelle für Steuer + Cashflow) |
 | [spec-einstellungen-tab.md](spec-einstellungen-tab.md) | Einstellungen-Tab: alle Felder, identisch mit Wizard |
 | [spec-calculations.md](spec-calculations.md) | Berechnungslogik: Steuer, Cashflow, Rendite-KPIs, Proration |
 
 ## Wichtigste Design-Entscheidungen
 
 - **Light Mode only** — kein Dark Mode
-- **hasParking** = Master-Toggle für alle Stellplatz-Felder (Wizard + Einstellungen)
+- **parkingType != .nichtVorhanden** = Bedingung für alle Stellplatz-Felder (kein hasParking-Feld)
 - **Hausgeld-Split** = optionaler Toggle in Wizard UND Einstellungen (identisch)
 - **Instandhaltungsrücklage** = Cashflow-Abfluss, aber NICHT steuerlich absetzbar
+- **Tilgung** = Cashflow-Abfluss, aber NICHT steuerlich absetzbar
+- **AfA** = steuerlich absetzbar, aber KEIN Cashflow-Abfluss
 - **Zinsen amortisierend** — kein fixer Monatsbetrag, AmortizationCalculator
+- **Verlauf-Tab** = zentrale Datenquelle für Statusverlauf + außergewöhnliche Kosten
+- **Außergewöhnliche Kosten** = immer Cashflow-Abfluss, nur steuerlich wenn isDeductible = true
 - **Prognose ohne Slider** — alle Werte kommen direkt aus Einstellungen

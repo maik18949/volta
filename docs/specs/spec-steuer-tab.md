@@ -54,12 +54,16 @@ PROGNOSE                                   [Badge: Prognose]
 
 Jahr: [← 2026 →]   ← in-memory Picker, Standard = nächstes Kalenderjahr
 
-Einnahmen                         [X.XXX €]   Vollvermietung, 12 Monate
+[Vollvermietung]  [Leerstand]              ← Segmented Control, Standard = Vollvermietung
+
+Einnahmen                         [X.XXX €]   je Szenario (siehe unten)
 Zinsen                            [X.XXX €]   amortisierend für gewähltes Jahr
 AfA                               [X.XXX €]   voll (kein Erwerbsjahr-Abzug)
 Nicht umlagef. Kosten Wohnung     [X.XXX €]
 Gebäudeversicherung               [X.XXX €]   nur wenn propertyInsuranceAnnual > 0
 Hausverwaltung                    [X.XXX €]
+Umlagef. Kosten Wohnung           [X.XXX €]   nur bei Leerstand-Szenario (12 Monate)
+Grundsteuer Wohnung               [X.XXX €]   nur bei Leerstand-Szenario (12 Monate)
 Nicht umlagef. Kosten Stellplatz  [X.XXX €]   nur wenn parkingType != .nichtVorhanden
 Umlagef. Kosten Stellplatz        [X.XXX €]   immer, nur wenn parkingType != .nichtVorhanden
 Grundsteuer Stellplatz            [X.XXX €]   immer, nur wenn parkingType != .nichtVorhanden
@@ -68,11 +72,13 @@ Steuerliches Ergebnis (Prog.)     [−X.XXX €]  (fett)
 Steuereffekt / Mon                [+XXX €]    (22px, fett, grün oder rot)
 ```
 
-**Prognose-Annahmen:**
-- Vollvermietung (12 Monate, kein Leerstand)
+**Toggle-Szenarios:**
+- `Vollvermietung`: Einnahmen = (coldRentMonthly + parkingRentMonthly + otherIncomeMonthly) × 12; umlagef. Kosten WE + Grundsteuer WE erscheinen nicht (Mieter zahlt)
+- `Leerstand`: Einnahmen = 0; umlagef. Kosten WE + Grundsteuer WE × 12 (Owner trägt voll)
+
+**Weitere Prognose-Annahmen:**
 - Alle Werte aus Einstellungen — keine Regler/Slider
-- Umlagef. Kosten WE und Grundsteuer WE erscheinen NICHT — bei Vollvermietung zahlt der Mieter
-- Jahr-Picker: in-memory, wird nicht gespeichert
+- Jahr-Picker und Toggle: in-memory, werden nicht gespeichert
 
 ---
 
@@ -133,7 +139,10 @@ steuerlichesErgebnis =
   − hoaFeeParkingNonRecoverableMonthly × 12                 // TE: nur wenn Stellplatz
   − hoaFeeParkingRecoverableMonthly × 12                    // TE: nur wenn Stellplatz
   − propertyTaxParkingAnnual                                // TE: nur wenn Stellplatz
+  − extraordinaryCosts(year, isDeductible: true)            // nur absetzbare außergewöhnliche Kosten
 ```
+
+**Außergewöhnliche Kosten:** Nur Einträge mit `isDeductible = true` fließen ins steuerliche Ergebnis. Nicht absetzbare Kosten erscheinen nur im Cashflow-Tab.
 
 ### Steuereffekt
 
