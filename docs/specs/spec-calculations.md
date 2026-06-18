@@ -1,23 +1,23 @@
 # Berechnungslogik
 
+Technische Referenz für TaxCalculator, CashflowCalculator, Rendite-KPIs und Proration.
+
 ---
 
 ## Einnahmenlogik je Status
 
 | Status | Einnahme kommt von |
 |--------|-------------------|
-| Vermietet | `coldRentMonthly + parkingRentMonthly` aus Einstellungen |
+| Vermietet | `coldRentMonthly + parkingRentMonthly + otherIncomeMonthly` |
 | Leerstand + Mietgarantie | `StatusEntry.incomeActualMonthly` (manuell eingetragen) |
 | Leerstand | 0 |
-| Eigennutzung | 0 |
-| Renovierung | 0 |
 
 ---
 
 ## Status-Logik: Kostenträger
 
-| Kostenart | Vermietet | Leerstand / Mietgarantie / Eigennutzung / Renovierung |
-|-----------|-----------|------------------------------------------------------|
+| Kostenart | Vermietet | Leerstand / Mietgarantie |
+|-----------|-----------|--------------------------|
 | Umlagef. Kosten Wohnung | Mieter zahlt → 0 | Eigentümer trägt → absetzbar |
 | Grundsteuer Wohnung | Mieter (NK-Abrechnung) → 0 | Eigentümer → absetzbar |
 | Umlagef. Kosten Stellplatz | **Eigentümer trägt immer** | **Eigentümer trägt immer** |
@@ -60,8 +60,8 @@ Umlagef. Kosten Wohnung (steuerlich):
 
 | Zeitraum | Datenbasis |
 |----------|-----------|
-| Vergangene Monate | Vollständig Ist aus Statushistorie |
-| Aktueller Monat: 1. bis heute | Ist aus Statushistorie |
+| Vergangene Monate | Vollständig Ist aus Statusverlauf |
+| Aktueller Monat: 1. bis heute | Ist aus Statusverlauf |
 | Aktueller Monat: morgen bis Monatsende | Projektion mit aktuellem Status |
 | Zukünftige Monate im laufenden Jahr | Vollständig projiziert mit aktuellem Status |
 
@@ -89,7 +89,7 @@ interestForMonth(month M):
   restschuld_zum_monatsbeginn × jahreszinssatz / 12
 
 restschuld wird Monat für Monat akkumuliert:
-  monatliche_rate     = loanAmount × (interestRate + amortizationRate) / 12
+  monatliche_rate     = monthlyMortgage    // direkt gespeichert, im Wizard vorausgefüllt
   zins_m              = restschuld × interestRate / 12
   tilgung_m           = monatliche_rate - zins_m
   restschuld_nächster = restschuld - tilgung_m
@@ -103,33 +103,48 @@ Nutzt `AmortizationCalculator` (bereits vorhanden).
 
 ```
 Inputs:
-  year, economicTransferDate, loanStartDate, loanAmount, interestRate, monthlyPayment
-  afaBasis (= buildingValue + renovationAfaEligible), depreciationRate
-  hoaUnitNonRecoverableMonthly, hoaUnitRecoverableMonthly, isHoaUnitSplitComplete
-  hoaParkingNonRecoverableMonthly, hoaParkingRecoverableMonthly
-  propertyTaxUnitMonthly, propertyTaxParkingMonthly
-  propertyManagementMonthly, otherCostsMonthly
-  coldRentMonthly, parkingRentMonthly, statusHistory
+  year, economicTransferDate, loanStartDate
+  loanAmount, interestRate, monthlyMortgage
+  afaBemessungsgrundlage, depreciationRate
+    // afaBemessungsgrundlage = buildingValue
+    //   + (closingCostsTotal × buildingValue / totalPurchasePrice)
+    //   + renovationAfaEligible
+  hoaFeeNonRecoverableMonthly         // WE: total - recoverable - reserve
+  hoaFeeRecoverableMonthly            // WE: umlagefähig
+  hoaFeeMaintenanceReserveMonthly     // WE: Rücklage (NICHT steuerlich)
+  hoaFeeParkingNonRecoverableMonthly  // TE: nur wenn Stellplatz
+  hoaFeeParkingRecoverableMonthly     // TE: nur wenn Stellplatz
+  propertyTaxAnnual                   // WE Grundsteuer
+  propertyTaxParkingAnnual            // TE Grundsteuer (nur wenn Stellplatz)
+  propertyManagementAnnual
+  propertyInsuranceAnnual             // nur wenn > 0
+  coldRentMonthly, parkingRentMonthly, otherIncomeMonthly
+  statusHistory: [StatusEntry]
+  extraordinaryCosts: [ExtraordinaryCost]
 
 Berechnung:
   1. eigentumsMonateImJahr  = Monate in Jahr Y ab economicTransferDate
-  2. zinsenJahr             = Σ interestForMonth(m) für m in [max(loanStart, 1.Jan Y) .. 31.Dez Y]
+  2. zinsenJahr             = Σ interestForMonth(m) für m in [max(loanStart, 1.Jan Y)..31.Dez Y]
   3. afaJahr                = isErwerbsjahr(Y)
-                              ? afaBasis × depreciationRate / 12 × eigentumsMonateAnzahl
-                              : afaBasis × depreciationRate
+                              ? afaBemessungsgrundlage × depreciationRate / 12 × eigentumsMonateAnzahl
+                              : afaBemessungsgrundlage × depreciationRate
   4. Für jeden Eigentumsmonat (tagesgenau):
-       einnahmen            += incomeForMonth(m, statusHistory, coldRent, parkingRent)
+       einnahmen            += incomeForMonth(m, statusHistory)
        leerstandTageAnteil  += leerstandTage(m) / tageImMonat(m)
+         // leerstand = .leerstand ODER .mietgarantie
   5. Abzüge:
        immer (× eigentumsMonateAnzahl):
-         hoaUnitNonRecoverableMonthly
-         hoaParkingNonRecoverableMonthly
-         propertyManagementMonthly
-         propertyTaxParkingMonthly
-         otherCostsMonthly
-       nur Leerstand-Anteil (× leerstandTageAnteil):
-         hoaUnitRecoverableMonthly
-         propertyTaxUnitMonthly
+         hoaFeeNonRecoverableMonthly
+         hoaFeeParkingNonRecoverableMonthly   // nur wenn Stellplatz
+         hoaFeeParkingRecoverableMonthly      // TE trägt immer Eigentümer
+         propertyManagementAnnual / 12
+         propertyInsuranceAnnual / 12         // nur wenn > 0
+         propertyTaxParkingAnnual / 12        // nur wenn Stellplatz
+       nur Leerstand-Anteil:
+         hoaFeeRecoverableMonthly × leerstandTageAnteil
+         propertyTaxAnnual × leerstandTageAnteil
+       außergewöhnliche Kosten:
+         Σ extraordinaryCosts(year Y, isDeductible: true)
   6. return einnahmen - zinsenJahr - afaJahr - summeAbzüge
 ```
 
@@ -144,21 +159,28 @@ taxEffectMonthly = taxEffectYearly ÷ eigentumsMonateAnzahlImJahr
 ## CashflowCalculator — `cashflowBeforeTax(month:)`
 
 ```
-+ incomeForMonth(...)
-- monthlyMortgage                    (Zinsen + Tilgung)
-- hoaUnitNonRecoverableMonthly       (inkl. Rücklage — echter Cashflow-Abfluss)
-- hoaParkingNonRecoverableMonthly    (immer wenn hasParking, tagesanteilig bei mid-month)
-- ownerBorneRecoverableCosts(...)    (status-abhängig, tagesanteilig)
-- propertyManagementMonthly
-- maintenanceReserveMonthly          (externe Rücklage außerh. WEG)
-- extraordinaryCosts
++ incomeForMonth(month, statusHistory)
+    // Vermietet: coldRentMonthly + parkingRentMonthly + otherIncomeMonthly
+    // Mietgarantie: StatusEntry.incomeActualMonthly
+    // Leerstand: 0
+- monthlyMortgage                          // Zinsen + Tilgung
+- hoaFeeNonRecoverableMonthly              // WE: nicht umlagefähig
+- hoaFeeMaintenanceReserveMonthly          // WE: Rücklage (Cashflow-Abfluss, nicht steuerlich)
+- (propertyInsuranceAnnual / 12)           // nur wenn > 0
+- (propertyManagementAnnual / 12)
+- otherCostsMonthly                        // nur wenn > 0
+- ownerBorneRecoverableCosts(month)        // status-abhängig, tagesanteilig
+- hoaFeeParkingNonRecoverableMonthly       // TE: nur wenn Stellplatz
+- hoaFeeParkingMaintenanceReserveMonthly   // TE: Rücklage, nur wenn Stellplatz
+- hoaFeeParkingRecoverableMonthly          // TE: immer Eigentümer
+- (propertyTaxParkingAnnual / 12)          // TE: nur wenn Stellplatz
+- extraordinaryCosts(month)                // alle Einträge im Monat (unabhängig von isDeductible)
 ```
 
-**`ownerBorneRecoverableCosts(status:)`:**
+**`ownerBorneRecoverableCosts(month:)`** — tagesanteilig bei Status-Wechsel mid-month:
 ```
-unitPart    = (status == .vermietet) ? 0 : hoaUnitRecoverable + propertyTaxUnit
-parkingPart = hoaParkingRecoverable + propertyTaxParking    // immer
-return unitPart + parkingPart
+unitPart = (status == .vermietet) ? 0 : hoaFeeRecoverableMonthly + (propertyTaxAnnual / 12)
+return unitPart    // Stellplatz-Anteil separat (immer oben erfasst)
 ```
 
 ---
@@ -166,30 +188,38 @@ return unitPart + parkingPart
 ## Abgeleitete Feldwerte
 
 ```swift
-hoaFeeNonRecoverableUnitMonthly =
-    hoaFeeTotalMonthly - hoaFeeRecoverableMonthly - maintenanceReserveMonthly
+hoaFeeNonRecoverableMonthly =
+    hoaFeeTotalMonthly - hoaFeeRecoverableMonthly - hoaFeeMaintenanceReserveMonthly
 
 hoaFeeParkingNonRecoverableMonthly =
-    hoaFeeParkingTotalMonthly - hoaFeeParkingRecoverableMonthly
-    - hoaFeeParkingMaintenanceReserveMonthly
+    hoaFeeParkingTotalMonthly - hoaFeeParkingRecoverableMonthly - hoaFeeParkingMaintenanceReserveMonthly
 
-monthlyMortgageCalc =
-    loanAmount × (interestRate + amortizationRate) / 12
+afaBemessungsgrundlage =
+    buildingValue
+    + (closingCostsTotal × buildingValue / totalPurchasePrice)
+    + renovationAfaEligible
 
-equityUsed =
-    totalInvestment - loanAmount
+equityUsed   = totalInvestment - loanAmount
+equityContributed = gespeichert (vom Nutzer eingetragen)
 ```
+
+**`monthlyMortgage`** wird direkt gespeichert — im Wizard vorausgefüllt mit:
+```
+loanAmount × (interestRate + amortizationRate) / 12
+```
+Nutzer kann es überschreiben (z.B. bei Sondertilgungen).
 
 ---
 
 ## Warnungen bei fehlender Aufteilung
 
 **Fallback (wenn `isHoaUnitSplit = false`):**
-- Nicht umlagef. WE ≈ `hoaFeeTotalMonthly - hoaFeeRecoverableMonthly` (Rücklage geht in Abzug — leichte Überoptimierung)
+- Nicht umlagef. WE ≈ `hoaFeeTotalMonthly - hoaFeeRecoverableMonthly`
+- Rücklage = 0 (nicht bekannt)
 - Umlagef. WE = `hoaFeeRecoverableMonthly`
 
 **Fallback (wenn `isHoaParkingSplit = false`):**
-- Stellplatz-Kosten = 0 in Steuerberechnung
+- Stellplatz-Hausgeld wird in Steuerberechnung als 0 angesetzt
 
 **Validierung Aufteilung:** `umlagefähig + rücklage ≤ gesamt` — Fehler wenn überschritten, Speichern blockiert.
 
@@ -197,23 +227,42 @@ equityUsed =
 
 ## Rendite-KPIs
 
+```swift
+bruttorendite    = (coldRentMonthly + parkingRentMonthly) × 12
+                   / (purchasePriceUnit + purchasePriceParking)
+
+nettorendite     = NOI / totalInvestment
+
+capRate          = NOI / totalPurchasePrice
+
+kaufpreisfaktor  = totalPurchasePrice / ((coldRentMonthly + parkingRentMonthly) × 12)
+
+cashOnCashReturn = cashflowBeforeTaxYearly / equityContributed
+                   // Fallback: equityUsed wenn equityContributed = 0
+
+dscr             = NOI / (monthlyMortgage × 12)
+
+ltv              = remainingDebtNow / totalInvestment
+
+breakEvenRent    = (laufende Kosten nicht-umlagefähig + monthlyMortgage) / 1 Monat
+
+NOI              = effectiveGrossIncomeYearly - operatingCostsNonRecoverableYearly
+                   // ohne Kredit, ohne AfA, ohne Tilgung
+
+effectiveGrossIncomeYearly = totalColdRentMonthly × 12 × (1 - vacancyRateAssumption)
 ```
-bruttorendite       = (coldRentMonthly + parkingRentMonthly) × 12
-                      / (purchasePriceUnit + purchasePriceParking)
 
-nettorendite        = netOperatingIncomeYearly / totalInvestment
+---
 
-kaufpreisfaktor     = totalPurchasePrice / ((coldRentMonthly + parkingRentMonthly) × 12)
+## Prognose-Szenarien (in-memory)
 
-cashOnCashReturn    = (cashflowBeforeTaxYearly) / equityUsed
+Beide Tabs (Cashflow, Steuer) haben einen Toggle `[Vollvermietung] [Leerstand]`.
 
-dscr                = netOperatingIncomeYearly / (monthlyMortgage × 12)
+| | Vollvermietung | Leerstand |
+|--|----------------|-----------|
+| Einnahmen | coldRent + parkingRent + otherIncome | 0 |
+| Umlagef. Kosten WE | 0 (Mieter zahlt) | voll (Owner trägt) |
+| Grundsteuer WE | 0 (Mieter zahlt) | voll (Owner trägt) |
+| Alle anderen Kosten | unverändert | unverändert |
 
-ltv                 = loanAmount / totalPurchasePrice
-
-breakEvenRent       = (laufende Kosten + Kreditzinsen) / 12
-
-capRate             = netOperatingIncomeYearly / totalPurchasePrice
-
-noi                 = (einnahmen - betriebskosten ohne Kredit) / Jahr
-```
+Toggle-Zustand wird nicht gespeichert — reset bei Tab-Wechsel.
