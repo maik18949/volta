@@ -23,7 +23,7 @@ Vor Steuer: [−424 €]    Steuereffekt: [+399 €]  ← kleiner, rechts
 - `Vollvermietung`: Einnahmen = coldRentMonthly + parkingRentMonthly + otherIncomeMonthly; umlagef. Kosten WE/Grundsteuer WE = 0 (Mieter zahlt)
 - `Leerstand`: Einnahmen = 0; umlagef. Kosten WE + Grundsteuer WE trägt der Owner (voll)
 
-Toggle wird nicht gespeichert — in-memory pro Session.
+Toggle-Zustand bleibt dauerhaft erhalten — kein Reset beim Tab-Wechsel.
 
 ---
 
@@ -170,5 +170,5 @@ Kosten kommen immer aus aktuellen Einstellungen — Hausgeld, Grundsteuer etc. �
 
 | Zustand | Anzeige |
 |---------|---------|
-| `isHoaUnitSplit = false` | ⚠ "Hausgeld Wohnung aufteilen für genaue Berechnung (→ Einstellungen)" |
-| `parkingType != .nichtVorhanden && !isHoaParkingSplit` | ⚠ "Hausgeld Stellplatz aufteilen für genaue Berechnung (→ Einstellungen)" |
+| `isHoaUnitSplit = false` | ⚠ "Steuerliche Berechnung ungenau — Hausgeld wird vollständig als Werbungskosten angesetzt. Für genaue Berechnung Hausgeld aufteilen (→ Einstellungen)" |
+| `parkingType != .nichtVorhanden && !isHoaParkingSplit` | ⚠ "Steuerliche Berechnung ungenau — Hausgeld Stellplatz wird vollständig als Werbungskosten angesetzt. Für genaue Berechnung aufteilen (→ Einstellungen)" |

@@ -18,11 +18,11 @@ Technische Referenz für TaxCalculator, CashflowCalculator, Rendite-KPIs und Pro
 
 | Kostenart | Vermietet | Leerstand / Mietgarantie |
 |-----------|-----------|--------------------------|
-| Umlagef. Kosten Wohnung | Mieter zahlt → 0 | Eigentümer trägt → absetzbar |
-| Grundsteuer Wohnung | Mieter (NK-Abrechnung) → 0 | Eigentümer → absetzbar |
+| Umlagef. Kosten Wohnung | Mieter zahlt → 0 | Eigentümer trägt → steuerlich absetzbar |
+| Grundsteuer Wohnung | Mieter (NK-Abrechnung) → 0 | Eigentümer → steuerlich absetzbar |
 | Umlagef. Kosten Stellplatz | **Eigentümer trägt immer** | **Eigentümer trägt immer** |
 | Grundsteuer Stellplatz | **Eigentümer trägt immer** | **Eigentümer trägt immer** |
-| Nicht umlagef. Kosten (W+S) | Eigentümer trägt immer | Eigentümer trägt immer |
+| Nicht umlagef. Kosten (W+S) | Eigentümer trägt immer, absetzbar | Eigentümer trägt immer, absetzbar |
 | Instandhaltungsrücklage | Cashflow-Abfluss, **nicht steuerlich** | Cashflow-Abfluss, **nicht steuerlich** |
 | Hausverwaltung | Immer absetzbar | Immer absetzbar |
 
@@ -85,14 +85,16 @@ Umlagef. Kosten Wohnung (steuerlich):
 ## Zinsberechnung (amortisierend)
 
 ```
+Startwert: restschuld = loanAmount (zum Zeitpunkt loanStartDate)
+
 interestForMonth(month M):
   restschuld_zum_monatsbeginn × jahreszinssatz / 12
 
 restschuld wird Monat für Monat akkumuliert:
   monatliche_rate     = monthlyMortgage    // direkt gespeichert, im Wizard vorausgefüllt
   zins_m              = restschuld × interestRate / 12
-  tilgung_m           = monatliche_rate - zins_m
-  restschuld_nächster = restschuld - tilgung_m
+  tilgung_m           = monatliche_rate − zins_m
+  restschuld_nächster = restschuld − tilgung_m
 ```
 
 Nutzt `AmortizationCalculator` (bereits vorhanden).
@@ -109,9 +111,10 @@ Inputs:
     // afaBemessungsgrundlage = buildingValue
     //   + (closingCostsTotal × buildingValue / totalPurchasePrice)
     //   + renovationAfaEligible
-  hoaFeeNonRecoverableMonthly         // WE: total - recoverable - reserve
+    // closingCostsTotal = landTransferTax + notaryCosts + landRegistryCosts
+    //                   + agentFee + appraisalCosts + brokerCommissionAgreement
+  hoaFeeNonRecoverableMonthly         // WE: total − recoverable − reserve
   hoaFeeRecoverableMonthly            // WE: umlagefähig
-  hoaFeeMaintenanceReserveMonthly     // WE: Rücklage (NICHT steuerlich)
   hoaFeeParkingNonRecoverableMonthly  // TE: nur wenn Stellplatz
   hoaFeeParkingRecoverableMonthly     // TE: nur wenn Stellplatz
   propertyTaxAnnual                   // WE Grundsteuer
@@ -124,15 +127,16 @@ Inputs:
 
 Berechnung:
   1. eigentumsMonateImJahr  = Monate in Jahr Y ab economicTransferDate
+                              // angefangene Monate zählen voll (§7 EStG)
   2. zinsenJahr             = Σ interestForMonth(m) für m in [max(loanStart, 1.Jan Y)..31.Dez Y]
   3. afaJahr                = isErwerbsjahr(Y)
                               ? afaBemessungsgrundlage × depreciationRate / 12 × eigentumsMonateAnzahl
                               : afaBemessungsgrundlage × depreciationRate
-  4. Für jeden Eigentumsmonat (tagesgenau):
+  4. leerstandsTage         = Σ Tage mit status == .leerstand ODER .mietgarantie im Jahr Y
+     leerstandsAnteil       = leerstandsTage / tageImJahr(Y)   // 365 oder 366
+  5. Für jeden Eigentumsmonat:
        einnahmen            += incomeForMonth(m, statusHistory)
-       leerstandTageAnteil  += leerstandTage(m) / tageImMonat(m)
-         // leerstand = .leerstand ODER .mietgarantie
-  5. Abzüge:
+  6. Abzüge:
        immer (× eigentumsMonateAnzahl):
          hoaFeeNonRecoverableMonthly
          hoaFeeParkingNonRecoverableMonthly   // nur wenn Stellplatz
@@ -141,16 +145,16 @@ Berechnung:
          propertyInsuranceAnnual / 12         // nur wenn > 0
          propertyTaxParkingAnnual / 12        // nur wenn Stellplatz
        nur Leerstand-Anteil:
-         hoaFeeRecoverableMonthly × leerstandTageAnteil
-         propertyTaxAnnual × leerstandTageAnteil
+         hoaFeeRecoverableMonthly × 12 × leerstandsAnteil
+         propertyTaxAnnual × leerstandsAnteil
        außergewöhnliche Kosten:
          Σ extraordinaryCosts(year Y, isDeductible: true)
-  6. return einnahmen - zinsenJahr - afaJahr - summeAbzüge
+  7. return einnahmen − zinsenJahr − afaJahr − summeAbzüge
 ```
 
 **Steuereffekt:**
 ```
-taxEffectYearly  = max(0, -annualTaxableIncome) × marginalTaxRate
+taxEffectYearly  = max(0, −annualTaxableIncome) × marginalTaxRate
 taxEffectMonthly = taxEffectYearly ÷ eigentumsMonateAnzahlImJahr
 ```
 
@@ -163,24 +167,29 @@ taxEffectMonthly = taxEffectYearly ÷ eigentumsMonateAnzahlImJahr
     // Vermietet: coldRentMonthly + parkingRentMonthly + otherIncomeMonthly
     // Mietgarantie: StatusEntry.incomeActualMonthly
     // Leerstand: 0
-- monthlyMortgage                          // Zinsen + Tilgung
-- hoaFeeNonRecoverableMonthly              // WE: nicht umlagefähig
-- hoaFeeMaintenanceReserveMonthly          // WE: Rücklage (Cashflow-Abfluss, nicht steuerlich)
-- (propertyInsuranceAnnual / 12)           // nur wenn > 0
-- (propertyManagementAnnual / 12)
-- otherCostsMonthly                        // nur wenn > 0
-- ownerBorneRecoverableCosts(month)        // status-abhängig, tagesanteilig
-- hoaFeeParkingNonRecoverableMonthly       // TE: nur wenn Stellplatz
-- hoaFeeParkingMaintenanceReserveMonthly   // TE: Rücklage, nur wenn Stellplatz
-- hoaFeeParkingRecoverableMonthly          // TE: immer Eigentümer
-- (propertyTaxParkingAnnual / 12)          // TE: nur wenn Stellplatz
-- extraordinaryCosts(month)                // alle Einträge im Monat (unabhängig von isDeductible)
+− monthlyMortgage                          // Zinsen + Tilgung
+− hoaFeeNonRecoverableMonthly              // WE: nicht umlagefähig
+− hoaFeeMaintenanceReserveMonthly          // WE: Rücklage (Cashflow-Abfluss, nicht steuerlich)
+− (propertyInsuranceAnnual / 12)           // nur wenn > 0
+− (propertyManagementAnnual / 12)
+− otherCostsMonthly                        // nur wenn > 0
+− ownerBorneRecoverableCosts(month)        // status-abhängig, tagesanteilig
+− hoaFeeParkingNonRecoverableMonthly       // TE: nur wenn Stellplatz
+− hoaFeeParkingMaintenanceReserveMonthly   // TE: Rücklage, nur wenn Stellplatz
+− hoaFeeParkingRecoverableMonthly          // TE: immer Eigentümer
+− (propertyTaxParkingAnnual / 12)          // TE: nur wenn Stellplatz
+− extraordinaryCosts(month)                // alle Einträge im Monat (unabhängig von isDeductible)
 ```
 
 **`ownerBorneRecoverableCosts(month:)`** — tagesanteilig bei Status-Wechsel mid-month:
 ```
-unitPart = (status == .vermietet) ? 0 : hoaFeeRecoverableMonthly + (propertyTaxAnnual / 12)
-return unitPart    // Stellplatz-Anteil separat (immer oben erfasst)
+Für jeden Status-Abschnitt im Monat:
+  tagesanteil = anzahlTageInAbschnitt / gesamtTageImMonat
+  if status == .vermietet:
+    anteil += 0    // Mieter zahlt
+  else:            // leerstand oder mietgarantie
+    anteil += (hoaFeeRecoverableMonthly + propertyTaxAnnual / 12) × tagesanteil
+return anteil
 ```
 
 ---
@@ -188,46 +197,81 @@ return unitPart    // Stellplatz-Anteil separat (immer oben erfasst)
 ## Abgeleitete Feldwerte
 
 ```swift
+closingCostsTotal =
+    landTransferTax + notaryCosts + landRegistryCosts
+    + agentFee + appraisalCosts + brokerCommissionAgreement
+    // brokerCommissionAgreement = Maklerkosten aus Eigenprovisions-Vereinbarung
+    // → Anschaffungsnebenkosten → erhöht afaBemessungsgrundlage
+
+totalPurchasePrice    = purchasePriceUnit + purchasePriceParking
+totalInvestment       = totalPurchasePrice + closingCostsTotal + renovationModernizationCosts
+equityUsed            = totalInvestment − loanAmount
+
 hoaFeeNonRecoverableMonthly =
-    hoaFeeTotalMonthly - hoaFeeRecoverableMonthly - hoaFeeMaintenanceReserveMonthly
+    hoaFeeTotalMonthly − hoaFeeRecoverableMonthly − hoaFeeMaintenanceReserveMonthly
 
 hoaFeeParkingNonRecoverableMonthly =
-    hoaFeeParkingTotalMonthly - hoaFeeParkingRecoverableMonthly - hoaFeeParkingMaintenanceReserveMonthly
+    hoaFeeParkingTotalMonthly − hoaFeeParkingRecoverableMonthly − hoaFeeParkingMaintenanceReserveMonthly
 
 afaBemessungsgrundlage =
     buildingValue
     + (closingCostsTotal × buildingValue / totalPurchasePrice)
     + renovationAfaEligible
-
-equityUsed   = totalInvestment - loanAmount
-equityContributed = gespeichert (vom Nutzer eingetragen)
 ```
 
 **`monthlyMortgage`** wird direkt gespeichert — im Wizard vorausgefüllt mit:
 ```
 loanAmount × (interestRate + amortizationRate) / 12
 ```
-Nutzer kann es überschreiben (z.B. bei Sondertilgungen).
+Nutzer kann es überschreiben (z.B. bei Sondertilgungen oder Bankabweichung).
 
 ---
 
-## Warnungen bei fehlender Aufteilung
+## Fallbacks bei fehlender Hausgeld-Aufteilung
 
-**Fallback (wenn `isHoaUnitSplit = false`):**
-- Nicht umlagef. WE ≈ `hoaFeeTotalMonthly - hoaFeeRecoverableMonthly`
-- Rücklage = 0 (nicht bekannt)
-- Umlagef. WE = `hoaFeeRecoverableMonthly`
+### Wohnung (`isHoaUnitSplit = false`)
 
-**Fallback (wenn `isHoaParkingSplit = false`):**
-- Stellplatz-Hausgeld wird in Steuerberechnung als 0 angesetzt
+`hoaFeeRecoverableMonthly` und `hoaFeeMaintenanceReserveMonthly` sind nicht befüllt (= 0).
 
-**Validierung Aufteilung:** `umlagefähig + rücklage ≤ gesamt` — Fehler wenn überschritten, Speichern blockiert.
+**Folge:** `hoaFeeNonRecoverableMonthly = hoaFeeTotalMonthly` — gesamtes Hausgeld wird als Werbungskosten abgesetzt, auch der umlagefähige Anteil. Das **überschätzt die steuerliche Absetzbarkeit** bei Vermietung.
+
+**Warnung im UI:** ⚠ "Steuerliche Berechnung ungenau — Hausgeld wird vollständig als Werbungskosten angesetzt. Für genaue Berechnung Hausgeld aufteilen (→ Einstellungen)"
+
+### Stellplatz (`isHoaParkingSplit = false`)
+
+`hoaFeeParkingRecoverableMonthly` und `hoaFeeParkingMaintenanceReserveMonthly` sind nicht befüllt (= 0).
+
+**Folge:** `hoaFeeParkingNonRecoverableMonthly = hoaFeeParkingTotalMonthly` — gesamtes Stellplatz-Hausgeld wird abgesetzt (leicht zu hoch, da Rücklage nicht absetzbar wäre).
+
+**Warnung im UI:** ⚠ "Steuerliche Berechnung ungenau — Hausgeld Stellplatz wird vollständig als Werbungskosten angesetzt. Für genaue Berechnung aufteilen (→ Einstellungen)"
+
+**Validierung Aufteilung:** `umlagefähig + rücklage ≤ gesamt` — Fehler beim Speichern wenn überschritten.
 
 ---
 
 ## Rendite-KPIs
 
 ```swift
+totalColdRentMonthly  = coldRentMonthly + parkingRentMonthly + otherIncomeMonthly
+
+effectiveGrossIncomeYearly = totalColdRentMonthly × 12 × (1 − vacancyRateAssumption)
+
+operatingCostsNonRecoverableYearly =
+    (hoaFeeNonRecoverableMonthly + hoaFeeMaintenanceReserveMonthly) × 12
+    + hoaFeeParkingNonRecoverableMonthly × 12        // TE: nur wenn Stellplatz
+    + hoaFeeParkingRecoverableMonthly × 12           // TE: immer Eigentümer
+    + hoaFeeParkingMaintenanceReserveMonthly × 12    // TE: nur wenn Stellplatz
+    + propertyTaxParkingAnnual                       // TE: immer Eigentümer
+    + propertyManagementAnnual
+    + propertyInsuranceAnnual
+    + otherCostsMonthly × 12
+    // NICHT: propertyTaxAnnual (WE) — Mieter zahlt via Warmmiete bei Vermietung
+    // NICHT: hoaFeeRecoverableMonthly (WE) — Mieter zahlt via Betriebskosten
+
+NOI = effectiveGrossIncomeYearly − operatingCostsNonRecoverableYearly
+
+cashflowAfterTaxYearly = Σ cashflowNachSteuerMonatlich für alle Eigentumsmonate im Jahr
+
 bruttorendite    = (coldRentMonthly + parkingRentMonthly) × 12
                    / (purchasePriceUnit + purchasePriceParking)
 
@@ -237,19 +281,26 @@ capRate          = NOI / totalPurchasePrice
 
 kaufpreisfaktor  = totalPurchasePrice / ((coldRentMonthly + parkingRentMonthly) × 12)
 
-cashOnCashReturn = cashflowBeforeTaxYearly / equityContributed
+cashOnCashReturn = cashflowAfterTaxYearly / equityContributed
                    // Fallback: equityUsed wenn equityContributed = 0
 
 dscr             = NOI / (monthlyMortgage × 12)
 
 ltv              = remainingDebtNow / totalInvestment
 
-breakEvenRent    = (laufende Kosten nicht-umlagefähig + monthlyMortgage) / 1 Monat
-
-NOI              = effectiveGrossIncomeYearly - operatingCostsNonRecoverableYearly
-                   // ohne Kredit, ohne AfA, ohne Tilgung
-
-effectiveGrossIncomeYearly = totalColdRentMonthly × 12 × (1 - vacancyRateAssumption)
+breakEvenRent    = hoaFeeNonRecoverableMonthly              // WE: immer Eigentümer
+                   + hoaFeeMaintenanceReserveMonthly         // WE: Rücklage, immer
+                   + hoaFeeParkingNonRecoverableMonthly      // TE: nur wenn Stellplatz
+                   + hoaFeeParkingRecoverableMonthly         // TE: immer Eigentümer
+                   + hoaFeeParkingMaintenanceReserveMonthly  // TE: nur wenn Stellplatz
+                   + (propertyTaxParkingAnnual / 12)         // TE: immer Eigentümer
+                   + (propertyManagementAnnual / 12)
+                   + (propertyInsuranceAnnual / 12)
+                   + otherCostsMonthly
+                   + monthlyMortgage
+                   // NICHT: propertyTaxAnnual (WE) — Mieter zahlt via Warmmiete
+                   // NICHT: hoaFeeRecoverableMonthly (WE) — Mieter zahlt via Betriebskosten
+                   // Annahme: Vermietet-Szenario (Kaltmiete-Breakeven)
 ```
 
 ---
@@ -265,4 +316,4 @@ Beide Tabs (Cashflow, Steuer) haben einen Toggle `[Vollvermietung] [Leerstand]`.
 | Grundsteuer WE | 0 (Mieter zahlt) | voll (Owner trägt) |
 | Alle anderen Kosten | unverändert | unverändert |
 
-Toggle-Zustand wird nicht gespeichert — reset bei Tab-Wechsel.
+Toggle-Zustand bleibt dauerhaft erhalten — kein Reset beim Tab-Wechsel.
