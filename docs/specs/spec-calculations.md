@@ -121,6 +121,7 @@ Inputs:
   propertyTaxParkingAnnual            // TE Grundsteuer (nur wenn Stellplatz)
   propertyManagementAnnual
   propertyInsuranceAnnual             // nur wenn > 0
+  otherCostsMonthly                   // §9 EStG, nur wenn > 0
   coldRentMonthly, parkingRentMonthly, otherIncomeMonthly
   statusHistory: [StatusEntry]
   extraordinaryCosts: [ExtraordinaryCost]

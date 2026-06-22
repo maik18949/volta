@@ -160,6 +160,12 @@ Gleicher Wert in allen Monatsspalten — kommt aus Steuer-Tab Berechnung für da
 
 Prognose-Card (Card 1): Steuereffekt = ebenfalls aus laufendem Jahr — konsistent mit der Jahrestabelle.
 
+**Steuereffekt bei Zukunftsjahren (Jahr-Picker > laufendes Jahr):**
+Zeile "Steuererstattung Ø / Mon" und "Cashflow nach Steuern" bleiben leer. Stattdessen Hinweis:
+```
+⚠ Steuereffekt für Zukunftsjahre: Muss noch genauer nachgedacht werden wie wir das machen.
+```
+
 ---
 
 ### Kein StatusEntry vorhanden
