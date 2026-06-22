@@ -111,7 +111,7 @@ SF Pro (System). Zahlen: SF Mono (tabular-nums).
 ## Navigation
 
 ```
-Tab-Leiste: Übersicht | Cashflow | Steuer | Verlauf | Finanzierung | Einstellungen
+Tab-Leiste: Übersicht | Cashflow | Steuer | Verlauf | Finanzierung | Immobiliendaten
 ```
 
 ## Tabellen

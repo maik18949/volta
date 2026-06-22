@@ -1,7 +1,7 @@
 # Datenmodell
 
 **Datei:** `Volta/Models/Property.swift`  
-**WizardState:** `Volta/Views/Wizard/WizardState.swift`
+**PropertySetupState:** `Volta/Views/PropertySetup/PropertySetupState.swift`
 
 ---
 
@@ -123,8 +123,14 @@ var renovationAfaEligible: Double         // davon aktivierungspflichtig (erhöh
 var coldRentMonthly: Double               // Kaltmiete / Monat (Nettomiete ohne NK)
 var parkingRentMonthly: Double            // Stellplatzmiete / Monat (nur wenn parkingType != .nichtVorhanden)
 var otherIncomeMonthly: Double            // Sonstige Einnahmen / Monat
+```
+
+### Annahmen
+
+```swift
 var vacancyRateAssumption: Double         // Angenommene Leerstandsquote, z.B. 3%
-var rentMarketSqm: Double?               // Marktmiete / m² (informativ)
+var rentMarketSqm: Double?               // Marktmiete / m² (informativ, Vergleich mit eigener Miete)
+var currentMarketValue: Double?          // Aktueller Marktwert gesamt (Schätzung, manuell eingetragen)
 ```
 
 ### Kosten — Wohnung

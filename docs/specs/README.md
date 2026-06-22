@@ -11,7 +11,8 @@ Jede Datei ist in sich vollständig und beschreibt ein Feature oder Tab.
 | [spec-cashflow-tab.md](spec-cashflow-tab.md) | Cashflow-Tab: Prognose-Karte + vollständige Jahrestabelle |
 | [spec-steuer-tab.md](spec-steuer-tab.md) | Steuer-Tab: Laufendes Jahr + Prognose, steuerrechtliche Grundlagen |
 | [spec-verlauf-tab.md](spec-verlauf-tab.md) | Verlauf-Tab: Statusverlauf + außergewöhnliche Kosten (gemeinsame Datenquelle für Steuer + Cashflow) |
-| [spec-einstellungen-tab.md](spec-einstellungen-tab.md) | Einstellungen-Tab: alle Felder, identisch mit Wizard |
+| [spec-immobiliendaten-tab.md](spec-immobiliendaten-tab.md) | Immobiliendaten-Tab: alle Felder wie Property Setup + Annahmen + Gefahrenzone |
+| [spec-finanzierung-tab.md](spec-finanzierung-tab.md) | Finanzierung-Tab: Tilgungsplan + Finanzierungsübersicht |
 | [spec-calculations.md](spec-calculations.md) | Berechnungslogik: Steuer, Cashflow, Rendite-KPIs, Proration |
 
 ## Wichtigste Design-Entscheidungen

@@ -272,6 +272,19 @@ NOI = effectiveGrossIncomeYearly − operatingCostsNonRecoverableYearly
 
 cashflowAfterTaxYearly = Σ cashflowNachSteuerMonatlich für alle Eigentumsmonate im Jahr
 
+mietpreisAbweichung =
+    (coldRentMonthly / livingAreaSqm - rentMarketSqm) / rentMarketSqm
+    // positiv = über Markt, negativ = unter Markt
+    // nur berechnen wenn rentMarketSqm != nil && > 0
+
+wertsteigerung =
+    currentMarketValue - totalPurchasePrice
+    // absolut in €
+wertsteigerungProzent =
+    (currentMarketValue - totalPurchasePrice) / totalPurchasePrice
+    // nur berechnen wenn currentMarketValue != nil
+    // Anzeige im Übersicht-Tab
+
 tatsächlicheLeerstandsquote =
     leerstandsTageGesamt / gesamtEigentumstage
     // leerstandsTageGesamt = Tage mit status == .leerstand ODER .mietgarantie

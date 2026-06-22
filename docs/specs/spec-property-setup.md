@@ -112,7 +112,7 @@ Bruttomiete/Monat:        XXX €
 [Wenn Kaufpreis + Miete bekannt: live Bruttorendite-Anzeige mit Benchmark]
 ```
 
-**Leerstandsquote** und **Marktmiete/m²** sind keine Wizard-Eingaben — werden als Annahmen in den Einstellungen gepflegt.
+**Leerstandsquote** und **Marktmiete/m²** sind keine Property-Setup-Eingaben — werden als Annahmen im Immobiliendaten-Tab gepflegt.
 
 ---
 
@@ -262,7 +262,8 @@ Aufruf: Vom Hauptscreen über einen "+" Button → pusht `PropertySetupView` auf
 **`canFinish` Bedingungen:**
 ```swift
 !name.isEmpty && !address.isEmpty && !city.isEmpty
-&& purchasePriceUnit > 0 && coldRentMonthly > 0
+&& purchasePriceUnit > 0 && economicTransferDate != nil
+&& coldRentMonthly > 0
 && loanAmount > 0 && interestRate > 0 && amortizationRate > 0
 && buildingValue > 0 && landValue > 0
 ```

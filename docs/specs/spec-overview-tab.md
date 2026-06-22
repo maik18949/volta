@@ -122,5 +122,5 @@ Bestehende `BenchmarkContext`-Logik bleibt unverändert.
 
 - Steuerberechnung (→ Steuer-Tab)
 - Cashflow-Tabelle monatlich (→ Cashflow-Tab)
-- Alle bearbeitbaren Felder (→ Einstellungen-Tab)
+- Alle bearbeitbaren Felder (→ Immobiliendaten-Tab)
 - Tilgungsplan (→ Finanzierung-Tab)
