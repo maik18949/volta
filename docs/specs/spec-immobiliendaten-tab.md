@@ -17,6 +17,7 @@ Alle bearbeitbaren Felder einer Immobilie. Gleiche Felder, Validierung und UI-St
 ┌──────────────────┬──────────────────────────────┐
 │  Stammdaten      │                              │
 │  Objektdaten     │       Abschnitt-Inhalt        │
+│    Fotos         │                              │
 │  Kauf            │                              │
 │  Einnahmen       │                              │
 │  Annahmen        │                              │
@@ -70,6 +71,17 @@ Heizung:            [Picker, optional]
 Energieklasse:      [Picker, optional]
 Zustand:            [Picker, optional]
 Letzte Renovierung: [Textfeld Jahr, optional]
+
+━━━━ FOTOS ━━━━
+[Foto-Grid: 3 Spalten, quadratische Thumbnails]
+  + Foto hinzufügen   ← iOS PHPicker / Kamera
+  Max. 15 Fotos
+
+Regeln:
+- Erstes Foto wird automatisch Titelbild (Cover-Icon ⭐)
+- Tippen auf Foto: Optionen "Titelbild setzen" / "Löschen"
+- Titelbild wird in Immobilienliste und Übersicht-Tab angezeigt
+- Keine Fotos → Placeholder mit Immobilientyp-Icon
 ```
 
 `parkingType` ist non-optional — Default ist `.nichtVorhanden`. Alle Stellplatz-Felder erscheinen nur wenn `parkingType != .nichtVorhanden`.

@@ -273,6 +273,28 @@ operatingExpenseRatio = (nonRecoverableYearly + recoverableYearly) / (totalColdR
 
 ---
 
+## PropertyPhoto
+
+Fotos einer Immobilie. Max. 15 Stück. Verwaltet in Immobiliendaten-Tab und Property Setup.
+
+```swift
+@Model class PropertyPhoto {
+    var filePath: String        // Pfad im App-Dokumentenordner
+    var isCoverPhoto: Bool      // Titelbild — wird in Übersicht + Immobilienliste angezeigt
+    var sortOrder: Int          // Reihenfolge in der Galerie
+    var createdAt: Date
+    var property: Property
+}
+```
+
+**Regeln:**
+- Max. 15 Fotos pro Immobilie
+- Genau ein Foto kann `isCoverPhoto = true` sein
+- Kein Titelbild gesetzt → erstes Foto wird als Titelbild verwendet
+- Keine Fotos → Placeholder mit Immobilientyp-Icon
+
+---
+
 ## StatusEntry
 
 ```swift

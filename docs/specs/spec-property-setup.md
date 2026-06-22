@@ -59,6 +59,17 @@ Heizung:            [Picker, optional]
 Energieklasse:      [Picker, optional]
 Zustand:            [Picker, optional]
 Letzte Renovierung: [Textfeld Jahr, optional]
+
+━━━━ FOTOS ━━━━
+[Foto-Grid: 3 Spalten, quadratische Thumbnails]
+  + Foto hinzufügen   ← iOS PHPicker / Kamera
+  Max. 15 Fotos
+
+Regeln:
+- Erstes Foto wird automatisch Titelbild (Cover-Icon ⭐)
+- Tippen auf Foto: Optionen "Titelbild setzen" / "Löschen"
+- Titelbild wird in Immobilienliste und Übersicht-Tab angezeigt
+- Keine Fotos → kein Foto-Bereich sichtbar (nur "+ Foto hinzufügen" Button)
 ```
 
 `parkingType` ist non-optional — Default ist `.nichtVorhanden`. Alle Stellplatz-Felder in späteren Schritten erscheinen nur wenn `parkingType != .nichtVorhanden`.
