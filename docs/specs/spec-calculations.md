@@ -292,6 +292,7 @@ tatsächlicheLeerstandsquote =
     // leerstandsTageGesamt = Tage mit status == .leerstand ODER .mietgarantie
     //                        ab economicTransferDate bis heute
     // gesamtEigentumstage  = ab economicTransferDate bis heute
+    // Kein StatusEntry vorhanden → Wert wird nicht angezeigt ("–")
     // Anzeige im Übersicht-Tab als Ist-Wert neben vacancyRateAssumption
 
 bruttorendite    = (coldRentMonthly + parkingRentMonthly) × 12

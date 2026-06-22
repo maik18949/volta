@@ -37,6 +37,8 @@ VERLAUF
 
 StatusEntry und ExtraordinaryCost können dasselbe Datum haben — das ist erlaubt.
 
+**Sortierung:** Alle Einträge (Status + Kosten) absteigend nach Datum (neueste oben). Bei gleichem Datum: Sortierung nach Erfassungszeitpunkt (`createdAt`) — zuletzt erfasster Eintrag erscheint zuerst.
+
 ---
 
 ## Status-Eintrag
