@@ -272,6 +272,13 @@ NOI = effectiveGrossIncomeYearly − operatingCostsNonRecoverableYearly
 
 cashflowAfterTaxYearly = Σ cashflowNachSteuerMonatlich für alle Eigentumsmonate im Jahr
 
+tatsächlicheLeerstandsquote =
+    leerstandsTageGesamt / gesamtEigentumstage
+    // leerstandsTageGesamt = Tage mit status == .leerstand ODER .mietgarantie
+    //                        ab economicTransferDate bis heute
+    // gesamtEigentumstage  = ab economicTransferDate bis heute
+    // Anzeige im Übersicht-Tab als Ist-Wert neben vacancyRateAssumption
+
 bruttorendite    = (coldRentMonthly + parkingRentMonthly) × 12
                    / (purchasePriceUnit + purchasePriceParking)
 

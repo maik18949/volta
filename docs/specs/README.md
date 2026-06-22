@@ -6,7 +6,7 @@ Jede Datei ist in sich vollständig und beschreibt ein Feature oder Tab.
 |-------|--------|
 | [spec-design-system.md](spec-design-system.md) | Farben, Typografie, Glass Cards, Spacing — Light Mode only |
 | [spec-data-model.md](spec-data-model.md) | Property-Felder, Enums, WizardState, StatusEntry, Migration |
-| [spec-wizard.md](spec-wizard.md) | Alle 7+1 Wizard-Schritte, Stellplatz-Logik, Hausgeld-Split |
+| [spec-property-setup.md](spec-property-setup.md) | Property Setup (eigene Seite): alle 7+1 Schritte, Stellplatz-Logik, Hausgeld-Split |
 | [spec-overview-tab.md](spec-overview-tab.md) | Übersicht-Tab: 4 Cards (Status/Cashflow, Rendite, Finanzierung, Objekt) |
 | [spec-cashflow-tab.md](spec-cashflow-tab.md) | Cashflow-Tab: Prognose-Karte + vollständige Jahrestabelle |
 | [spec-steuer-tab.md](spec-steuer-tab.md) | Steuer-Tab: Laufendes Jahr + Prognose, steuerrechtliche Grundlagen |
@@ -18,7 +18,8 @@ Jede Datei ist in sich vollständig und beschreibt ein Feature oder Tab.
 
 - **Light Mode only** — kein Dark Mode
 - **parkingType != .nichtVorhanden** = Bedingung für alle Stellplatz-Felder (kein hasParking-Feld)
-- **Hausgeld-Split** = optionaler Toggle in Wizard UND Einstellungen (identisch)
+- **Property Setup** = eigene Seite (NavigationStack), kein Modal
+- **Hausgeld-Split** = optionaler Toggle in Property Setup UND Einstellungen (identisch)
 - **Instandhaltungsrücklage** = Cashflow-Abfluss, aber NICHT steuerlich absetzbar
 - **Tilgung** = Cashflow-Abfluss, aber NICHT steuerlich absetzbar
 - **AfA** = steuerlich absetzbar, aber KEIN Cashflow-Abfluss

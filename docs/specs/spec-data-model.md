@@ -52,8 +52,6 @@ enum PropertyStatus {
     case vermietet
     case leerstand
     case mietgarantie    // Leerstand mit Mietgarantie-Zahlung
-    case eigennutzung
-    case renovierung
 }
 ```
 
@@ -304,11 +302,11 @@ Einmalige Ausgaben in einem bestimmten Monat. Verwaltet im Verlauf-Tab.
 
 ---
 
-## WizardState
+## PropertySetupState
 
-Spiegelt alle `Property`-Felder exakt. Mapping in `AddPropertyWizard.saveProperty()`.
+Transienter State für `PropertySetupView` (eigene Seite, NavigationStack). Spiegelt alle `Property`-Felder exakt. Mapping in `PropertySetupView.saveProperty()`.
 
-Zusatzfelder nur in WizardState:
+Zusatzfelder nur in `PropertySetupState`:
 ```swift
 var firstStatusDate: Date
 var firstStatus: PropertyStatus
