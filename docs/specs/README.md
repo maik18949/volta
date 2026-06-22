@@ -6,6 +6,7 @@ Jede Datei ist in sich vollständig und beschreibt ein Feature oder Tab.
 |-------|--------|
 | [spec-design-system.md](spec-design-system.md) | Farben, Typografie, Glass Cards, Spacing — Light Mode only |
 | [spec-data-model.md](spec-data-model.md) | Property-Felder, Enums, WizardState, StatusEntry, Migration |
+| [spec-hauptscreen.md](spec-hauptscreen.md) | Hauptscreen: Portfolio-KPIs + Immobilienliste mit Property Cards |
 | [spec-property-setup.md](spec-property-setup.md) | Property Setup (eigene Seite): alle 7+1 Schritte, Stellplatz-Logik, Hausgeld-Split |
 | [spec-overview-tab.md](spec-overview-tab.md) | Übersicht-Tab: 4 Cards (Status/Cashflow, Rendite, Finanzierung, Objekt) |
 | [spec-cashflow-tab.md](spec-cashflow-tab.md) | Cashflow-Tab: Prognose-Karte + vollständige Jahrestabelle |
