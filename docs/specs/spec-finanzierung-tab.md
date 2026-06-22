@@ -36,7 +36,24 @@ Jahr | Restschuld Anfang | Zinsen | Tilgung | Rate | Restschuld Ende
 
 - Zinsen und Tilgung pro Jahr: Σ der monatlichen AmortizationRows
 - Laufendes Jahr: Ist bis heute + Projektion ab heute
-- Zinsbindungsende hervorgehoben (farbige Zeile oder Badge)
+- Zinsbindungsende: Zeile hervorgehoben (blauer Rahmen oder Badge "Zinsbindungsende")
+- Zeilen **nach** Zinsbindungsende: rechnerische Fortschreibung mit aktuellem Zinssatz + Hinweis:
+  ```
+  ⚠ Ab [MM/YYYY]: Anschlussfinanzierung noch offen — Konditionen können sich ändern.
+  ```
+
+> **Feature-Notiz:** Anschlussfinanzierung (neue Konditionen nach Zinsbindung) ist ein separates Feature das noch gebaut werden muss.
+
+---
+
+## Kein Kredit (`loanAmount = 0`)
+
+Tab wird nicht ausgeblendet, zeigt stattdessen:
+
+```
+Keine Finanzierung erfasst.
+Finanzierungsdaten können im Immobiliendaten-Tab ergänzt werden.
+```
 
 ---
 

@@ -7,7 +7,7 @@ Alle bearbeitbaren Felder einer Immobilie. Gleiche Felder, Validierung und UI-St
 - Kein Status-Onboarding (→ Verlauf-Tab)
 - Zusätzlich: Abschnitt "Annahmen" (Leerstandsquote, Marktmiete)
 - Zusätzlich: Abschnitt "Gefahrenzone" (Immobilie löschen)
-- Änderungen werden automatisch gespeichert
+- **Auto-save via `.onChange`** — bei jeder Feldänderung sofort persistiert, kein expliziter Speichern-Button
 
 ---
 

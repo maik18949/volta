@@ -21,11 +21,13 @@ AfA                               [X.XXX €]   anteilig im Erwerbsjahr, sonst v
 Nicht umlagef. Kosten Wohnung     [X.XXX €]
 Gebäudeversicherung               [X.XXX €]   nur wenn propertyInsuranceAnnual > 0
 Hausverwaltung                    [X.XXX €]
+Sonstige Kosten                   [X.XXX €]   nur wenn otherCostsMonthly > 0
 Umlagef. Kosten Wohnung           [X.XXX €]   × Leerstand-Tagesanteil
 Grundsteuer Wohnung               [X.XXX €]   × Leerstand-Tagesanteil
 Nicht umlagef. Kosten Stellplatz  [X.XXX €]   nur wenn parkingType != .nichtVorhanden
 Umlagef. Kosten Stellplatz        [X.XXX €]   immer, nur wenn parkingType != .nichtVorhanden
 Grundsteuer Stellplatz            [X.XXX €]   immer, nur wenn parkingType != .nichtVorhanden
+Außergewöhnliche Kosten           [X.XXX €]   nur wenn isDeductible = true; Jahressumme
 ──────── Steuerliches Ergebnis ────────
 Steuerliches Ergebnis             [−X.XXX €]  (fett)
 Steuereffekt / Mon                [+XXX €]    (22px, fett, grün oder rot)
@@ -62,6 +64,7 @@ AfA                               [X.XXX €]   voll (kein Erwerbsjahr-Abzug)
 Nicht umlagef. Kosten Wohnung     [X.XXX €]
 Gebäudeversicherung               [X.XXX €]   nur wenn propertyInsuranceAnnual > 0
 Hausverwaltung                    [X.XXX €]
+Sonstige Kosten                   [X.XXX €]   nur wenn otherCostsMonthly > 0
 Umlagef. Kosten Wohnung           [X.XXX €]   nur bei Leerstand-Szenario (12 Monate)
 Grundsteuer Wohnung               [X.XXX €]   nur bei Leerstand-Szenario (12 Monate)
 Nicht umlagef. Kosten Stellplatz  [X.XXX €]   nur wenn parkingType != .nichtVorhanden
@@ -134,6 +137,7 @@ steuerlichesErgebnis =
   − hoaFeeNonRecoverableMonthly × 12
   − propertyInsuranceAnnual                                 // nur wenn > 0
   − propertyManagementAnnual
+  − otherCostsMonthly × 12                                  // nur wenn > 0 (§9 EStG Werbungskosten)
   − (hoaFeeRecoverableMonthly × 12) × leerstandsAnteil     // WE: nur Leerstandsanteil
   − propertyTaxAnnual × leerstandsAnteil                    // WE: nur Leerstandsanteil
   − hoaFeeParkingNonRecoverableMonthly × 12                 // TE: nur wenn Stellplatz
@@ -142,7 +146,9 @@ steuerlichesErgebnis =
   − extraordinaryCosts(year, isDeductible: true)            // nur absetzbare außergewöhnliche Kosten
 ```
 
-**Außergewöhnliche Kosten:** Nur Einträge mit `isDeductible = true` fließen ins steuerliche Ergebnis. Nicht absetzbare Kosten erscheinen nur im Cashflow-Tab.
+**Außergewöhnliche Kosten:** Nur Einträge mit `isDeductible = true` fließen ins steuerliche Ergebnis und erscheinen als eigene Zeile im Tab. Nicht absetzbare Kosten erscheinen nur im Cashflow-Tab.
+
+**`economicTransferDate` in der Zukunft:** Sektion 1 "Laufendes Jahr" wird normal angezeigt. Alle Monate vor dem Besitzübergang bleiben 0. Einnahmen, AfA, Zinsen etc. starten erst ab `economicTransferDate`. Ein Hinweis erscheint: "Besitzübergang am [Datum] — Werte ab diesem Datum."
 
 ### Steuereffekt
 

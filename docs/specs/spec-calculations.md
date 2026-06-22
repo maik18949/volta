@@ -143,6 +143,7 @@ Berechnung:
          hoaFeeParkingRecoverableMonthly      // TE trägt immer Eigentümer
          propertyManagementAnnual / 12
          propertyInsuranceAnnual / 12         // nur wenn > 0
+         otherCostsMonthly                   // §9 EStG Werbungskosten, nur wenn > 0
          propertyTaxParkingAnnual / 12        // nur wenn Stellplatz
        nur Leerstand-Anteil:
          hoaFeeRecoverableMonthly × 12 × leerstandsAnteil

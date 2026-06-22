@@ -46,6 +46,15 @@ Cashflow nach Steuern         [−XXX €]  (fett, 22px, rot oder grün)
 
 **Datenbasis:** Werte aus aktuellem Monat (Ist + Projektion). Steuereffekt = jährlicher Steuereffekt laufendes Jahr ÷ Eigentumsmonate.
 
+**Empty State (kein StatusEntry vorhanden):**
+```
+AKTUELLER STAND
+
+Noch kein Status vorhanden.
+[+ Ersten Status hinzufügen]   ← führt zum Verlauf-Tab
+```
+Cashflow-Zeilen werden ausgeblendet bis mindestens ein StatusEntry existiert.
+
 ---
 
 ### Card 2 — Rendite & Investment
@@ -72,7 +81,7 @@ Aktueller Marktwert  XXX.XXX €   (nur anzeigen wenn currentMarketValue gesetzt
 Wertsteigerung       +XX.XXX €   (+X,X%) seit Kauf
 ```
 
-**Layout:** 2-spaltige KPI-Zeilen (Label links, Wert + Chip rechts). Info-Icon ⓘ öffnet ein Sheet mit Erklärung + Benchmark-Tabelle.
+**Layout:** 2-spaltige KPI-Zeilen (Label links, Wert + Chip + ⓘ rechts). Das ⓘ-Icon steht pro KPI-Zeile — Tippen öffnet ein Bottom Sheet mit Name, Formel, Bedeutung und Benchmark-Tabelle für genau diesen KPI.
 
 ---
 
@@ -90,6 +99,14 @@ Zinsbindung bis      MM/YYYY   (noch X Jahre)
 ```
 
 **Restschuld** wird aus dem AmortizationCalculator für den aktuellen Monat gelesen.
+
+**Kein Kredit (`loanAmount = 0`):**
+```
+FINANZIERUNG
+
+Keine Finanzierung erfasst.
+```
+Card wird angezeigt aber mit Hinweistext — nicht ausgeblendet.
 
 ---
 

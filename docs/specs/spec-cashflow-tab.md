@@ -29,7 +29,13 @@ Toggle-Zustand bleibt dauerhaft erhalten — kein Reset beim Tab-Wechsel.
 
 ## Card 2 — Jahrestabelle
 
-Monatliche Übersicht für das laufende Jahr. Kein horizontaler Scroll — alle Spalten passen in die Breite.
+Monatliche Übersicht für ein wählbares Jahr. Standard = laufendes Jahr. Kein horizontaler Scroll — alle Spalten passen in die Breite.
+
+```
+[← 2024]  2025  [2026 →]    ← Jahr-Picker oben in Card 2
+```
+
+Nur Jahre ab `economicTransferDate.year` bis zum laufenden Jahr + 1 wählbar.
 
 ### Spalten
 
@@ -150,7 +156,15 @@ cashflowNachSteuerMonatlich =
 monthlyTaxRefund = steuererstattungJahr / eigentumsMonate im Jahr
 ```
 
-Gleicher Wert in allen Monatsspalten — kommt aus Steuer-Tab Berechnung.
+Gleicher Wert in allen Monatsspalten — kommt aus Steuer-Tab Berechnung für das **laufende Jahr**.
+
+Prognose-Card (Card 1): Steuereffekt = ebenfalls aus laufendem Jahr — konsistent mit der Jahrestabelle.
+
+---
+
+### Kein StatusEntry vorhanden
+
+Wenn noch kein StatusEntry existiert, zeigt Card 2 die **Prognose** (identisch zu Card 1 — Vollvermietung-Szenario aus den Einstellungen). Alle 12 Spalten zeigen denselben Prognosewert, grau/kursiv markiert als Projektion. Keine Ist-Werte.
 
 ---
 
