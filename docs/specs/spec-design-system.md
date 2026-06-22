@@ -121,6 +121,115 @@ Tab-Leiste: Übersicht | Cashflow | Steuer | Verlauf | Finanzierung | Immobilien
 - Keine Sonder-Hintergründe je Zeile (nur Wert-Farbe signalisiert Bedeutung)
 - Trennlinien: 1px `rgba(0,0,0,0.05)`
 
+## KPI-Chips (Benchmark-Farben)
+
+Kleiner farbiger Punkt ● rechts neben dem KPI-Wert. Farbe je nach Benchmark:
+
+| Farbe | Bedeutung | SwiftUI |
+|-------|-----------|---------|
+| Grün | Gut | `Color.green` / `#16a34a` |
+| Orange | Ok | `Color.orange` / `#d97706` |
+| Rot | Schlecht | `Color.red` / `#dc2626` |
+
+```
+Bruttorendite   4,2%  ●   ⓘ
+```
+
+- Chip-Größe: 8pt Durchmesser
+- ⓘ-Icon: SF Symbol `info.circle`, 14pt, Farbe `#94a3b8`
+- Tippen auf ⓘ → Bottom Sheet mit KPI-Erklärung
+
+## ⓘ Info Bottom Sheet
+
+Öffnet sich beim Tippen auf das ⓘ-Icon einer KPI-Zeile.
+
+```
+┌─────────────────────────────────┐
+│  ━━━  (Handle)                  │
+│                                 │
+│  Nettorendite                   │  ← Titel, 17px 700
+│                                 │
+│  NOI / Gesamtinvestment         │  ← Formel, 13px mono
+│                                 │
+│  Zeigt die Rendite nach allen   │  ← Erklärung, 14px
+│  laufenden Kosten, aber vor     │
+│  Steuern und Kredit.            │
+│                                 │
+│  Benchmark                      │  ← Section Label
+│  ● Gut      ≥ 4%                │
+│  ● Ok       2–4%                │
+│  ● Schlecht < 2%                │
+│                                 │
+└─────────────────────────────────┘
+```
+
+- `.presentationDetents([.medium])`
+- Hintergrund: Card-Weiß (`rgba(255,255,255,0.98)`)
+
+## Foto-Grid
+
+3-spaltige Galerie, quadratische Thumbnails.
+
+```
+┌──────┐ ┌──────┐ ┌──────┐
+│  📷  │ │  📷  │ │  ⭐  │  ← ⭐ = Titelbild
+└──────┘ └──────┘ └──────┘
+┌──────┐ ┌──────┐ ┌──────┐
+│  📷  │ │  +   │ │      │  ← + = Hinzufügen
+└──────┘ └──────┘ └──────┘
+```
+
+- Thumbnail-Größe: (Bildschirmbreite − Padding) / 3, quadratisch
+- Gap zwischen Thumbnails: 2pt
+- Titelbild-Badge: ⭐ Icon oben links, `rgba(0,0,0,0.5)` Hintergrund
+- Hinzufügen-Button: gestrichelter Rahmen, `+` SF Symbol zentriert
+- Tippen auf Foto: Action Sheet "Titelbild setzen" / "Löschen"
+- Max. 15 Fotos — Hinzufügen-Button verschwindet wenn Limit erreicht
+
+## Linke Navigation (Property Setup / Immobiliendaten)
+
+Sidebar-Navigation links für mehrstufige Formulare.
+
+```
+┌─────────────┬──────────────────┐
+│ ● Stammdaten│                  │
+│   Objektdaten                  │
+│   Kauf       │   Schritt-Inhalt │
+│   Einnahmen  │                  │
+│   Kosten     │                  │
+│   Finanzierung                 │
+│   AfA & Steuer                 │
+└─────────────┴──────────────────┘
+```
+
+- Breite Sidebar: ~140pt
+- Aktiver Schritt: Akzentblau `#3b82f6`, Schrift 700, ● Dot links
+- Besuchte Schritte: Primärtext `#0f172a`, anklickbar
+- Nicht besucht: Dimmer Text `#94a3b8`, anklickbar aber visuell zurückgezogen
+- Trennlinie zwischen Sidebar und Inhalt: 1px `rgba(0,0,0,0.08)`
+
+## Property Card (Hauptscreen)
+
+```
+border-radius:  16px
+overflow:       hidden (Titelbild füllt bis Rand)
+Titelbild:      Höhe 160pt, contentMode .fill
+Body-Padding:   12px horizontal, 10px vertikal
+Kennzahlen-Grid: 2×2, Label 11px #475569, Wert 15px 700
+Trennlinie:     1px rgba(0,0,0,0.06)
+Fußzeile:       12px #94a3b8, SF Mono für Zahlen
+```
+
+## Portfolio-Karte (Hauptscreen)
+
+Glass Card, identisch zu anderen Cards.
+
+```
+Titel:       "[X] Immobilien" — 13px 600 #475569
+Kennzahlen:  2×2 Grid, Label 11px #475569, Wert 18px 800
+Cashflow:    farbig (grün/rot wie Ergebnis-Zahlen)
+```
+
 ## Icons
 
 SF Symbols — keine eigenen Icons.
