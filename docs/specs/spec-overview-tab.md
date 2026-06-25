@@ -4,6 +4,40 @@ Zeigt auf einen Blick: aktueller Status, Cashflow, Renditekennzahlen, Finanzieru
 
 ---
 
+## Fixe KPI-Leiste (oberhalb der Cards)
+
+Immer sichtbar, auch beim Scrollen. 4 kompakte Kennzahlen nebeneinander.
+
+```
+┌──────────────┬──────────────┬──────────────┬──────────────┐
+│ CF NACH      │ NETTO-       │ CASH-ON-     │ DSCR         │
+│ STEUERN      │ RENDITE      │ CASH         │              │
+│ +215 €       │ 3,8 %        │ 3,2 %        │ 0,97         │
+│ vor St.: +8€ │ Brutto: 4,9% │              │ [Schlecht]   │
+└──────────────┴──────────────┴──────────────┴──────────────┘
+```
+
+| Slot | KPI | Warum |
+|------|-----|-------|
+| 1 | CF nach Steuern / Monat | Operativ wichtigste Zahl — wie viel bleibt wirklich übrig |
+| 2 | Nettorendite | Beste Vergleichskennzahl für Performance |
+| 3 | Cash-on-Cash | Wie gut arbeitet das eingesetzte Eigenkapital — wichtigster Vergleich zu anderen Anlageformen |
+| 4 | DSCR | Risiko-Indikator — unter 1,0 trägt die Immobilie sich nicht selbst |
+
+**Subtext je Slot:**
+- CF nach Steuern: "vor St.: [±X €]"
+- Nettorendite: "Brutto: X,X%"
+- Cash-on-Cash: kein Subtext
+- DSCR: Benchmark-Chip (gut/ok/schlecht) statt Subtext
+
+**Styling:**
+- Hintergrund: weiße Leiste, kein Glass-Effekt, leichter Schatten unten
+- Label: 10px 700 UPPERCASE `#475569`
+- Wert: 18px 800, grün/rot je nach Vorzeichen (CF) oder neutral
+- Subtext: 11px `#94a3b8`
+
+---
+
 ## Header — Titelbild
 
 Über den Cards: vollbreites Titelbild der Immobilie.
