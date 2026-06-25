@@ -125,13 +125,15 @@ Kaufpreis:          XXX.XXX €
 ## Einnahmen
 
 ```
-Kaltmiete/Monat *:        [Währungsfeld]
-Parkingmiete/Monat:       [Währungsfeld]  ← nur wenn parkingType != .nichtVorhanden
+Nettomiete/Monat *:       [Währungsfeld]   → coldRentMonthly
+Bruttomiete/Monat:        [Währungsfeld]   → warmmieteMonthly (optional, vereinbarte Warmmiete inkl. NK)
+Parkingmiete/Monat:       [Währungsfeld]   ← nur wenn parkingType != .nichtVorhanden
 Sonstige Einnahmen/Monat: [Währungsfeld]
 
 ━━━━ ZUSAMMENFASSUNG (readonly) ━━━━
-Bruttomiete/Monat: XXX €
-Bruttorendite:     X,XX%
+Nettomiete / Jahr:  XX.XXX €    ← coldRentMonthly × 12
+Bruttomiete / Jahr: XX.XXX €    ← warmmieteMonthly × 12 (nur wenn gesetzt)
+Bruttorendite:      X,XX%
 ```
 
 ---

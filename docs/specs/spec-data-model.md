@@ -120,7 +120,8 @@ var renovationAfaEligible: Double         // davon aktivierungspflichtig (erhöh
 ### Einnahmen
 
 ```swift
-var coldRentMonthly: Double               // Kaltmiete / Monat (Nettomiete ohne NK)
+var coldRentMonthly: Double               // Nettomiete / Monat (Kaltmiete ohne NK) — UI-Label: "Nettomiete"
+var warmmieteMonthly: Double?             // Bruttomiete / Monat (vereinbarte Warmmiete inkl. NK-Vorauszahlung) — optional, rein informativ
 var parkingRentMonthly: Double            // Stellplatzmiete / Monat (nur wenn parkingType != .nichtVorhanden)
 var otherIncomeMonthly: Double            // Sonstige Einnahmen / Monat
 ```
@@ -212,7 +213,6 @@ totalInvestmentPerSqm = totalInvestment / livingAreaSqm
 
 ```swift
 totalColdRentMonthly       = coldRentMonthly + parkingRentMonthly + otherIncomeMonthly
-warmmieteMonthly           = coldRentMonthly + hoaFeeRecoverableMonthly + (propertyTaxAnnual / 12)
 rentPerSqm                 = coldRentMonthly / livingAreaSqm
 vacancyLossAnnual          = totalColdRentMonthly × 12 × vacancyRateAssumption
 effectiveGrossIncomeYearly = totalColdRentMonthly × 12 − vacancyLossAnnual
