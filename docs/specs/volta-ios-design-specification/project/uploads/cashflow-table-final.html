@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cashflow — Horizontale Tabelle</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+    background: #e8eef8;
+    color: #0f172a;
+    padding: 32px 32px;
+    min-height: 100vh;
+  }
+
+  .tab-header { display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px; }
+  .tab-title { font-size:22px; font-weight:700; color:#0f172a; letter-spacing:-0.4px; }
+  .year-badge { font-size:14px; font-weight:600; color:#3b82f6; background:rgba(59,130,246,0.1); padding:5px 14px; border-radius:20px; }
+
+  .section-label {
+    font-size:11px; font-weight:700; color:#1d4ed8;
+    text-transform:uppercase; letter-spacing:0.5px;
+    margin-bottom: 8px; margin-top: 20px;
+  }
+
+  .glass-card {
+    background: rgba(255,255,255,0.8);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border-radius: 18px;
+    border: 1px solid rgba(255,255,255,0.95);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+    overflow: hidden;
+  }
+
+  /* Prognose card */
+  .prognose-card {
+    background: rgba(255,255,255,0.8);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border-radius: 18px;
+    border: 1px solid rgba(255,255,255,0.95);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+    padding: 16px 20px;
+    display: flex; align-items: center; gap: 40px;
+  }
+  .prognose-card .main-val {
+    display:flex; flex-direction:column; gap:3px;
+  }
+  .prognose-card .lbl-small { font-size:10px; font-weight:700; color:#475569; text-transform:uppercase; letter-spacing:0.4px; }
+  .prognose-card .big-num { font-size:28px; font-weight:800; color:#dc2626; letter-spacing:-0.8px; }
+  .prognose-card .sub-items { display:flex; gap:28px; }
+  .prognose-card .sub-item { display:flex; flex-direction:column; gap:2px; }
+  .prognose-card .sub-lbl { font-size:10px; color:#94a3b8; }
+  .prognose-card .sub-val { font-size:14px; font-weight:600; }
+  .prognose-card .sub-val.neg { color:#dc2626; }
+  .prognose-card .sub-val.pos { color:#059669; }
+
+  /* Table */
+  table {
+    border-collapse: collapse;
+    width: 100%;
+  }
+
+  /* Label column */
+  .col-label {
+    font-size: 12px; color: #475569; font-weight: 500;
+    padding: 8px 14px 8px 16px;
+    text-align: left;
+    border-right: 1px solid rgba(0,0,0,0.05);
+    width: 220px;
+  }
+  .col-label.header { font-weight:700; color:#0f172a; font-size:12px; }
+  .col-label.bold { font-weight:700; color:#0f172a; }
+  .col-label.section {
+    font-size:10px; font-weight:700; color:#1d4ed8;
+    text-transform:uppercase; letter-spacing:0.4px;
+    background: rgba(239,246,255,0.8);
+  }
+
+  /* Month header cells */
+  th.month-col {
+    font-size: 11px; font-weight:700; color:#0f172a;
+    padding: 10px 12px 6px;
+    text-align: right;
+    border-bottom: 1px solid rgba(0,0,0,0.07);
+    background: rgba(255,255,255,0.5);
+    white-space: nowrap;
+  }
+  th.month-col .status-tag {
+    display:block; font-size:10px; font-weight:600;
+    margin-top:2px;
+  }
+  th.month-col.vermietet .status-tag { color:#059669; }
+  th.month-col.mietgarantie .status-tag { color:#7c3aed; }
+  th.avg-col {
+    font-size:11px; font-weight:700; color:#1d4ed8;
+    padding: 10px 14px 6px;
+    text-align: right;
+    white-space: nowrap;
+    border-bottom: 1px solid rgba(0,0,0,0.07);
+    border-left: 1.5px solid rgba(59,130,246,0.25);
+    background: rgba(239,246,255,0.5);
+  }
+  th.total-col {
+    font-size:11px; font-weight:700; color:#1d4ed8;
+    padding: 10px 16px 6px;
+    text-align: right;
+    white-space: nowrap;
+    border-bottom: 1px solid rgba(0,0,0,0.07);
+    background: rgba(239,246,255,0.6);
+  }
+
+  /* Data cells */
+  td.val-col {
+    font-size: 12px; font-weight:500; color:#0f172a;
+    padding: 8px 12px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    border-bottom: 1px solid rgba(0,0,0,0.04);
+  }
+  td.val-col.neg { color:#dc2626; }
+  td.val-col.pos { color:#059669; }
+  td.val-col.bold { font-weight:700; }
+  td.val-col.avg-col {
+    border-left: 1.5px solid rgba(59,130,246,0.25);
+    background: rgba(239,246,255,0.4);
+    font-weight:600;
+    padding: 8px 14px;
+  }
+  td.val-col.avg-col.neg { color:#dc2626; }
+  td.val-col.avg-col.pos { color:#059669; }
+  td.val-col.total-col {
+    background: rgba(239,246,255,0.6);
+    font-weight:600;
+    padding: 8px 16px;
+    border-right: none;
+  }
+  td.val-col.total-col.neg { color:#dc2626; }
+  td.val-col.total-col.pos { color:#059669; }
+
+  /* Status-variable rows — no background highlight */
+  tr.status-var td.val-col { }
+  tr.status-var .col-label { }
+
+  /* Summary section */
+  tr.summary-header td, tr.summary-header .col-label {
+    background: rgba(239,246,255,0.8);
+    font-size:10px; font-weight:700; color:#1d4ed8;
+    text-transform:uppercase; letter-spacing:0.4px;
+    padding-top:10px; padding-bottom:6px;
+    border-top: 1.5px solid rgba(59,130,246,0.2);
+  }
+  tr.result-row td.val-col { font-weight:700; font-size:13px; }
+  tr.result-row .col-label { font-weight:700; color:#0f172a; }
+  tr.cashflow-row .col-label { font-weight:700; color:#0f172a; }
+  tr.cashflow-row td.val-col { font-weight:700; font-size:13px; color:#dc2626; }
+  tr.cashflow-row td.val-col.pos-final { color:#059669; }
+  tr.tax-row td.val-col { color:#3b82f6; font-weight:600; }
+</style>
+</head>
+<body>
+
+  <div class="tab-header">
+    <span class="tab-title">Cashflow</span>
+    <span class="year-badge">2026</span>
+  </div>
+
+  <div class="section-label" style="margin-top:0;">Prognose-Monat</div>
+  <div class="prognose-card">
+    <div class="main-val">
+      <span class="lbl-small">Cashflow nach Steuer</span>
+      <span class="big-num">−24 € <span style="font-size:15px;font-weight:500;color:#64748b;">/ Mon</span></span>
+    </div>
+    <div class="sub-items">
+      <div class="sub-item">
+        <span class="sub-lbl">Vor Steuer</span>
+        <span class="sub-val neg">−424 €</span>
+      </div>
+      <div class="sub-item">
+        <span class="sub-lbl">Steuereffekt</span>
+        <span class="sub-val pos">+399 €</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-label">Monatliche Übersicht</div>
+  <div class="glass-card">
+    <table>
+      <thead>
+        <tr>
+          <th class="col-label header" style="border-bottom:1px solid rgba(0,0,0,0.07);">Position</th>
+          <th class="month-col mietgarantie">Februar<span class="status-tag">Mietgarantie</span></th>
+          <th class="month-col mietgarantie">März<span class="status-tag">Mietgarantie</span></th>
+          <th class="month-col mietgarantie">April<span class="status-tag">Mietgarantie</span></th>
+          <th class="month-col mietgarantie">Mai<span class="status-tag">Mietgarantie</span></th>
+          <th class="month-col vermietet">Juni<span class="status-tag">Vermietet</span></th>
+          <th class="month-col vermietet">Juli<span class="status-tag">Vermietet</span></th>
+          <th class="avg-col">Ø Monat</th>
+          <th class="total-col">Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="col-label">Miete</td>
+          <td class="val-col pos">999</td><td class="val-col pos">999</td><td class="val-col pos">999</td><td class="val-col pos">999</td><td class="val-col pos">999</td><td class="val-col pos">999</td>
+          <td class="val-col avg-col pos">999</td>
+          <td class="val-col total-col pos">5.994</td>
+        </tr>
+        <tr>
+          <td class="col-label">Kreditrate</td>
+          <td class="val-col neg">−1.243</td><td class="val-col neg">−1.243</td><td class="val-col neg">−1.243</td><td class="val-col neg">−1.243</td><td class="val-col neg">−1.243</td><td class="val-col neg">−1.243</td>
+          <td class="val-col avg-col neg">−1.243</td>
+          <td class="val-col total-col neg">−7.458</td>
+        </tr>
+        <tr>
+          <td class="col-label">Nicht umlagef. Kosten (WE & TE)</td>
+          <td class="val-col neg">−116</td><td class="val-col neg">−116</td><td class="val-col neg">−116</td><td class="val-col neg">−116</td><td class="val-col neg">−116</td><td class="val-col neg">−116</td>
+          <td class="val-col avg-col neg">−116</td>
+          <td class="val-col total-col neg">−696</td>
+        </tr>
+        <tr class="status-var">
+          <td class="col-label">Umlagef. Kosten (WE)</td>
+          <td class="val-col neg">−226</td><td class="val-col neg">−226</td><td class="val-col neg">−226</td><td class="val-col neg">−226</td><td class="val-col neg">−113</td><td class="val-col">0</td>
+          <td class="val-col avg-col neg">−170</td>
+          <td class="val-col total-col neg">−1.017</td>
+        </tr>
+        <tr>
+          <td class="col-label">Umlagef. Kosten (TE)</td>
+          <td class="val-col neg">−12</td><td class="val-col neg">−12</td><td class="val-col neg">−12</td><td class="val-col neg">−12</td><td class="val-col neg">−12</td><td class="val-col neg">−12</td>
+          <td class="val-col avg-col neg">−12</td>
+          <td class="val-col total-col neg">−72</td>
+        </tr>
+        <tr>
+          <td class="col-label">Verwaltung</td>
+          <td class="val-col neg">−33</td><td class="val-col neg">−33</td><td class="val-col neg">−33</td><td class="val-col neg">−33</td><td class="val-col neg">−33</td><td class="val-col neg">−33</td>
+          <td class="val-col avg-col neg">−33</td>
+          <td class="val-col total-col neg">−198</td>
+        </tr>
+        <tr class="status-var">
+          <td class="col-label">Grundsteuer (WE)</td>
+          <td class="val-col neg">−15</td><td class="val-col neg">−15</td><td class="val-col neg">−15</td><td class="val-col neg">−15</td><td class="val-col neg">−7</td><td class="val-col">0</td>
+          <td class="val-col avg-col neg">−11</td>
+          <td class="val-col total-col neg">−67</td>
+        </tr>
+        <tr>
+          <td class="col-label">Grundsteuer (TE)</td>
+          <td class="val-col neg">−2</td><td class="val-col neg">−2</td><td class="val-col neg">−2</td><td class="val-col neg">−2</td><td class="val-col neg">−2</td><td class="val-col neg">−2</td>
+          <td class="val-col avg-col neg">−2</td>
+          <td class="val-col total-col neg">−14</td>
+        </tr>
+        <tr>
+          <td class="col-label">Instandhaltungsrücklage (WE + TE)</td>
+          <td class="val-col neg">−16</td><td class="val-col neg">−16</td><td class="val-col neg">−16</td><td class="val-col neg">−16</td><td class="val-col neg">−16</td><td class="val-col neg">−16</td>
+          <td class="val-col avg-col neg">−16</td>
+          <td class="val-col total-col neg">−98</td>
+        </tr>
+
+        <!-- Summary -->
+        <tr class="summary-header">
+          <td class="col-label section">Zusammenfassung</td>
+          <td class="val-col" style="background:rgba(239,246,255,0.8);border-top:1.5px solid rgba(59,130,246,0.2);"></td>
+          <td class="val-col" style="background:rgba(239,246,255,0.8);border-top:1.5px solid rgba(59,130,246,0.2);"></td>
+          <td class="val-col" style="background:rgba(239,246,255,0.8);border-top:1.5px solid rgba(59,130,246,0.2);"></td>
+          <td class="val-col" style="background:rgba(239,246,255,0.8);border-top:1.5px solid rgba(59,130,246,0.2);"></td>
+          <td class="val-col" style="background:rgba(239,246,255,0.8);border-top:1.5px solid rgba(59,130,246,0.2);"></td>
+          <td class="val-col" style="background:rgba(239,246,255,0.8);border-top:1.5px solid rgba(59,130,246,0.2);"></td>
+          <td class="val-col avg-col" style="border-top:1.5px solid rgba(59,130,246,0.2);"></td>
+          <td class="val-col total-col" style="border-top:1.5px solid rgba(59,130,246,0.2);"></td>
+        </tr>
+        <tr class="result-row">
+          <td class="col-label bold">Cashflow vor Steuern</td>
+          <td class="val-col neg bold">−664</td><td class="val-col neg bold">−664</td><td class="val-col neg bold">−664</td><td class="val-col neg bold">−664</td><td class="val-col neg bold">−544</td><td class="val-col neg bold">−424</td>
+          <td class="val-col avg-col neg bold">−604</td>
+          <td class="val-col total-col neg bold">−3.624</td>
+        </tr>
+        <tr class="tax-row">
+          <td class="col-label">Steuererstattung (Ø monatlich)</td>
+          <td class="val-col" style="color:#3b82f6;font-weight:600;">+546</td><td class="val-col" style="color:#3b82f6;font-weight:600;">+546</td><td class="val-col" style="color:#3b82f6;font-weight:600;">+546</td><td class="val-col" style="color:#3b82f6;font-weight:600;">+546</td><td class="val-col" style="color:#3b82f6;font-weight:600;">+442</td><td class="val-col" style="color:#3b82f6;font-weight:600;">+399</td>
+          <td class="val-col avg-col" style="color:#3b82f6;font-weight:700;">+504</td>
+          <td class="val-col total-col" style="color:#3b82f6;font-weight:700;">+3.025</td>
+        </tr>
+        <tr class="cashflow-row">
+          <td class="col-label bold">Cashflow nach Steuern</td>
+          <td class="val-col neg bold">−118</td><td class="val-col neg bold">−118</td><td class="val-col neg bold">−118</td><td class="val-col neg bold">−118</td><td class="val-col neg bold">−102</td><td class="val-col neg bold">−25</td>
+          <td class="val-col avg-col neg bold">−100</td>
+          <td class="val-col total-col neg bold">−599</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+</body>
+</html>

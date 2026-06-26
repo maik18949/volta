@@ -1,0 +1,79 @@
+/* ============================================================
+   Physio App — Color Tokens
+   ------------------------------------------------------------
+   Shadcn/ui compatible. All base values are HSL triplets
+   (space-separated, no hsl() wrapper) so they compose with
+   `hsl(var(--token))` and `hsl(var(--token) / <alpha>)`.
+
+   PRINZIP: Farbe ist funktional. Jede semantische Farbe hat
+   genau eine Bedeutung. Phasen- und Statusfarben dürfen NICHT
+   dekorativ verwendet werden. (siehe Kollisionsmatrix, readme)
+   ============================================================ */
+
+:root {
+  /* ---------- Basis ---------- */
+  --background:              220 20% 97%;   /* @kind color */ /* #F4F5F8 — Off-White Base */
+  --foreground:              224 25% 11%;   /* @kind color */ /* #161A26 — fast schwarz */
+
+  /* ---------- Cards & Surfaces ---------- */
+  --card:                    0 0% 100%;     /* @kind color */ /* #FFFFFF */
+  --card-foreground:         224 25% 11%;  /* @kind color */
+  --popover:                 0 0% 100%;  /* @kind color */
+  --popover-foreground:      224 25% 11%;  /* @kind color */
+
+  /* ---------- Muted — subtile Flächen, sekundärer Text ---------- */
+  --muted:                   220 15% 93%;   /* @kind color */ /* #ECEEF3 */
+  --muted-foreground:        220 10% 46%;   /* @kind color */ /* #6B7280 */
+
+  /* ---------- Border & Input ---------- */
+  --border:                  220 14% 87%;   /* @kind color */ /* #DBDFE8 */
+  --input:                   220 14% 87%;  /* @kind color */
+
+  /* ---------- Primary — Indigo ---------- */
+  --primary:                 243 65% 55%;   /* @kind color */ /* #4F46E5 */
+  --primary-foreground:      0 0% 100%;  /* @kind color */
+
+  /* ---------- Secondary ---------- */
+  --secondary:               220 15% 93%;  /* @kind color */
+  --secondary-foreground:    224 25% 11%;  /* @kind color */
+
+  /* ---------- Accent — Indigo tint (Hover) ---------- */
+  --accent:                  243 65% 95%;   /* @kind color */ /* #EEECFD */
+  --accent-foreground:       243 65% 40%;  /* @kind color */
+
+  /* ---------- Destructive — harte Fehlerzustände ---------- */
+  /* NICHT für positiven Testbefund verwenden — dafür --status-pos */
+  --destructive:             0 72% 51%;     /* @kind color */ /* #DC2626 */
+  --destructive-foreground:  0 0% 100%;  /* @kind color */
+
+  /* ---------- Ring — Fokus-Indikator ---------- */
+  --ring:                    243 65% 55%;  /* @kind color */
+
+  /* ============================================================
+     SEMANTISCHE KLINISCHE FARBEN
+     Unabhängig von den Shadcn-Tokens. Eindeutig belegt.
+     ============================================================ */
+
+  /* ---------- Test-Status ----------
+     pos = pathologischer Befund (NICHT "gut") */
+  --status-pos:              0 72% 51%;     /* @kind color */ /* #DC2626 — Rot   */
+  --status-neg:              142 71% 35%;   /* @kind color */ /* #16A34A — Grün  */
+  --status-neutral:          220 9% 62%;    /* @kind color */ /* #9CA3AF — Grau  */
+
+  /* ---------- Screening Flags ---------- */
+  --flag-red:                0 72% 51%;     /* @kind color */ /* #DC2626 */
+  --flag-yellow:             45 93% 47%;    /* @kind color */ /* #F59E0B */
+
+  /* ---------- NRS-Skala (Gradient-Stops 0–10) ---------- */
+  --nrs-0:                   142 71% 45%;   /* @kind color */ /* grün       */
+  --nrs-5:                   38 92% 50%;    /* @kind color */ /* orange     */
+  --nrs-10:                  0 84% 37%;     /* @kind color */ /* dunkelrot  */
+
+  /* ---------- Workflow-Phasen ----------
+     Keine Phase trägt Indigo oder eine Statusfarbe. */
+  --phase-anamnese:          199 70% 42%;   /* @kind color */ /* Cyan       #1E88B4 */
+  --phase-objektiv:          174 55% 38%;   /* @kind color */ /* Teal       #2B8A7A */
+  --phase-gelenke:           258 45% 52%;   /* @kind color */ /* Violet     #6B5CC4 */
+  --phase-befund:            280 40% 50%;   /* @kind color */ /* Purple     #8A4FB5 */
+  --phase-planung:           220 40% 45%;   /* @kind color */ /* Slate-Blue #4A5FA8 */
+}

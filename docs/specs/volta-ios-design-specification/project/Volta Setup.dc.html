@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body { font-family: 'DM Sans', -apple-system, sans-serif; background: #f0f4fa; color: #0f172a; }
+    :root { --blue:#3b82f6; --pos:#16a34a; --neg:#dc2626; --sub:#64748b; --dim:#94a3b8; --border:rgba(0,0,0,0.07); }
+    .fi { width:100%; border:1px solid rgba(0,0,0,0.12); border-radius:9px; padding:10px 13px; font-size:14px; color:#0f172a; font-weight:500; background:#fff; outline:none; transition:border-color 0.15s; font-family:inherit; }
+    .fi:focus { border-color:var(--blue); box-shadow:0 0 0 3px rgba(59,130,246,0.1); }
+    textarea.fi { resize:vertical; min-height:80px; }
+    .fl { font-size:12px; color:var(--sub); font-weight:600; margin-bottom:5px; }
+    .fg { display:flex; flex-direction:column; }
+    .rs { color:var(--neg); }
+    .tog-row { display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--border); }
+    .tog-row:last-child { border-bottom:none; }
+    .tog-lbl { font-size:14px; color:#0f172a; font-weight:500; }
+    .toggle { width:44px; height:26px; border-radius:13px; background:#e2e8f0; position:relative; cursor:pointer; transition:background 0.2s; flex-shrink:0; }
+    .toggle.on { background:var(--blue); }
+    .toggle::after { content:''; position:absolute; top:3px; left:3px; width:20px; height:20px; border-radius:50%; background:#fff; box-shadow:0 1px 4px rgba(0,0,0,0.2); transition:transform 0.2s; }
+    .toggle.on::after { transform:translateX(18px); }
+    .stepper { display:flex; align-items:center; gap:10px; }
+    .step-btn-ctrl { width:34px; height:34px; border-radius:8px; background:rgba(59,130,246,0.1); border:none; color:var(--blue); font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center; font-family:inherit; font-weight:700; }
+    .step-val { font-size:16px; font-weight:700; min-width:40px; text-align:center; }
+    .info-box { background:rgba(59,130,246,0.07); border:1px solid rgba(59,130,246,0.18); border-radius:9px; padding:10px 14px; font-size:13px; color:#1d4ed8; font-weight:500; }
+    .warn-box { background:#fffbeb; border:1px solid #fcd34d; border-radius:9px; padding:10px 14px; font-size:13px; color:#92400e; font-weight:500; }
+    .sum-box { background:#f8faff; border:1px solid rgba(59,130,246,0.15); border-radius:12px; padding:18px 20px; }
+    .sr { display:flex; justify-content:space-between; font-size:14px; padding:4px 0; color:var(--sub); font-variant-numeric:tabular-nums; }
+    .sr.total { font-weight:800; color:#0f172a; border-top:1px solid rgba(59,130,246,0.15); padding-top:10px; margin-top:6px; font-size:15px; }
+    .card { background:#fff; border:1px solid var(--border); border-radius:14px; padding:22px 24px; }
+    .sec-title { font-size:11px; font-weight:700; color:#1d4ed8; letter-spacing:0.5px; text-transform:uppercase; }
+    .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px 20px; }
+    .form-grid .span2 { grid-column:span 2; }
+    .step-si { display:flex; align-items:center; gap:10px; padding:9px 10px; border-radius:10px; font-size:14px; cursor:pointer; transition:background 0.12s; user-select:none; }
+    .step-si:hover { background:rgba(0,0,0,0.03); }
+    .step-si.active { background:rgba(59,130,246,0.08); font-weight:600; color:#0f172a; }
+    .step-si.done { color:#0f172a; font-weight:500; }
+    .step-si.pending { color:var(--dim); font-weight:500; }
+    .foto-slot { width:100px; height:100px; border:2px dashed rgba(0,0,0,0.12); border-radius:10px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px; cursor:pointer; background:#fafafa; color:var(--dim); font-size:11px; font-weight:600; transition:border-color 0.15s; flex-shrink:0; }
+    .foto-slot:hover { border-color:var(--blue); color:var(--blue); }
+    .status-option { display:flex; align-items:center; gap:12px; padding:12px 16px; border:1.5px solid var(--border); border-radius:10px; cursor:pointer; transition:all 0.12s; }
+    .status-option:hover { border-color:var(--blue); background:rgba(59,130,246,0.03); }
+    .status-option.sel { border-color:var(--blue); background:rgba(59,130,246,0.07); }
+    .status-dot { width:12px; height:12px; border-radius:50%; flex-shrink:0; }
+    .status-lbl { font-size:14px; font-weight:600; color:#0f172a; }
+    .snum { width:22px; height:22px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; flex-shrink:0; }
+    .snum.active-n { background:var(--blue); color:#fff; }
+    .snum.done-n { background:var(--pos); color:#fff; font-size:10px; }
+    .snum.pending-n { background:#e2e8f0; color:var(--dim); }
+    .step-panel { display:none; flex-direction:column; gap:20px; }
+    .step-panel.active { display:flex; }
+  </style>
+</helmet>
+
+<div style="display:flex; flex-direction:column; height:100vh; overflow:hidden;">
+
+  <!-- Top bar -->
+  <div style="height:56px; flex-shrink:0; background:#fff; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:14px; padding:0 28px;">
+    <a href="Volta Hauptscreen.dc.html" style="display:flex; align-items:center; gap:5px; font-size:14px; font-weight:600; color:var(--blue); text-decoration:none; flex-shrink:0;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+      Portfolio
+    </a>
+    <div style="width:1px; height:20px; background:var(--border);"></div>
+    <div style="font-size:16px; font-weight:700;">Neue Immobilie</div>
+    <div style="flex:1;"></div>
+    <div style="font-size:13px; font-weight:600; color:var(--sub);" id="stepCounter">Schritt 1 von 7</div>
+    <div style="width:160px; height:4px; background:#e2e8f0; border-radius:2px; overflow:hidden;">
+      <div id="progFill" style="height:100%; background:var(--blue); border-radius:2px; width:14.3%; transition:width 0.3s;"></div>
+    </div>
+  </div>
+
+  <!-- Body -->
+  <div style="flex:1; display:flex; overflow:hidden;">
+
+    <!-- Sidebar -->
+    <div style="width:220px; flex-shrink:0; background:#fff; border-right:1px solid var(--border); padding:20px 10px; overflow-y:auto; display:flex; flex-direction:column; gap:2px;">
+      <div style="font-size:11px; font-weight:700; color:var(--dim); letter-spacing:0.5px; text-transform:uppercase; margin-bottom:8px; padding:0 8px;">Schritte</div>
+      <div class="step-si active" id="sb-1"><div class="snum active-n" id="sn-1">1</div>Stammdaten</div>
+      <div class="step-si pending" id="sb-2"><div class="snum pending-n" id="sn-2">2</div>Objektdaten</div>
+      <div class="step-si pending" id="sb-3"><div class="snum pending-n" id="sn-3">3</div>Kauf</div>
+      <div class="step-si pending" id="sb-4"><div class="snum pending-n" id="sn-4">4</div>Einnahmen</div>
+      <div class="step-si pending" id="sb-5"><div class="snum pending-n" id="sn-5">5</div>Kosten</div>
+      <div class="step-si pending" id="sb-6"><div class="snum pending-n" id="sn-6">6</div>Finanzierung</div>
+      <div class="step-si pending" id="sb-7"><div class="snum pending-n" id="sn-7">7</div>AfA &amp; Steuer</div>
+      <div class="step-si pending" id="sb-8" style="border-top:1px solid var(--border);margin-top:6px;padding-top:10px;"><div class="snum pending-n" id="sn-8">8</div><span>Status <span style="font-size:10px;color:var(--dim);font-weight:400;">optional</span></span></div>
+    </div>
+
+    <!-- Content + footer -->
+    <div style="flex:1; display:flex; flex-direction:column; overflow:hidden; background:#f0f4fa;">
+
+      <div style="flex:1; overflow-y:auto; padding:32px 40px;" id="stepContent">
+
+        <!-- Step 1 -->
+        <div class="step-panel active" id="step-1">
+          <div class="card">
+            <div class="sec-title" style="margin-bottom:20px;">Stammdaten</div>
+            <div class="form-grid">
+              <div class="fg span2"><div class="fl">Name <span class="rs">*</span></div><input class="fi" placeholder="z.B. ETW Dresden Neustadt"/></div>
+              <div class="fg"><div class="fl">Adresse <span class="rs">*</span></div><input class="fi" placeholder="Straße und Hausnummer"/></div>
+              <div class="fg"><div class="fl">Stadt <span class="rs">*</span></div><input class="fi" placeholder="z.B. Dresden"/></div>
+              <div class="fg"><div class="fl">PLZ</div><input class="fi" placeholder="01099"/></div>
+              <div class="fg"><div class="fl">Bundesland</div><input class="fi" placeholder="Sachsen"/></div>
+              <div class="fg"><div class="fl">Typ</div><input class="fi" placeholder="Eigentumswohnung"/></div>
+              <div class="fg"><div class="fl">Baujahr</div><input class="fi" placeholder="1998"/></div>
+              <div class="fg"><div class="fl">Erwerb</div><input class="fi" placeholder="Kauf"/></div>
+              <div class="fg span2"><div class="fl">Notizen</div><textarea class="fi" placeholder="Optionale Notizen…"></textarea></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 2 -->
+        <div class="step-panel" id="step-2">
+          <div class="card">
+            <div class="sec-title" style="margin-bottom:20px;">Objektdaten</div>
+            <div class="form-grid">
+              <div class="fg"><div class="fl">Wohnfläche (m²) <span class="rs">*</span></div><input class="fi" placeholder="68"/></div>
+              <div class="fg"><div class="fl">Nutzfläche (m²)</div><input class="fi" placeholder="Optional"/></div>
+              <div class="fg">
+                <div class="fl">Zimmer</div>
+                <div class="stepper">
+                  <button class="step-btn-ctrl" id="zimmerDec">−</button>
+                  <span class="step-val" id="zimmerVal">3,0</span>
+                  <button class="step-btn-ctrl" id="zimmerInc">+</button>
+                </div>
+              </div>
+              <div class="fg"><div class="fl">Stellplatz</div><select class="fi"><option value="">Kein Stellplatz</option><option value="tiefgarage" selected="selected">Tiefgarage</option><option value="aussenstellplatz">Außenstellplatz</option><option value="carport">Carport</option><option value="garage">Einzelgarage</option><option value="duplex">Duplex-Parken</option></select></div>
+              <div class="fg"><div class="fl">Heizung</div><input class="fi" placeholder="z.B. Fernwärme"/></div>
+              <div class="fg"><div class="fl">Energieklasse</div><select class="fi"><option value="">–</option><option>A+</option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option><option>F</option><option>G</option><option>H</option></select></div>
+              <div class="fg"><div class="fl">Zustand</div><select class="fi"><option>Neuwertig</option><option>Sehr gut</option><option>Gepflegt</option><option>Renovierungsbedürftig</option><option>Sanierungsbedürftig</option></select></div>
+              <div class="fg"><div class="fl">Letzte Renovierung</div><input class="fi" placeholder="z.B. 2019 (Küche, Bad)"/></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="sec-title" style="margin-bottom:20px;">Fotos</div>
+            <div style="font-size:13px;color:var(--sub);margin-bottom:14px;">Erstes Foto wird automatisch Titelbild. Max. 15 Fotos.</div>
+            <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
+              <div class="foto-slot"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg><span>+ Foto</span></div>
+              <div class="foto-slot"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg><span>+ Foto</span></div>
+              <div class="foto-slot"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg><span>+ Foto</span></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="sec-title" style="margin-bottom:16px;">Ausstattung</div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:0 32px;">
+              <div class="tog-row"><span class="tog-lbl">Balkon</span><div class="toggle equip-toggle"></div></div>
+              <div class="tog-row"><span class="tog-lbl">Terrasse</span><div class="toggle equip-toggle"></div></div>
+              <div class="tog-row"><span class="tog-lbl">Garten</span><div class="toggle equip-toggle"></div></div>
+              <div class="tog-row"><span class="tog-lbl">Keller</span><div class="toggle equip-toggle on"></div></div>
+              <div class="tog-row" style="border-bottom:none;"><span class="tog-lbl">Einbauküche</span><div class="toggle equip-toggle"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 3 -->
+        <div class="step-panel" id="step-3">
+          <div class="card">
+            <div class="sec-title" style="margin-bottom:20px;">Kaufdaten</div>
+            <div class="form-grid">
+              <div class="fg"><div class="fl">Kaufdatum</div><input class="fi" placeholder="TT.MM.JJJJ"/></div>
+              <div class="fg"><div class="fl">Wirtschaftlicher Übergang <span class="rs">*</span></div><input class="fi" placeholder="TT.MM.JJJJ"/></div>
+              <div class="fg"><div class="fl">Kaufpreis Wohnung <span class="rs">*</span></div><input class="fi" placeholder="190.400 €"/></div>
+              <div class="fg"><div class="fl">Kaufpreis Stellplatz</div><input class="fi" placeholder="15.000 €"/></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="sec-title" style="margin-bottom:20px;">Kaufnebenkosten</div>
+            <div class="form-grid">
+              <div class="fg"><div class="fl">Grunderwerbsteuer</div><input class="fi" placeholder="10.270 €"/></div>
+              <div class="fg"><div class="fl">Notarkosten</div><input class="fi" placeholder="3.200 €"/></div>
+              <div class="fg"><div class="fl">Grundbuchkosten</div><input class="fi" placeholder="1.100 €"/></div>
+              <div class="fg"><div class="fl">Maklerprovision</div><input class="fi" placeholder="7.140 €"/></div>
+              <div class="fg"><div class="fl">Gutachterkosten</div><input class="fi" placeholder="–"/></div>
+              <div class="fg"><div class="fl">Renovierung gesamt</div><input class="fi" placeholder="0 €"/></div>
+              <div class="fg"><div class="fl">davon aktivierungspflichtig</div><input class="fi" placeholder="0 €"/></div>
+            </div>
+          </div>
+          <div class="sum-box">
+            <div class="sr"><span>Kaufpreis</span><span>205.400 €</span></div>
+            <div class="sr"><span>+ Kaufnebenkosten</span><span>21.710 €</span></div>
+            <div class="sr"><span>+ Renovierung</span><span>0 €</span></div>
+            <div class="sr total"><span>= Gesamtinvestment</span><span>227.110 €</span></div>
+          </div>
+        </div>
+
+        <!-- Step 4 -->
+        <div class="step-panel" id="step-4">
+          <div class="card">
+            <div class="sec-title" style="margin-bottom:20px;">Einnahmen</div>
+            <div class="form-grid">
+              <div class="fg"><div class="fl">Nettomiete / Monat <span class="rs">*</span></div><input class="fi" placeholder="1.050 €"/></div>
+              <div class="fg"><div class="fl">Parkingmiete / Monat</div><input class="fi" placeholder="80 €"/></div>
+              <div class="fg"><div class="fl">Bruttomiete / Monat <span style="font-size:10px;font-weight:400;color:var(--dim);">optional (Warmmiete)</span></div><input class="fi" placeholder="–"/></div>
+              <div class="fg"><div class="fl">Sonstige Einnahmen / Monat</div><input class="fi" placeholder="0 €"/></div>
+            </div>
+          </div>
+          <div class="sum-box">
+            <div class="sr"><span>Nettomiete / Jahr</span><span style="font-variant-numeric:tabular-nums;">12.600 €</span></div>
+            <div class="sr"><span>Bruttomiete / Jahr</span><span style="font-variant-numeric:tabular-nums;">13.560 €</span></div>
+            <div class="sr"><span>Bruttorendite (vorläufig)</span><span style="font-weight:700;">6,0 %</span></div>
+          </div>
+        </div>
+
+        <!-- Step 5 -->
+        <div class="step-panel" id="step-5">
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; align-items:stretch;">
+            <!-- Hausgeld Wohnung -->
+            <div class="card">
+              <div class="sec-title" style="margin-bottom:20px;">Hausgeld Wohnung</div>
+              <div class="fg" style="margin-bottom:14px;"><div class="fl">Hausgeld gesamt / Monat <span class="rs">*</span></div><input class="fi" placeholder="260 €"/></div>
+              <div class="tog-row" style="padding:8px 0; border-bottom:none;">
+                <span style="font-size:13px; color:#0f172a; font-weight:500;">Hausgeld aufteilen</span>
+                <div class="toggle" id="hoaToggle"></div>
+              </div>
+              <div id="hoaSplitFields" style="display:none; margin-top:12px;">
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+                  <div class="fg"><div class="fl">davon umlagefähig / Monat</div><input class="fi" placeholder="120 €"/></div>
+                  <div class="fg"><div class="fl">Instandhaltungsrücklage</div><input class="fi" placeholder="60 €"/></div>
+                  <div class="fg" style="grid-column:span 2;"><div class="fl">davon nicht umlagefähig / Monat <span style="font-size:10px;font-weight:400;color:var(--dim);">= gesamt − umlagef. − rücklage</span></div><input class="fi" placeholder="80 €" readonly style="background:#f8faff;color:var(--sub);cursor:default;"/></div>
+                </div>
+              </div>
+              <div class="warn-box" id="hoaWarnBox" style="margin-top:12px;">⚠ Für genaue Steuerberechnung bitte aufteilen</div>
+            </div>
+            <!-- Hausgeld Stellplatz -->
+            <div class="card">
+              <div class="sec-title" style="margin-bottom:20px;">Hausgeld Stellplatz</div>
+              <div class="fg" style="margin-bottom:14px;"><div class="fl">Hausgeld gesamt / Monat</div><input class="fi" placeholder="30 €"/></div>
+              <div class="tog-row" style="padding:8px 0; border-bottom:none;">
+                <span style="font-size:13px; color:#0f172a; font-weight:500;">Hausgeld aufteilen</span>
+                <div class="toggle" id="hoaParkingToggle"></div>
+              </div>
+              <div class="warn-box" id="hoaParkingWarnBox" style="margin-top:12px;">⚠ Aufteilen wenn der Mietvertrag eine Nebenkostenvereinbarung für den Stellplatz enthält</div>
+              <div id="hoaParkingSplitFields" style="display:none; margin-top:12px;">
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+                  <div class="fg"><div class="fl">davon umlagefähig / Monat</div><input class="fi" placeholder="10 €"/></div>
+                  <div class="fg"><div class="fl">Instandhaltungsrücklage</div><input class="fi" placeholder="8 €"/></div>
+                  <div class="fg" style="grid-column:span 2;"><div class="fl">davon nicht umlagefähig / Monat <span style="font-size:10px;font-weight:400;color:var(--dim);">= gesamt − umlagef. − rücklage</span></div><input class="fi" placeholder="12 €" readonly style="background:#f8faff;color:var(--sub);cursor:default;"/></div>
+                </div>
+              </div>
+            </div>
+            <!-- Weitere Kosten — volle Breite -->
+            <div class="card" style="grid-column:span 2;">
+              <div class="sec-title" style="margin-bottom:20px;">Weitere Kosten</div>
+              <div class="form-grid">
+                <div class="fg"><div class="fl">Grundsteuer Wohnung / Jahr <span class="rs">*</span></div><input class="fi" placeholder="380 €"/></div>
+                <div class="fg"><div class="fl">Grundsteuer Stellplatz / Jahr</div><input class="fi" placeholder="40 €"/></div>
+                <div class="fg"><div class="fl">Verwaltung / Jahr</div><input class="fi" placeholder="408 €"/></div>
+                <div class="fg"><div class="fl">Gebäudeversicherung / Jahr</div><input class="fi" placeholder="240 €"/></div>
+                <div class="fg"><div class="fl">Sonstige Kosten / Monat</div><input class="fi" placeholder="0 €"/></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 6 -->
+        <div class="step-panel" id="step-6">
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; align-items:start;">
+            <div class="card">
+              <div class="sec-title" style="margin-bottom:20px;">Darlehen</div>
+              <div class="form-grid">
+                <div class="fg span2"><div class="fl">Darlehensbetrag <span class="rs">*</span></div><input class="fi" placeholder="210.000 €"/></div>
+                <div class="fg"><div class="fl">Zinssatz <span class="rs">*</span></div><input class="fi" placeholder="3,85 %"/></div>
+                <div class="fg"><div class="fl">Tilgungssatz <span class="rs">*</span></div><input class="fi" placeholder="2,15 %"/></div>
+                <div class="fg">
+                  <div class="fl">Zinsbindung (Jahre) <span class="rs">*</span></div>
+                  <div class="stepper">
+                    <button class="step-btn-ctrl" id="zbDec">−</button>
+                    <span class="step-val" id="zbVal">10</span>
+                    <button class="step-btn-ctrl" id="zbInc">+</button>
+                  </div>
+                </div>
+                <div class="fg"><div class="fl">Darlehensbeginn <span class="rs">*</span></div><input class="fi" placeholder="TT.MM.JJJJ"/></div>
+                <div class="fg span2"><div class="fl">Monatliche Rate</div><input class="fi" placeholder="880 €"/></div>
+                <div class="fg span2"><div class="fl">Eigenkapital eingebracht</div><input class="fi" placeholder="80.000 €"/></div>
+                <div class="fg span2"><div class="fl">Eigenprovisions-Vereinbarung <span style="font-size:11px;font-weight:400;color:var(--dim);">ⓘ erhöht AfA-Basis</span></div><input class="fi" placeholder="–"/></div>
+              </div>
+            </div>
+            <div class="sum-box" style="align-self:start;">
+              <div class="sr"><span>Berechnete Monatsrate</span><span>880 €</span></div>
+              <div class="sr"><span>davon Zinsen</span><span>674 €</span></div>
+              <div class="sr"><span>davon Tilgung</span><span>206 €</span></div>
+              <div class="sr"><span>Eigenkapital (genutzt)</span><span>17.110 €</span></div>
+              <div class="sr total"><span>Anfangs-LTV</span><span style="color:#d97706;">92,5 %</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 7 -->
+        <div class="step-panel" id="step-7">
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; align-items:start;">
+            <div class="card">
+              <div class="sec-title" style="margin-bottom:20px;">AfA &amp; Steuer</div>
+              <div class="form-grid">
+                <div class="fg"><div class="fl">Gebäudewert (Regierungs-Excel) <span class="rs">*</span></div><input class="fi" placeholder="152.000 €"/></div>
+                <div class="fg"><div class="fl">Grundstückswert (Regierungs-Excel) <span class="rs">*</span></div><input class="fi" placeholder="38.400 €"/></div>
+                <div class="fg"><div class="fl">AfA-Satz <span class="rs">*</span></div><input class="fi" placeholder="2 % (Altbau)"/></div>
+                <div class="fg"><div class="fl">Grenzsteuersatz <span class="rs">*</span></div><input class="fi" placeholder="42 %"/></div>
+              </div>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:16px;">
+              <div class="sum-box">
+                <div class="sr"><span>AfA-Bemessungsgrundlage</span><span>175.200 €</span></div>
+                <div class="sr"><span>AfA / Jahr</span><span>3.504 €</span></div>
+                <div class="sr total"><span>AfA / Monat</span><span>292 €</span></div>
+              </div>
+              <div class="info-box">✓ Alle Pflichtfelder ausgefüllt — Immobilie kann gespeichert werden.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 8 -->
+        <div class="step-panel" id="step-8">
+          <div class="info-box" style="margin-bottom:4px;">ⓘ Dieser Schritt erscheint nur wenn der wirtschaftliche Übergang in der Vergangenheit liegt.</div>
+          <div class="card">
+            <div class="sec-title" style="margin-bottom:6px;">Status-Onboarding</div>
+            <div style="font-size:13px;color:var(--sub);margin-bottom:20px;">Gib den ersten Status der Immobilie ein.</div>
+            <div class="form-grid" style="margin-bottom:20px;">
+              <div class="fg"><div class="fl">Datum <span class="rs">*</span></div><input class="fi" placeholder="TT.MM.JJJJ" id="s8datum"/></div>
+              <div class="fg"><div class="fl">Notizen</div><input class="fi" placeholder="Optional"/></div>
+            </div>
+            <div class="fl" style="margin-bottom:10px;">Status <span class="rs">*</span></div>
+            <div style="display:flex;flex-direction:column;gap:8px;" id="statusOptions">
+              <div class="status-option sel" data-status="vermietet"><div class="status-dot" style="background:#16a34a;"></div><span class="status-lbl">Vermietet</span></div>
+              <div class="status-option" data-status="leerstand"><div class="status-dot" style="background:#d97706;"></div><span class="status-lbl">Leerstand</span></div>
+              <div class="status-option" data-status="mietgarantie"><div class="status-dot" style="background:#3b82f6;"></div><span class="status-lbl">Leerstand + Mietgarantie</span></div>
+              <div class="status-option" data-status="eigennutzung"><div class="status-dot" style="background:#64748b;"></div><span class="status-lbl">Eigennutzung</span></div>
+              <div class="status-option" data-status="renovierung"><div class="status-dot" style="background:#94a3b8;"></div><span class="status-lbl">Renovierung</span></div>
+            </div>
+            <div id="mietgarantieField" style="display:none;margin-top:16px;">
+              <div class="fg" style="max-width:260px;"><div class="fl">Mietgarantie-Einnahme / Monat</div><input class="fi" placeholder="z.B. 900 €"/></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Footer -->
+      <div style="flex-shrink:0; background:#fff; border-top:1px solid var(--border); padding:14px 40px; display:flex; justify-content:space-between; align-items:center;">
+        <button id="btnBack" style="display:none; padding:10px 24px; border-radius:9px; border:1px solid var(--border); background:#fff; font-size:14px; font-weight:600; color:var(--sub); cursor:pointer; font-family:inherit;">← Zurück</button>
+        <div id="btnBackPlaceholder"></div>
+        <button id="btnNext" style="padding:10px 28px; border-radius:9px; background:var(--blue); color:#fff; font-size:14px; font-weight:700; cursor:pointer; border:none; box-shadow:0 2px 8px rgba(59,130,246,0.3); font-family:inherit;">Weiter →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { step: 1, zimmer: 3.0, zb: 10, TOTAL: 8 };
+
+  componentDidMount() {
+    // Sidebar steps
+    for (let i = 1; i <= 8; i++) {
+      const el = document.getElementById('sb-' + i);
+      if (el) el.addEventListener('click', () => this.goStep(i));
+    }
+    // Back / Next
+    document.getElementById('btnBack')?.addEventListener('click', () => this.goStep(this.state.step - 1));
+    document.getElementById('btnNext')?.addEventListener('click', () => {
+      if (this.state.step === 8) { location.href = 'Volta Hauptscreen.dc.html'; return; }
+      this.goStep(this.state.step + 1);
+    });
+    // Status options
+    document.querySelectorAll('.status-option').forEach(opt => {
+      opt.addEventListener('click', () => {
+        document.querySelectorAll('.status-option').forEach(o => o.classList.remove('sel'));
+        opt.classList.add('sel');
+        const mg = document.getElementById('mietgarantieField');
+        if (mg) mg.style.display = opt.dataset.status === 'mietgarantie' ? 'block' : 'none';
+      });
+    });
+    // Zimmer stepper
+    document.getElementById('zimmerDec')?.addEventListener('click', () => {
+      const v = Math.max(0.5, this.state.zimmer - 0.5);
+      this.setState({ zimmer: v }, () => {
+        document.getElementById('zimmerVal').textContent = this.state.zimmer.toFixed(1).replace('.', ',');
+      });
+    });
+    document.getElementById('zimmerInc')?.addEventListener('click', () => {
+      const v = this.state.zimmer + 0.5;
+      this.setState({ zimmer: v }, () => {
+        document.getElementById('zimmerVal').textContent = this.state.zimmer.toFixed(1).replace('.', ',');
+      });
+    });
+    // Zinsbindung stepper
+    document.getElementById('zbDec')?.addEventListener('click', () => {
+      const v = Math.max(1, this.state.zb - 1);
+      this.setState({ zb: v }, () => {
+        document.getElementById('zbVal').textContent = this.state.zb;
+      });
+    });
+    document.getElementById('zbInc')?.addEventListener('click', () => {
+      const v = Math.min(30, this.state.zb + 1);
+      this.setState({ zb: v }, () => {
+        document.getElementById('zbVal').textContent = this.state.zb;
+      });
+    });
+    // Ausstattung toggles
+    document.querySelectorAll('.equip-toggle').forEach(tog => {
+      tog.addEventListener('click', () => tog.classList.toggle('on'));
+    });
+    // HOA toggle WE
+    document.getElementById('hoaToggle')?.addEventListener('click', () => {
+      const tog = document.getElementById('hoaToggle');
+      tog.classList.toggle('on');
+      const on = tog.classList.contains('on');
+      document.getElementById('hoaSplitFields').style.display = on ? 'block' : 'none';
+      document.getElementById('hoaWarnBox').style.display = on ? 'none' : 'block';
+    });
+    // HOA toggle Stellplatz
+    document.getElementById('hoaParkingToggle')?.addEventListener('click', () => {
+      const tog = document.getElementById('hoaParkingToggle');
+      tog.classList.toggle('on');
+      const on = tog.classList.contains('on');
+      document.getElementById('hoaParkingSplitFields').style.display = on ? 'block' : 'none';
+      document.getElementById('hoaParkingWarnBox').style.display = on ? 'none' : 'block';
+    });
+    // Init
+    this.renderUI(1);
+  }
+
+  goStep(n) {
+    if (n < 1 || n > 8) return;
+    this.setState({ step: n }, () => this.renderUI(n));
+  }
+
+  renderUI(n) {
+    const TOTAL = 8;
+    // Panels
+    for (let i = 1; i <= TOTAL; i++) {
+      const p = document.getElementById('step-' + i);
+      if (p) p.classList.toggle('active', i === n);
+    }
+    // Sidebar
+    for (let i = 1; i <= TOTAL; i++) {
+      const sb = document.getElementById('sb-' + i);
+      const sn = document.getElementById('sn-' + i);
+      if (!sb || !sn) continue;
+      if (i === 8) {
+        sb.className = 'step-si ' + (i === n ? 'active' : i < n ? 'done' : 'pending');
+        sb.style.borderTop = '1px solid var(--border)';
+        sb.style.marginTop = '6px';
+        sb.style.paddingTop = '10px';
+      } else {
+        sb.className = 'step-si ' + (i === n ? 'active' : i < n ? 'done' : 'pending');
+      }
+      sn.className = 'snum ' + (i === n ? 'active-n' : i < n ? 'done-n' : 'pending-n');
+      sn.textContent = i < n ? '✓' : String(i);
+    }
+    // Progress
+    const pf = document.getElementById('progFill');
+    if (pf) pf.style.width = (n / TOTAL * 100) + '%';
+    const sc = document.getElementById('stepCounter');
+    if (sc) sc.textContent = 'Schritt ' + n + ' von ' + TOTAL;
+    // Back button
+    const back = document.getElementById('btnBack');
+    const ph = document.getElementById('btnBackPlaceholder');
+    if (back) back.style.display = n > 1 ? 'block' : 'none';
+    if (ph) ph.style.display = n > 1 ? 'none' : 'block';
+    // Next button
+    const next = document.getElementById('btnNext');
+    if (next) {
+      if (n === TOTAL) {
+        next.textContent = '✓ Fertigstellen';
+        next.style.background = '#16a34a';
+        next.style.boxShadow = '0 2px 8px rgba(22,163,74,0.3)';
+      } else if (n === 7) {
+        next.textContent = 'Weiter → (Status)';
+        next.style.background = '#3b82f6';
+        next.style.boxShadow = '0 2px 8px rgba(59,130,246,0.3)';
+      } else {
+        next.textContent = 'Weiter →';
+        next.style.background = '#3b82f6';
+        next.style.boxShadow = '0 2px 8px rgba(59,130,246,0.3)';
+      }
+    }
+    const sc2 = document.getElementById('stepContent');
+    if (sc2) sc2.scrollTop = 0;
+  }
+
+  renderVals() { return {}; }
+}
+
+</script>
+</body>
+</html>

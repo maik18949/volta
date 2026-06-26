@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Design v6 — Mix</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+    background: #e8eef8;
+    color: #0f172a;
+    padding: 32px 24px;
+    min-height: 100vh;
+  }
+  h1 { font-size: 20px; font-weight: 600; margin-bottom: 6px; color: #0f172a; }
+  .subtitle { font-size: 13px; color: #64748b; margin-bottom: 32px; }
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .opt {
+    border-radius: 20px; overflow: hidden; cursor: pointer;
+    border: 2px solid transparent;
+    transition: transform 0.18s, border-color 0.18s, box-shadow 0.18s;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  }
+  .opt:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.12); }
+  .opt.selected { border-color: #3B82F6; box-shadow: 0 0 0 3px rgba(59,130,246,0.2); }
+  .phone { height: 460px; overflow: hidden; position: relative; }
+  .opt-label { padding: 14px 16px; background: rgba(255,255,255,0.6); }
+  .opt-label h3 { font-size: 13px; font-weight: 600; color: #0f172a; margin-bottom: 3px; }
+  .opt-label p { font-size: 11px; color: #64748b; line-height: 1.4; }
+  .check { position:absolute; top:10px; right:10px; width:22px; height:22px; background:#3B82F6; border-radius:50%; display:none; align-items:center; justify-content:center; font-size:12px; font-weight:700; color:#fff; z-index:10; }
+  .opt.selected .check { display:flex; }
+
+  /* shared phone bg */
+  .phone-shared {
+    background: linear-gradient(145deg, #dce8f8 0%, #e8f0fb 100%);
+    padding: 20px 16px;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+
+  .top-row { display:flex; justify-content:space-between; align-items:center; }
+  .top-row .ttl { font-size:15px; font-weight:700; color:#0f172a; letter-spacing:-0.3px; }
+
+  /* ─── Variant 1: Glass shell, editorial interior ─── */
+  .v1 .badge { font-size:10px; font-weight:700; color:#1d4ed8; background:rgba(59,130,246,0.12); padding:3px 10px; border-radius:20px; }
+  .v1-card {
+    background: rgba(255,255,255,0.75);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-radius: 16px;
+    border: 1px solid rgba(255,255,255,0.9);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    padding: 4px 14px;
+  }
+  .v1-section { font-size:11px; font-weight:700; color:#1d4ed8; text-transform:uppercase; letter-spacing:0.5px; padding: 10px 0 4px; }
+  .v1-row { display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid rgba(0,0,0,0.05); }
+  .v1-row:last-child { border-bottom: none; }
+  .v1-lbl { font-size:12px; color:#475569; }
+  .v1-val { font-size:12px; font-weight:600; font-variant-numeric:tabular-nums; }
+  .v1-val.neg { color:#dc2626; }
+  .v1-val.pos { color:#059669; }
+  .v1-val.neu { color:#0f172a; }
+  .v1-sum {
+    background: rgba(255,255,255,0.75);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-radius: 16px;
+    border: 1px solid rgba(59,130,246,0.25);
+    box-shadow: 0 2px 8px rgba(59,130,246,0.08);
+    padding: 12px 14px;
+    display:flex; justify-content:space-between; align-items:center;
+  }
+  .v1-sum .slbl { font-size:10px; font-weight:700; color:#1d4ed8; text-transform:uppercase; letter-spacing:0.4px; }
+  .v1-sum .big { font-size:18px; font-weight:800; color:#15803d; letter-spacing:-0.5px; }
+
+  /* ─── Variant 2: Single unified glass card ─── */
+  .v2 .badge { font-size:10px; font-weight:700; color:#fff; background:#3b82f6; padding:3px 10px; border-radius:6px; }
+  .v2-card {
+    background: rgba(255,255,255,0.8);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border-radius: 18px;
+    border: 1px solid rgba(255,255,255,0.95);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+    padding: 6px 16px;
+  }
+  .v2-section { font-size:10px; font-weight:700; color:#3b82f6; text-transform:uppercase; letter-spacing:0.8px; padding: 12px 0 4px; }
+  .v2-divider { height:1.5px; background:linear-gradient(90deg, rgba(59,130,246,0.3), transparent); margin: 8px 0; border-radius:2px; }
+  .v2-row { display:flex; justify-content:space-between; align-items:center; padding:8px 0; }
+  .v2-lbl { font-size:12px; color:#475569; }
+  .v2-val { font-size:12px; font-weight:600; font-variant-numeric:tabular-nums; }
+  .v2-val.neg { color:#dc2626; }
+  .v2-val.pos { color:#059669; }
+  .v2-val.neu { color:#0f172a; }
+  .v2-result {
+    padding: 10px 0 6px;
+    display:flex; justify-content:space-between; align-items:baseline;
+  }
+  .v2-result .slbl { font-size:10px; font-weight:700; color:#1d4ed8; text-transform:uppercase; letter-spacing:0.4px; }
+  .v2-result .big { font-size:18px; font-weight:800; color:#15803d; letter-spacing:-0.5px; }
+
+  /* ─── Variant 3: Glass card + bold editorial summary strip ─── */
+  .v3 .badge { font-size:10px; font-weight:700; color:#1d4ed8; border:1.5px solid rgba(59,130,246,0.35); padding:3px 10px; border-radius:20px; }
+  .v3-card {
+    background: rgba(255,255,255,0.72);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,0.9);
+    box-shadow: 0 1px 6px rgba(0,0,0,0.04);
+    overflow: hidden;
+  }
+  .v3-section { font-size:11px; font-weight:700; color:#1d4ed8; text-transform:uppercase; letter-spacing:0.5px; padding: 10px 14px 4px; }
+  .v3-row { display:flex; justify-content:space-between; align-items:center; padding:8px 14px; border-bottom:1px solid rgba(0,0,0,0.04); }
+  .v3-row:last-child { border-bottom:none; }
+  .v3-lbl { font-size:12px; color:#475569; }
+  .v3-val { font-size:12px; font-weight:600; font-variant-numeric:tabular-nums; }
+  .v3-val.neg { color:#dc2626; }
+  .v3-val.pos { color:#059669; }
+  .v3-val.neu { color:#0f172a; }
+  .v3-strip {
+    background: rgba(255,255,255,0.6);
+    backdrop-filter: blur(16px);
+    border-radius: 14px;
+    border-left: 3px solid #3b82f6;
+    padding: 12px 14px;
+    display:flex; justify-content:space-between; align-items:center;
+  }
+  .v3-strip .slbl { font-size:10px; font-weight:700; color:#1d4ed8; text-transform:uppercase; letter-spacing:0.4px; }
+  .v3-strip .big { font-size:18px; font-weight:800; color:#15803d; letter-spacing:-0.5px; }
+</style>
+</head>
+<body>
+
+<h1>Design v6 — Glass + Editorial Mix</h1>
+<p class="subtitle">Glassmorphism-Hintergrund von A, reduzierte Innenstruktur von Editorial.</p>
+
+<div class="grid">
+
+  <!-- V1: Glass shell, editorial rows inside -->
+  <div class="opt" id="opt-a" onclick="pick('a')">
+    <div class="phone phone-shared v1">
+      <div class="check">✓</div>
+      <div class="top-row">
+        <span class="ttl">Laufendes Jahr 2026</span>
+        <span class="badge">Ist</span>
+      </div>
+      <div class="v1-card">
+        <div class="v1-section">Steuerliches Ergebnis</div>
+        <div class="v1-row"><span class="v1-lbl">Einnahmen</span><span class="v1-val neu">10.978 €</span></div>
+        <div class="v1-row"><span class="v1-lbl">Zinsen</span><span class="v1-val neg">9.734 €</span></div>
+        <div class="v1-row"><span class="v1-lbl">AfA</span><span class="v1-val neg">8.605 €</span></div>
+        <div class="v1-row"><span class="v1-lbl">Kosten</span><span class="v1-val neg">1.738 €</span></div>
+      </div>
+      <div class="v1-sum">
+        <span class="slbl">Steuereffekt / Mon</span>
+        <span class="big">+347 €</span>
+      </div>
+      <div class="v1-card">
+        <div class="v1-section">Cashflow</div>
+        <div class="v1-row"><span class="v1-lbl">Vor Steuer</span><span class="v1-val neg">424 €</span></div>
+        <div class="v1-row"><span class="v1-lbl">Steuereffekt</span><span class="v1-val pos">347 €</span></div>
+      </div>
+      <div class="v1-sum">
+        <span class="slbl">Cashflow nach Steuer</span>
+        <span class="big">+12 €</span>
+      </div>
+    </div>
+    <div class="opt-label">
+      <h3>1 — Glas + Linien innen</h3>
+      <p>Zwei separate Glas-Cards, Zeilen durch feine Linien getrennt, Section-Labels in Grau.</p>
+    </div>
+  </div>
+
+  <!-- V2: One unified glass card -->
+  <div class="opt" id="opt-b" onclick="pick('b')">
+    <div class="phone phone-shared v2">
+      <div class="check">✓</div>
+      <div class="top-row">
+        <span class="ttl">Laufendes Jahr 2026</span>
+        <span class="badge">Ist</span>
+      </div>
+      <div class="v2-card">
+        <div class="v2-section">Steuerliches Ergebnis</div>
+        <div class="v2-row"><span class="v2-lbl">Einnahmen</span><span class="v2-val neu">10.978 €</span></div>
+        <div class="v2-row"><span class="v2-lbl">Zinsen</span><span class="v2-val neg">9.734 €</span></div>
+        <div class="v2-row"><span class="v2-lbl">AfA</span><span class="v2-val neg">8.605 €</span></div>
+        <div class="v2-row"><span class="v2-lbl">Kosten</span><span class="v2-val neg">1.738 €</span></div>
+        <div class="v2-result">
+          <span class="slbl">Steuereffekt / Mon</span>
+          <span class="big">+347 €</span>
+        </div>
+        <div class="v2-divider"></div>
+        <div class="v2-section">Cashflow</div>
+        <div class="v2-row"><span class="v2-lbl">Vor Steuer</span><span class="v2-val neg">424 €</span></div>
+        <div class="v2-row"><span class="v2-lbl">Steuereffekt</span><span class="v2-val pos">347 €</span></div>
+        <div class="v2-result">
+          <span class="slbl">Cashflow nach Steuer</span>
+          <span class="big">+12 €</span>
+        </div>
+      </div>
+    </div>
+    <div class="opt-label">
+      <h3>2 — Eine große Glas-Card</h3>
+      <p>Alles in einer Card, Sektionen durch Blau-Gradient-Linie getrennt.</p>
+    </div>
+  </div>
+
+  <!-- V3: Glass card + accent strip -->
+  <div class="opt" id="opt-c" onclick="pick('c')">
+    <div class="phone phone-shared v3">
+      <div class="check">✓</div>
+      <div class="top-row">
+        <span class="ttl">Laufendes Jahr 2026</span>
+        <span class="badge">Ist</span>
+      </div>
+      <div class="v3-card">
+        <div class="v3-section">Steuerliches Ergebnis</div>
+        <div class="v3-row"><span class="v3-lbl">Einnahmen</span><span class="v3-val neu">10.978 €</span></div>
+        <div class="v3-row"><span class="v3-lbl">Zinsen</span><span class="v3-val neg">9.734 €</span></div>
+        <div class="v3-row"><span class="v3-lbl">AfA</span><span class="v3-val neg">8.605 €</span></div>
+        <div class="v3-row"><span class="v3-lbl">Kosten</span><span class="v3-val neg">1.738 €</span></div>
+      </div>
+      <div class="v3-strip">
+        <span class="slbl">Steuereffekt / Mon</span>
+        <span class="big">+347 €</span>
+      </div>
+      <div class="v3-card">
+        <div class="v3-section">Cashflow</div>
+        <div class="v3-row"><span class="v3-lbl">Vor Steuer</span><span class="v3-val neg">424 €</span></div>
+        <div class="v3-row"><span class="v3-lbl">Steuereffekt</span><span class="v3-val pos">347 €</span></div>
+      </div>
+      <div class="v3-strip">
+        <span class="slbl">Cashflow nach Steuer</span>
+        <span class="big">+12 €</span>
+      </div>
+    </div>
+    <div class="opt-label">
+      <h3>3 — Glas + Akzent-Strip</h3>
+      <p>Glas-Card für Zeilen, Ergebnis-Zeile als halbdurchsichtiger Strip mit blauem Rand links.</p>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function pick(id) {
+  document.querySelectorAll('.opt').forEach(e => e.classList.remove('selected'));
+  document.getElementById('opt-' + id).classList.add('selected');
+  try { fetch('/event', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({type:'click', choice:id, text:'Option '+id.toUpperCase(), timestamp:Date.now()})}); } catch(e){}
+}
+</script>
+</body>
+</html>

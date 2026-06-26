@@ -1,0 +1,38 @@
+/* ============================================================
+   Physio App — Typography Tokens
+   DM Sans (UI) · IBM Plex Mono (Zahlenwerte / Cut-offs)
+   ============================================================ */
+
+:root {
+  /* ---------- Familien ---------- */
+  --font-sans: 'DM Sans', 'Geist', system-ui, -apple-system, sans-serif;
+  --font-mono: 'IBM Plex Mono', 'Geist Mono', ui-monospace, 'SFMono-Regular', monospace;
+
+  /* ---------- Schriftgrößen (modular, dichtetauglich) ---------- */
+  --text-2xs:   11px;   /* Mikro-Label, Tabellenmeta            */
+  --text-xs:    12px;   /* Chips, Hilfetext, Badges             */
+  --text-sm:    13px;   /* Sekundärtext, kompakte Felder        */
+  --text-base:  14px;   /* Standard UI-Text / Body              */
+  --text-md:    15px;   /* Feldwerte, Listentitel               */
+  --text-lg:    17px;   /* Kartenüberschrift                    */
+  --text-xl:    20px;   /* Sektionsüberschrift                  */
+  --text-2xl:   24px;   /* Seitentitel                          */
+  --text-3xl:   30px;   /* Großwert / Hero-Zahl                 */
+
+  /* ---------- Gewichte ---------- */
+  --weight-regular:  400;
+  --weight-medium:   500;
+  --weight-semibold: 600;
+  --weight-bold:     700;
+
+  /* ---------- Zeilenhöhen ---------- */
+  --leading-tight:   1.2;
+  --leading-snug:    1.35;
+  --leading-normal:  1.5;
+
+  /* ---------- Letter-Spacing ---------- */
+  --tracking-tight:  -0.01em;
+  --tracking-normal: 0;
+  --tracking-wide:   0.04em;   /* Overline / Caps-Label */
+  --tracking-mono:   -0.02em;  /* IBM Plex Mono optisch enger */
+}

@@ -1,0 +1,45 @@
+/* ============================================================
+   Physio App — Spacing, Radius, Shadow, Layout Tokens
+   Informationsdichte ist eine Anforderung: kompakte Skala.
+   ============================================================ */
+
+:root {
+  /* ---------- Spacing (4px-Basis) ---------- */
+  --space-0:   0;
+  --space-1:   4px;
+  --space-2:   8px;
+  --space-3:   12px;
+  --space-4:   16px;
+  --space-5:   20px;
+  --space-6:   24px;
+  --space-8:   32px;
+  --space-10:  40px;
+  --space-12:  48px;
+  --space-16:  64px;
+
+  /* ---------- Radius ---------- */
+  --radius-sm:  0.25rem;  /*  4px — Chips, kleine Elemente        */
+  --radius:     0.5rem;   /*  8px — Standard: Cards, Inputs, Buttons */
+  --radius-lg:  0.75rem;  /* 12px — Modal, große Cards            */
+  --radius-xl:  1rem;     /* 16px — Sheet, Drawer                 */
+  --radius-full: 9999px;  /* Pills, Avatare                       */
+
+  /* ---------- Touch-Target (Tablet-Anforderung) ---------- */
+  --touch-min: 44px;      /* Minimum für alle interaktiven Elemente */
+
+  /* ---------- Elevation / Shadows ----------
+     Weich, niedrigkontrastig — klinisch ruhig, nicht „bouncy". */
+  --shadow-xs:  0 1px 2px 0 hsl(224 25% 11% / 0.04);
+  --shadow-sm:  0 1px 3px 0 hsl(224 25% 11% / 0.06), 0 1px 2px -1px hsl(224 25% 11% / 0.06);
+  --shadow-md:  0 4px 12px -2px hsl(224 25% 11% / 0.08), 0 2px 4px -2px hsl(224 25% 11% / 0.05);
+  --shadow-lg:  0 12px 28px -6px hsl(224 25% 11% / 0.12), 0 4px 8px -4px hsl(224 25% 11% / 0.06);
+  --shadow-focus: 0 0 0 3px hsl(243 65% 55% / 0.35);  /* --ring @ 35% */
+
+  /* ---------- Motion ----------
+     Nur nicht-kritische Pfade. Kurz, ruhig, kein Bounce. */
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1); /* @kind other */
+  --dur-instant:   0ms;     /* @kind other */ /* Chip-Toggle: Farbe sofort */
+  --dur-fast:      150ms;   /* @kind other */ /* Seitenübergänge */
+  --dur-medium:    200ms;   /* @kind other */ /* Accordion */
+  --dur-progress:  300ms;   /* @kind other */ /* Progress-Balken */
+}

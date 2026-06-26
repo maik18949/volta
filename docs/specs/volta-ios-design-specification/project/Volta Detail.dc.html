@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+    html, body { height:100%; }
+    body { font-family:'DM Sans',-apple-system,sans-serif; background:#f0f4fa; color:#0f172a; }
+    :root { --blue:#3b82f6; --blue-dark:#1d4ed8; --pos:#16a34a; --neg:#dc2626; --sub:#64748b; --dim:#94a3b8; --border:rgba(0,0,0,0.07); }
+    .card { background:#fff; border:1px solid var(--border); border-radius:14px; }
+    .row { display:flex; justify-content:space-between; align-items:center; padding:5px 0; }
+    .rl { font-size:13px; color:var(--sub); font-weight:500; }
+    .rv { font-size:13px; font-weight:600; color:#0f172a; font-variant-numeric:tabular-nums; }
+    .rv.neg { color:var(--neg); } .rv.pos { color:var(--pos); }
+    .rv.big { font-size:24px; font-weight:800; letter-spacing:-0.5px; }
+    .rv.bold { font-weight:800; font-size:15px; }
+    .divider { height:1px; background:var(--border); margin:10px 0; }
+    .blue-div { height:1.5px; background:linear-gradient(90deg,rgba(59,130,246,0.25),transparent); margin:14px 0; }
+    .sec-label { font-size:11px; font-weight:700; color:var(--blue-dark); letter-spacing:0.5px; text-transform:uppercase; }
+    .sub-lbl { font-size:10px; font-weight:700; color:var(--dim); letter-spacing:0.4px; text-transform:uppercase; margin:12px 0 5px; }
+    .seg { display:flex; background:#f1f5f9; border-radius:8px; padding:2px; }
+    .seg-btn { flex:1; text-align:center; padding:6px 0; font-size:13px; font-weight:600; color:var(--sub); border-radius:6px; cursor:pointer; transition:all 0.15s; white-space:nowrap; user-select:none; }
+    .seg-btn.on { background:#fff; color:#0f172a; box-shadow:0 1px 3px rgba(0,0,0,0.1); }
+    .yr-arr { font-size:20px; color:var(--blue); cursor:pointer; line-height:1; }
+    .yr-val { font-size:16px; font-weight:700; }
+    table.cf { width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums; font-size:12px; }
+    .cf th { font-size:10px; font-weight:700; color:var(--dim); text-transform:uppercase; padding:5px; text-align:right; white-space:nowrap; border-bottom:2px solid var(--border); line-height:1.4; vertical-align:bottom; }
+    .cf th:first-child { text-align:left; min-width:152px; }
+    .cf td { padding:4px 5px; border-top:1px solid rgba(0,0,0,0.04); text-align:right; color:#0f172a; font-weight:500; }
+    .cf td:first-child { text-align:left; color:var(--sub); }
+    .cf .sum-row td { font-weight:700; background:rgba(239,246,255,0.6); }
+    .cf .sec-row td { font-weight:700; color:#0f172a; background:rgba(0,0,0,0.02); font-size:11px; padding-top:8px; }
+    .cf .red { color:var(--neg); } .cf .grn { color:#059669; } .cf .blu { color:var(--blue); }
+    table.amt { width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums; font-size:13px; }
+    .amt th { font-size:11px; font-weight:700; color:var(--dim); text-transform:uppercase; padding:8px 6px; text-align:right; border-bottom:2px solid var(--border); }
+    .amt th:first-child { text-align:left; }
+    .amt td { padding:8px 6px; text-align:right; border-top:1px solid rgba(0,0,0,0.04); }
+    .amt td:first-child { text-align:left; font-weight:700; }
+    .amt .hl td { background:rgba(59,130,246,0.07); color:var(--blue-dark); font-weight:700; }
+    .feed-item { display:flex; align-items:flex-start; gap:14px; padding:12px 0; border-bottom:1px solid rgba(0,0,0,0.05); }
+    .feed-item:last-child { border-bottom:none; }
+    .feed-dot { width:10px; height:10px; border-radius:50%; margin-top:5px; flex-shrink:0; }
+    .feed-body { flex:1; }
+    .feed-title { font-size:14px; font-weight:600; }
+    .feed-sub { font-size:12px; color:var(--sub); margin-top:2px; }
+    .feed-right { text-align:right; flex-shrink:0; }
+    .feed-amt { font-size:14px; font-weight:700; color:var(--neg); font-variant-numeric:tabular-nums; }
+    .feed-date { font-size:11px; color:var(--dim); margin-top:2px; }
+    .tag-abs { font-size:10px; font-weight:700; background:rgba(22,163,74,0.1); color:var(--pos); border-radius:4px; padding:2px 6px; display:inline-block; margin-top:3px; }
+    .tag-nabs { font-size:10px; font-weight:700; background:rgba(220,38,38,0.08); color:var(--neg); border-radius:4px; padding:2px 6px; display:inline-block; margin-top:3px; }
+    .add-btn { display:inline-flex; align-items:center; gap:5px; background:rgba(59,130,246,0.07); border:1px solid rgba(59,130,246,0.2); border-radius:8px; padding:6px 14px; font-size:12px; font-weight:600; color:var(--blue); cursor:pointer; font-family:inherit; }
+    .warn { background:#fffbeb; border:1px solid #fcd34d; border-radius:10px; padding:10px 14px; font-size:13px; color:#92400e; font-weight:500; }
+    .fi { width:100%; border:1px solid rgba(0,0,0,0.12); border-radius:9px; padding:10px 12px; font-size:14px; color:#0f172a; font-weight:500; background:#fff; outline:none; transition:border-color 0.15s; font-family:inherit; }
+    .fi:focus { border-color:var(--blue); box-shadow:0 0 0 3px rgba(59,130,246,0.1); }
+    .fi[readonly] { background:#f8fafc; color:var(--sub); cursor:default; }
+    select.fi { appearance:none; -webkit-appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.5' stroke-linecap='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 10px center; padding-right:32px; cursor:pointer; }
+    textarea.fi { resize:vertical; }
+    .fl { font-size:12px; color:var(--sub); font-weight:600; margin-bottom:5px; }
+    .fg { display:flex; flex-direction:column; }
+    .rs { color:var(--neg); }
+    .pill-g { display:inline-flex; align-items:center; background:rgba(22,163,74,0.1); color:#15803d; border-radius:20px; font-size:10px; font-weight:700; padding:2px 9px; white-space:nowrap; }
+    .pill-o { display:inline-flex; align-items:center; background:rgba(217,119,6,0.1); color:#d97706; border-radius:20px; font-size:10px; font-weight:700; padding:2px 9px; white-space:nowrap; }
+    .pill-r { display:inline-flex; align-items:center; background:rgba(220,38,38,0.1); color:#dc2626; border-radius:20px; font-size:10px; font-weight:700; padding:2px 9px; white-space:nowrap; }
+    .info-btn { width:17px; height:17px; border-radius:50%; border:1.5px solid var(--dim); background:none; color:var(--dim); font-size:10px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; font-family:inherit; flex-shrink:0; transition:border-color 0.15s,color 0.15s; padding:0; }
+    .info-btn:hover { border-color:var(--blue); color:var(--blue); }
+    .nav-item { display:flex; align-items:center; gap:10px; padding:9px 10px; border-radius:10px; font-size:14px; font-weight:500; color:var(--sub); cursor:pointer; transition:all 0.12s; user-select:none; }
+    .nav-item:hover { background:rgba(59,130,246,0.06); color:#0f172a; }
+    .nav-item.on { background:rgba(59,130,246,0.1); color:var(--blue); font-weight:700; }
+    .ds-si { padding:8px 10px; border-radius:8px; font-size:13px; font-weight:500; color:var(--dim); cursor:pointer; transition:all 0.12s; display:flex; align-items:center; gap:7px; user-select:none; }
+    .ds-si:hover { color:#0f172a; background:rgba(0,0,0,0.03); }
+    .ds-si.on { background:rgba(59,130,246,0.1); color:var(--blue); font-weight:700; }
+    .ds-si.vis { color:#0f172a; }
+    .s-vm { display:inline-block; background:rgba(22,163,74,0.12); color:#15803d; font-size:9px; font-weight:700; border-radius:3px; padding:1px 4px; }
+    .s-ls { display:inline-block; background:rgba(217,119,6,0.15); color:#b45309; font-size:9px; font-weight:700; border-radius:3px; padding:1px 4px; }
+    .s-pr { display:inline-block; background:rgba(148,163,184,0.15); color:#64748b; font-size:9px; font-weight:700; border-radius:3px; padding:1px 4px; }
+    .foto-slot { width:130px; height:92px; border:2px dashed rgba(0,0,0,0.12); border-radius:10px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; cursor:pointer; background:#fafafa; color:var(--dim); font-size:11px; font-weight:600; transition:border-color 0.15s; flex-shrink:0; }
+    .foto-slot:hover { border-color:var(--blue); color:var(--blue); }
+    .kv-row { display:flex; justify-content:space-between; align-items:center; padding:7px 0; border-bottom:1px solid rgba(0,0,0,0.04); }
+    .kv-row:last-child { border-bottom:none; }
+    .tgl { width:38px; height:22px; border-radius:11px; cursor:pointer; position:relative; background:#e2e8f0; transition:background 0.2s; flex-shrink:0; display:inline-block; vertical-align:middle; }
+    .tgl.on { background:var(--blue); }
+    .tgl-th { width:18px; height:18px; background:#fff; border-radius:50%; position:absolute; top:2px; left:2px; transition:left 0.2s; box-shadow:0 1px 2px rgba(0,0,0,.25); pointer-events:none; }
+    .tgl.on .tgl-th { left:18px; }
+    .ck-row { display:flex; align-items:center; gap:8px; cursor:pointer; padding:5px 0; user-select:none; }
+    .ck-box { width:18px; height:18px; border-radius:4px; border:1.5px solid #cbd5e1; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:all 0.12s; }
+    .ck-box.on { background:var(--blue); border-color:var(--blue); }
+    .ro-sum { background:#f8fafc; border:1px solid var(--border); border-radius:10px; padding:14px 16px; margin-top:14px; }
+  </style>
+</helmet>
+
+<!-- Info Modal -->
+<div id="infoOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.25);z-index:200;"></div>
+<div id="infoModal" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:380px;background:#fff;border-radius:16px;padding:26px;z-index:201;box-shadow:0 24px 64px rgba(0,0,0,0.18);">
+  <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px;gap:12px;">
+    <div id="iTitle" style="font-size:18px;font-weight:800;letter-spacing:-0.3px;"></div>
+    <button id="infoCloseBtn" style="width:28px;height:28px;border-radius:50%;border:1px solid var(--border);background:#f8fafc;color:var(--sub);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:inherit;">✕</button>
+  </div>
+  <div id="iFormula" style="font-size:13px;font-family:monospace;color:var(--blue);background:rgba(59,130,246,0.07);border-radius:8px;padding:8px 12px;margin-bottom:12px;"></div>
+  <div id="iDesc" style="font-size:13px;color:var(--sub);line-height:1.6;margin-bottom:16px;"></div>
+  <div style="font-size:11px;font-weight:700;color:var(--dim);letter-spacing:0.4px;text-transform:uppercase;margin-bottom:8px;">Benchmark</div>
+  <div id="iBench" style="display:flex;flex-direction:column;gap:7px;"></div>
+</div>
+
+<div style="display:flex;flex-direction:column;height:100vh;overflow:hidden;">
+  <!-- Top bar -->
+  <div style="height:56px;flex-shrink:0;background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:14px;padding:0 28px;">
+    <a href="Volta Hauptscreen.dc.html" style="display:flex;align-items:center;gap:5px;font-size:14px;font-weight:600;color:var(--blue);text-decoration:none;flex-shrink:0;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>Portfolio
+    </a>
+    <div style="width:1px;height:20px;background:var(--border);"></div>
+    <div style="font-size:16px;font-weight:700;">ETW Dresden Neustadt</div>
+    <span style="background:#16a34a;color:#fff;font-size:10px;font-weight:700;padding:3px 8px;border-radius:5px;">Vermietet</span>
+    <div style="flex:1;"></div>
+    <button id="editBtn" style="display:flex;align-items:center;gap:6px;padding:8px 16px;border-radius:9px;border:1px solid var(--border);background:#fff;font-size:13px;font-weight:600;color:var(--sub);cursor:pointer;font-family:inherit;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      Daten bearbeiten
+    </button>
+    <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#6366f1);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;">MK</div>
+  </div>
+
+  <!-- Body -->
+  <div style="flex:1;display:flex;overflow:hidden;">
+    <!-- Sidebar -->
+    <div style="width:220px;flex-shrink:0;background:#fff;border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;">
+      <div style="height:140px;background:linear-gradient(135deg,#3b82f6,#6366f1);display:flex;align-items:center;justify-content:center;font-size:52px;flex-shrink:0;position:relative;">
+        🏢
+        <div style="position:absolute;inset:0;background:linear-gradient(to bottom,transparent 50%,rgba(0,0,0,0.4));"></div>
+        <div style="position:absolute;bottom:0;left:0;right:0;padding:10px 14px;"><div style="font-size:11px;color:rgba(255,255,255,0.9);font-weight:500;">Dresdner Str. 12, Dresden</div></div>
+      </div>
+      <div style="padding:14px 10px;flex:1;display:flex;flex-direction:column;gap:2px;">
+        <div style="font-size:11px;font-weight:700;color:var(--dim);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:6px;padding:0 8px;">Immobilie</div>
+        <div class="nav-item on" id="nav0"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Übersicht</div>
+        <div class="nav-item" id="nav1"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>Cashflow</div>
+        <div class="nav-item" id="nav2"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>Steuer</div>
+        <div class="nav-item" id="nav3"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Verlauf</div>
+        <div class="nav-item" id="nav4"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>Finanzierung</div>
+        <div class="nav-item" id="nav5"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>Immobiliendaten</div>
+      </div>
+    </div>
+
+    <!-- Content -->
+    <div style="flex:1;overflow-y:auto;padding:24px 28px;background:#f0f4fa;" id="mainContent">
+
+      <!-- ═══ ÜBERSICHT ═══ -->
+      <div id="dp0">
+        <!-- KPI Banner -->
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);background:#fff;border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:16px;">
+          <div style="padding:18px 20px;border-right:1px solid var(--border);">
+            <div style="font-size:11px;font-weight:600;color:var(--sub);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:5px;">CF nach Steuern</div>
+            <div style="font-size:26px;font-weight:800;color:var(--pos);letter-spacing:-0.5px;font-variant-numeric:tabular-nums;">+215 €</div>
+            <div style="font-size:12px;color:var(--sub);margin-top:2px;">vor Steuern: <span style="color:var(--pos);font-weight:600;">+8 €</span></div>
+          </div>
+          <div style="padding:18px 20px;border-right:1px solid var(--border);">
+            <div style="font-size:11px;font-weight:600;color:var(--sub);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:5px;">Nettorendite</div>
+            <div style="font-size:26px;font-weight:800;letter-spacing:-0.5px;">3,8 %</div>
+            <div style="font-size:12px;color:var(--sub);margin-top:2px;">Brutto: 4,9 %</div>
+          </div>
+          <div style="padding:18px 20px;border-right:1px solid var(--border);">
+            <div style="font-size:11px;font-weight:600;color:var(--sub);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:5px;">Cash-on-Cash</div>
+            <div style="font-size:26px;font-weight:800;letter-spacing:-0.5px;">3,2 %</div>
+            <div style="font-size:12px;color:var(--sub);margin-top:2px;">Ziel: ≥ 6 % <span class="pill-o" style="font-size:9px;vertical-align:middle;">Ok</span></div>
+          </div>
+          <div style="padding:18px 20px;">
+            <div style="font-size:11px;font-weight:600;color:var(--sub);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:5px;">DSCR</div>
+            <div style="font-size:26px;font-weight:800;letter-spacing:-0.5px;color:var(--neg);">0,97</div>
+            <div style="font-size:12px;color:var(--sub);margin-top:2px;">Ziel: ≥ 1,25 <span class="pill-r" style="font-size:9px;vertical-align:middle;">Schlecht</span></div>
+          </div>
+        </div>
+
+        <!-- Card 1: Aktueller Stand -->
+        <div class="card" style="padding:20px 22px;margin-bottom:16px;">
+          <div class="sec-label" style="margin-bottom:12px;">Aktueller Stand</div>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+            <span style="background:#16a34a;color:#fff;font-size:11px;font-weight:700;padding:4px 10px;border-radius:6px;">Vermietet</span>
+            <span style="font-size:13px;color:var(--sub);">seit 15.04.2025</span>
+          </div>
+          <div class="sub-lbl">Cashflow / Monat</div>
+          <div class="row"><span class="rl">Einnahmen</span><span class="rv pos">+1.130 €</span></div>
+          <div class="row"><span class="rl">Kreditrate</span><span class="rv neg">−880 €</span></div>
+          <div class="row"><span class="rl">Laufende Kosten</span><span class="rv neg">−242 €</span></div>
+          <div class="divider"></div>
+          <div class="row"><span class="rl" style="font-weight:700;color:#0f172a;">Cashflow vor Steuern</span><span class="rv bold pos">+8 €</span></div>
+          <div class="row"><span class="rl" style="color:var(--pos);">Steuereffekt (Ø monatl.)</span><span class="rv pos">+207 €</span></div>
+          <div class="blue-div"></div>
+          <div class="row"><span class="rl" style="font-weight:700;color:#0f172a;">Cashflow nach Steuern</span><span class="rv big pos">+215 €</span></div>
+        </div>
+
+        <!-- Card 2: Rendite & Investment -->
+        <div class="card" style="padding:20px 22px;margin-bottom:16px;">
+          <div class="sec-label" style="margin-bottom:14px;">Rendite &amp; Investment</div>
+          <div style="display:flex;flex-direction:column;">
+            <div class="kv-row"><div style="display:flex;align-items:center;gap:7px;"><span style="font-size:13px;color:var(--sub);">Bruttorendite</span><button class="info-btn" data-title="Bruttorendite" data-formula="Jahreskaltmiete / Kaufpreis" data-desc="Verhältnis der Jahresmiete zum Kaufpreis, ohne Berücksichtigung von Kosten." data-rating="o" data-bench="≥ 5 %||3 – 5 %||&lt; 3 %">i</button></div><div style="display:flex;align-items:center;gap:8px;"><span style="font-size:13px;font-weight:700;">4,9 %</span><span class="pill-o">Ok</span></div></div>
+            <div class="kv-row"><div style="display:flex;align-items:center;gap:7px;"><span style="font-size:13px;color:var(--sub);">Nettorendite</span><button class="info-btn" data-title="Nettorendite" data-formula="NOI / Gesamtinvestment" data-desc="Rendite nach Abzug aller laufenden Kosten (ohne Finanzierung)." data-rating="o" data-bench="≥ 4 %||2 – 4 %||&lt; 2 %">i</button></div><div style="display:flex;align-items:center;gap:8px;"><span style="font-size:13px;font-weight:700;">3,8 %</span><span class="pill-o">Ok</span></div></div>
+            <div class="kv-row"><div style="display:flex;align-items:center;gap:7px;"><span style="font-size:13px;color:var(--sub);">Cash-on-Cash</span><button class="info-btn" data-title="Cash-on-Cash" data-formula="Jährl. CF nach Steuern / Eigenkapital" data-desc="Liquiditätsrendite auf das eingesetzte Eigenkapital." data-rating="o" data-bench="≥ 6 %||3 – 6 %||&lt; 3 %">i</button></div><div style="display:flex;align-items:center;gap:8px;"><span style="font-size:13px;font-weight:700;">3,2 %</span><span class="pill-o">Ok</span></div></div>
+            <div class="kv-row"><div style="display:flex;align-items:center;gap:7px;"><span style="font-size:13px;color:var(--sub);">Kaufpreisfaktor</span><button class="info-btn" data-title="Kaufpreisfaktor" data-formula="Kaufpreis / Jahreskaltmiete" data-desc="Wie viele Jahreskaltmieten entspricht der Kaufpreis. Je niedriger, desto besser." data-rating="o" data-bench="≤ 20×||20 – 25×||&gt; 25×">i</button></div><div style="display:flex;align-items:center;gap:8px;"><span style="font-size:13px;font-weight:700;">20,3×</span><span class="pill-o">Ok</span></div></div>
+            <div class="kv-row"><div style="display:flex;align-items:center;gap:7px;"><span style="font-size:13px;color:var(--sub);">DSCR</span><button class="info-btn" data-title="DSCR" data-formula="NOI / Jährl. Schuldendienst" data-desc="Debt Service Coverage Ratio – wie gut der NOI die Kreditrate abdeckt." data-rating="r" data-bench="≥ 1,25||1,0 – 1,25||&lt; 1,0">i</button></div><div style="display:flex;align-items:center;gap:8px;"><span style="font-size:13px;font-weight:700;">0,97</span><span class="pill-r">Schlecht</span></div></div>
+            <div class="kv-row"><div style="display:flex;align-items:center;gap:7px;"><span style="font-size:13px;color:var(--sub);">LTV</span><button class="info-btn" data-title="LTV" data-formula="Restschuld / Gesamtinvestment" data-desc="Loan-to-Value – Beleihungsquote der Immobilie. Je niedriger, desto sicherer." data-rating="o" data-bench="≤ 60 %||60 – 80 %||&gt; 80 %">i</button></div><div style="display:flex;align-items:center;gap:8px;"><span style="font-size:13px;font-weight:700;">68,2 %</span><span class="pill-o">Ok</span></div></div>
+            <div class="kv-row"><div style="display:flex;align-items:center;gap:7px;"><span style="font-size:13px;color:var(--sub);">Tats. Leerstandsquote</span><button class="info-btn" data-title="Tats. Leerstandsquote" data-formula="Leerstandstage / Eigentumstage" data-desc="Tatsächliche Leerstandsquote seit Besitzübergang (45 von 365 Tagen)." data-rating="r" data-bench="≤ 3 %||3 – 8 %||&gt; 8 %">i</button></div><div style="display:flex;align-items:center;gap:8px;"><span style="font-size:13px;font-weight:700;">12,3 %</span><span class="pill-r">Schlecht</span></div></div>
+          </div>
+          <div class="divider" style="margin-top:12px;"></div>
+          <div class="sub-lbl">Investment</div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px;">
+            <div><div style="font-size:11px;color:var(--sub);margin-bottom:3px;">Gesamtinvestment</div><div style="font-size:16px;font-weight:800;font-variant-numeric:tabular-nums;">290.000 €</div></div>
+            <div><div style="font-size:11px;color:var(--sub);margin-bottom:3px;">Eigenkapital</div><div style="font-size:16px;font-weight:800;font-variant-numeric:tabular-nums;">80.000 €</div></div>
+            <div><div style="font-size:11px;color:var(--sub);margin-bottom:3px;">NOI / Jahr</div><div style="font-size:16px;font-weight:800;font-variant-numeric:tabular-nums;">10.200 €</div></div>
+            <div><div style="font-size:11px;color:var(--sub);margin-bottom:3px;">Break-Even-Miete</div><div style="font-size:16px;font-weight:800;font-variant-numeric:tabular-nums;">1.122 €</div></div>
+          </div>
+          <div class="divider"></div>
+          <div class="sub-lbl">Marktwert</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:6px;">
+            <div><div style="font-size:11px;color:var(--sub);margin-bottom:3px;">Aktueller Marktwert</div><div style="font-size:17px;font-weight:800;font-variant-numeric:tabular-nums;">320.000 €</div><div style="font-size:11px;color:var(--sub);margin-top:2px;">4.706 €/m²</div></div>
+            <div><div style="font-size:11px;color:var(--sub);margin-bottom:3px;">Wertsteigerung</div><div style="font-size:17px;font-weight:800;color:var(--pos);font-variant-numeric:tabular-nums;">+45.000 €</div><div style="font-size:11px;color:var(--pos);font-weight:600;margin-top:2px;">+16,4 % seit Kauf</div></div>
+          </div>
+        </div>
+
+        <!-- Card 3: Finanzierung -->
+        <div class="card" style="padding:20px 22px;margin-bottom:16px;">
+          <div class="sec-label" style="margin-bottom:14px;">Finanzierung</div>
+          <div class="kv-row"><span class="rl">Darlehensbetrag</span><span class="rv">210.000 €</span></div>
+          <div class="kv-row"><span class="rl">Restschuld (heute)</span><span class="rv">197.840 €</span></div>
+          <div class="kv-row"><span class="rl">Monatliche Rate</span><span class="rv">880 €</span></div>
+          <div class="kv-row"><span class="rl">Zinssatz</span><span class="rv">3,85 %</span></div>
+          <div class="kv-row"><span class="rl">Tilgungssatz</span><span class="rv">2,15 %</span></div>
+          <div class="kv-row"><span class="rl">Zinsbindung bis</span><span class="rv" style="display:flex;align-items:baseline;gap:8px;">03/2034 <span style="font-size:11px;color:var(--sub);font-weight:400;">noch 8 Jahre</span></span></div>
+        </div>
+
+        <!-- Card 4: Objekt -->
+        <div class="card" style="padding:20px 22px;">
+          <div class="sec-label" style="margin-bottom:14px;">Objekt</div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px 20px;">
+            <div><div style="font-size:11px;color:var(--sub);margin-bottom:3px;">Typ</div><div style="font-size:14px;font-weight:600;">Eigentumswohnung</div></div>
+            <div><div style="font-size:11px;color:var(--sub);margin-bottom:3px;">Baujahr</div><div style="font-size:14px;font-weight:600;">1998</div></div>
+            <div><div style="font-size:11px;color:var(--sub);margin-bottom:3px;">Wohnfläche</div><div style="font-size:14px;font-weight:600;">68 m²</div></div>
+            <div><div style="font-size:11px;color:var(--sub);margin-bottom:3px;">Zimmer</div><div style="font-size:14px;font-weight:600;">3</div></div>
+            <div><div style="font-size:11px;color:var(--sub);margin-bottom:3px;">Kaltmiete / m²</div><div style="font-size:14px;font-weight:600;">15,44 €/m²</div></div>
+            <div><div style="font-size:11px;color:var(--sub);margin-bottom:3px;">Kaufpreis / m²</div><div style="font-size:14px;font-weight:600;">4.044 €/m²</div></div>
+            <div><div style="font-size:11px;color:var(--sub);margin-bottom:3px;">Heizung</div><div style="font-size:14px;font-weight:600;">Fernwärme</div></div>
+            <div><div style="font-size:11px;color:var(--sub);margin-bottom:3px;">Stellplatz</div><div style="font-size:14px;font-weight:600;">Tiefgarage</div></div>
+          </div>
+          <div class="divider" style="margin:14px 0;"></div>
+          <div><div style="font-size:11px;color:var(--sub);margin-bottom:4px;">Notizen</div><div style="font-size:13px;color:var(--sub);">—</div></div>
+        </div>
+      </div>
+
+      <!-- ═══ CASHFLOW ═══ -->
+      <div id="dp1" style="display:none;">
+        <div style="font-size:20px;font-weight:800;letter-spacing:-0.5px;margin-bottom:16px;">Cashflow</div>
+        <!-- Prognose / Monat — hierarchisch -->
+        <div class="card" style="padding:20px 22px;margin-bottom:12px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+            <span class="sec-label">Prognose / Monat</span>
+            <div class="seg" style="width:220px;"><div class="seg-btn on" id="cfVoll">Vollvermietung</div><div class="seg-btn" id="cfLeer">Leerstand</div></div>
+          </div>
+          <div id="cfBigAfter" style="font-size:32px;font-weight:800;color:var(--pos);letter-spacing:-1px;font-variant-numeric:tabular-nums;margin-bottom:4px;">+215 €/Mon</div>
+          <div style="font-size:13px;color:var(--sub);display:flex;gap:18px;">
+            <span>Vor Steuern: <span id="cfSmallBefore" style="font-weight:700;color:#0f172a;">+8 €</span></span>
+            <span>Steuereffekt: <span style="font-weight:700;color:var(--blue);">+207 €</span></span>
+          </div>
+        </div>
+        <div class="warn" style="margin-bottom:12px;">⚠ Steuerliche Berechnung ungenau — Hausgeld wird vollständig als Werbungskosten angesetzt. Für genaue Berechnung Hausgeld aufteilen (→ Immobiliendaten).</div>
+        <!-- Jahrestabelle -->
+        <div class="card" style="padding:20px 16px;">
+          <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px;padding:0 6px;">
+            <span class="yr-arr">‹</span><span class="yr-val">2025</span><span class="yr-arr">›</span>
+            <div style="font-size:11px;color:var(--dim);margin-left:4px;">* = projiziert · <span class="s-vm">VM</span> = vermietet · <span class="s-ls">LS</span> = leerstand</div>
+          </div>
+          <div style="overflow-x:auto;">
+            <table class="cf" style="min-width:880px;">
+              <thead>
+                <tr>
+                  <th>Position</th>
+                  <th>Jan<br><span class="s-vm">VM</span></th><th>Feb<br><span class="s-vm">VM</span></th><th>Mär<br><span class="s-ls">LS</span></th><th>Apr<br><span class="s-ls">LS</span></th><th>Mai<br><span class="s-vm">VM</span></th><th>Jun<br><span class="s-vm">VM</span></th>
+                  <th>Jul<br><span class="s-pr">VM*</span></th><th>Aug<br><span class="s-pr">VM*</span></th><th>Sep<br><span class="s-pr">VM*</span></th><th>Okt<br><span class="s-pr">VM*</span></th><th>Nov<br><span class="s-pr">VM*</span></th><th>Dez<br><span class="s-pr">VM*</span></th>
+                  <th style="background:rgba(239,246,255,0.6);">Ø</th><th style="background:rgba(239,246,255,0.6);">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Einnahmen</td>
+                  <td class="grn">1.130</td><td class="grn">1.130</td><td>0</td><td>0</td><td class="grn">1.130</td><td class="grn">1.130</td>
+                  <td class="grn" style="opacity:0.65;">1.130</td><td class="grn" style="opacity:0.65;">1.130</td><td class="grn" style="opacity:0.65;">1.130</td><td class="grn" style="opacity:0.65;">1.130</td><td class="grn" style="opacity:0.65;">1.130</td><td class="grn" style="opacity:0.65;">1.130</td>
+                  <td class="grn" style="background:rgba(239,246,255,0.6);">942</td><td class="grn" style="background:rgba(239,246,255,0.6);">11.300</td>
+                </tr>
+                <tr>
+                  <td>Kreditrate</td>
+                  <td class="red">−880</td><td class="red">−880</td><td class="red">−880</td><td class="red">−880</td><td class="red">−880</td><td class="red">−880</td>
+                  <td class="red" style="opacity:0.65;">−880</td><td class="red" style="opacity:0.65;">−880</td><td class="red" style="opacity:0.65;">−880</td><td class="red" style="opacity:0.65;">−880</td><td class="red" style="opacity:0.65;">−880</td><td class="red" style="opacity:0.65;">−880</td>
+                  <td class="red" style="background:rgba(239,246,255,0.6);">−880</td><td class="red" style="background:rgba(239,246,255,0.6);">−10.560</td>
+                </tr>
+                <tr class="sec-row"><td>Kosten Wohnung</td><td colspan="14"></td></tr>
+                <tr>
+                  <td style="padding-left:14px;">Nicht umlagef. HG</td>
+                  <td class="red">−68</td><td class="red">−68</td><td class="red">−68</td><td class="red">−68</td><td class="red">−68</td><td class="red">−68</td>
+                  <td class="red" style="opacity:0.65;">−68</td><td class="red" style="opacity:0.65;">−68</td><td class="red" style="opacity:0.65;">−68</td><td class="red" style="opacity:0.65;">−68</td><td class="red" style="opacity:0.65;">−68</td><td class="red" style="opacity:0.65;">−68</td>
+                  <td class="red" style="background:rgba(239,246,255,0.6);">−68</td><td class="red" style="background:rgba(239,246,255,0.6);">−816</td>
+                </tr>
+                <tr>
+                  <td style="padding-left:14px;">Instandhaltungsrücklage WE</td>
+                  <td class="red">−60</td><td class="red">−60</td><td class="red">−60</td><td class="red">−60</td><td class="red">−60</td><td class="red">−60</td>
+                  <td class="red" style="opacity:0.65;">−60</td><td class="red" style="opacity:0.65;">−60</td><td class="red" style="opacity:0.65;">−60</td><td class="red" style="opacity:0.65;">−60</td><td class="red" style="opacity:0.65;">−60</td><td class="red" style="opacity:0.65;">−60</td>
+                  <td class="red" style="background:rgba(239,246,255,0.6);">−60</td><td class="red" style="background:rgba(239,246,255,0.6);">−720</td>
+                </tr>
+                <tr>
+                  <td style="padding-left:14px;">Gebäudeversicherung</td>
+                  <td class="red">−20</td><td class="red">−20</td><td class="red">−20</td><td class="red">−20</td><td class="red">−20</td><td class="red">−20</td>
+                  <td class="red" style="opacity:0.65;">−20</td><td class="red" style="opacity:0.65;">−20</td><td class="red" style="opacity:0.65;">−20</td><td class="red" style="opacity:0.65;">−20</td><td class="red" style="opacity:0.65;">−20</td><td class="red" style="opacity:0.65;">−20</td>
+                  <td class="red" style="background:rgba(239,246,255,0.6);">−20</td><td class="red" style="background:rgba(239,246,255,0.6);">−240</td>
+                </tr>
+                <tr>
+                  <td style="padding-left:14px;">Verwaltung</td>
+                  <td class="red">−34</td><td class="red">−34</td><td class="red">−34</td><td class="red">−34</td><td class="red">−34</td><td class="red">−34</td>
+                  <td class="red" style="opacity:0.65;">−34</td><td class="red" style="opacity:0.65;">−34</td><td class="red" style="opacity:0.65;">−34</td><td class="red" style="opacity:0.65;">−34</td><td class="red" style="opacity:0.65;">−34</td><td class="red" style="opacity:0.65;">−34</td>
+                  <td class="red" style="background:rgba(239,246,255,0.6);">−34</td><td class="red" style="background:rgba(239,246,255,0.6);">−408</td>
+                </tr>
+                <tr>
+                  <td style="padding-left:14px;">Sonstige Kosten</td>
+                  <td class="red">−60</td><td class="red">−60</td><td class="red">−60</td><td class="red">−60</td><td class="red">−60</td><td class="red">−60</td>
+                  <td class="red" style="opacity:0.65;">−60</td><td class="red" style="opacity:0.65;">−60</td><td class="red" style="opacity:0.65;">−60</td><td class="red" style="opacity:0.65;">−60</td><td class="red" style="opacity:0.65;">−60</td><td class="red" style="opacity:0.65;">−60</td>
+                  <td class="red" style="background:rgba(239,246,255,0.6);">−60</td><td class="red" style="background:rgba(239,246,255,0.6);">−720</td>
+                </tr>
+                <tr class="cf-ls-row" style="opacity:0.3;" id="cfLsHg">
+                  <td style="padding-left:14px;">Umlagef. Kosten WE</td>
+                  <td style="color:var(--dim);">—</td><td style="color:var(--dim);">—</td><td class="red">−132</td><td class="red">−132</td><td style="color:var(--dim);">—</td><td style="color:var(--dim);">—</td>
+                  <td style="color:var(--dim);opacity:0.65;">—</td><td style="color:var(--dim);opacity:0.65;">—</td><td style="color:var(--dim);opacity:0.65;">—</td><td style="color:var(--dim);opacity:0.65;">—</td><td style="color:var(--dim);opacity:0.65;">—</td><td style="color:var(--dim);opacity:0.65;">—</td>
+                  <td class="red" style="background:rgba(239,246,255,0.6);">−22</td><td class="red" style="background:rgba(239,246,255,0.6);">−264</td>
+                </tr>
+                <tr class="cf-ls-row" style="opacity:0.3;" id="cfLsGrSt">
+                  <td style="padding-left:14px;">Grundsteuer WE</td>
+                  <td style="color:var(--dim);">—</td><td style="color:var(--dim);">—</td><td class="red">−32</td><td class="red">−32</td><td style="color:var(--dim);">—</td><td style="color:var(--dim);">—</td>
+                  <td style="color:var(--dim);opacity:0.65;">—</td><td style="color:var(--dim);opacity:0.65;">—</td><td style="color:var(--dim);opacity:0.65;">—</td><td style="color:var(--dim);opacity:0.65;">—</td><td style="color:var(--dim);opacity:0.65;">—</td><td style="color:var(--dim);opacity:0.65;">—</td>
+                  <td class="red" style="background:rgba(239,246,255,0.6);">−5</td><td class="red" style="background:rgba(239,246,255,0.6);">−64</td>
+                </tr>
+                <tr class="sum-row">
+                  <td>CF vor Steuern</td>
+                  <td class="grn">+8</td><td class="grn">+8</td><td class="red">−1.286</td><td class="red">−1.286</td><td class="grn">+8</td><td class="grn">+8</td>
+                  <td class="grn" style="opacity:0.65;">+8</td><td class="grn" style="opacity:0.65;">+8</td><td class="grn" style="opacity:0.65;">+8</td><td class="grn" style="opacity:0.65;">+8</td><td class="grn" style="opacity:0.65;">+8</td><td class="grn" style="opacity:0.65;">+8</td>
+                  <td class="red" style="background:rgba(239,246,255,0.6);">−208</td><td class="red" style="background:rgba(239,246,255,0.6);">−2.492</td>
+                </tr>
+                <tr>
+                  <td class="blu">Steuererstattung Ø/Mon</td>
+                  <td class="blu">+207</td><td class="blu">+207</td><td class="blu">+207</td><td class="blu">+207</td><td class="blu">+207</td><td class="blu">+207</td>
+                  <td class="blu" style="opacity:0.65;">+207</td><td class="blu" style="opacity:0.65;">+207</td><td class="blu" style="opacity:0.65;">+207</td><td class="blu" style="opacity:0.65;">+207</td><td class="blu" style="opacity:0.65;">+207</td><td class="blu" style="opacity:0.65;">+207</td>
+                  <td class="blu" style="background:rgba(239,246,255,0.6);">+207</td><td class="blu" style="background:rgba(239,246,255,0.6);">+2.484</td>
+                </tr>
+                <tr class="sum-row">
+                  <td>CF nach Steuern</td>
+                  <td class="grn">+215</td><td class="grn">+215</td><td class="red">−1.079</td><td class="red">−1.079</td><td class="grn">+215</td><td class="grn">+215</td>
+                  <td class="grn" style="opacity:0.65;">+215</td><td class="grn" style="opacity:0.65;">+215</td><td class="grn" style="opacity:0.65;">+215</td><td class="grn" style="opacity:0.65;">+215</td><td class="grn" style="opacity:0.65;">+215</td><td class="grn" style="opacity:0.65;">+215</td>
+                  <td class="red" style="background:rgba(239,246,255,0.6);">−1</td><td class="red" style="background:rgba(239,246,255,0.6);">−8</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ STEUER ═══ -->
+      <div id="dp2" style="display:none;">
+        <div style="font-size:20px;font-weight:800;letter-spacing:-0.5px;margin-bottom:16px;">Steuer</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+          <!-- Laufendes Jahr -->
+          <div class="card" style="padding:20px 22px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+              <span class="sec-label">Laufendes Jahr 2025</span>
+              <span style="background:var(--blue);color:#fff;font-size:10px;font-weight:700;padding:3px 8px;border-radius:5px;">Ist</span>
+            </div>
+            <div style="font-size:12px;color:var(--dim);margin-bottom:12px;">Jan–Jun tatsächlich · Jul–Dez projiziert</div>
+            <div class="row"><span class="rl">Einnahmen</span><span class="rv pos">+11.300 €</span></div>
+            <div class="row"><span class="rl">Zinsen</span><span class="rv neg">−8.085 €</span></div>
+            <div class="row"><span class="rl">AfA</span><span class="rv neg">−4.600 €</span></div>
+            <div class="row"><span class="rl">Nicht umlagef. Kosten Wohnung</span><span class="rv neg">−816 €</span></div>
+            <div class="row"><span class="rl">Gebäudeversicherung</span><span class="rv neg">−240 €</span></div>
+            <div class="row"><span class="rl">Hausverwaltung</span><span class="rv neg">−408 €</span></div>
+            <div class="row"><span class="rl">Sonstige Kosten</span><span class="rv neg">−720 €</span></div>
+            <div class="row"><span class="rl">Umlagef. Kosten WE (×12,3 %)</span><span class="rv neg">−195 €</span></div>
+            <div class="row"><span class="rl">Grundsteuer WE (×12,3 %)</span><span class="rv neg">−47 €</span></div>
+            <div class="row"><span class="rl">Außergewöhnliche Kosten</span><span class="rv neg">−2.100 €</span></div>
+            <div class="divider"></div>
+            <div class="row"><span class="rl" style="font-weight:700;color:#0f172a;">Steuerliches Ergebnis</span><span class="rv bold neg">−5.911 €</span></div>
+            <div class="blue-div"></div>
+            <div class="row"><span class="rl" style="font-weight:700;color:#0f172a;">Steuereffekt / Monat</span><span class="rv big pos">+207 €</span></div>
+          </div>
+          <!-- Prognose -->
+          <div class="card" style="padding:20px 22px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+              <span class="sec-label">Prognose</span>
+              <div style="display:flex;align-items:center;gap:10px;">
+                <span style="color:var(--blue);border:1px solid rgba(59,130,246,0.35);font-size:10px;font-weight:700;padding:3px 8px;border-radius:5px;">Prognose</span>
+                <div style="display:flex;align-items:center;gap:8px;"><span class="yr-arr" style="font-size:18px;">‹</span><span class="yr-val">2026</span><span class="yr-arr" style="font-size:18px;">›</span></div>
+              </div>
+            </div>
+            <div class="seg" style="margin-bottom:14px;">
+              <div class="seg-btn on" id="steuerVoll">Vollvermietung</div>
+              <div class="seg-btn" id="steuerLeer">Leerstand</div>
+            </div>
+            <div class="row"><span class="rl">Einnahmen</span><span id="steuerPrognoseEin" class="rv pos">+13.560 €</span></div>
+            <div class="row"><span class="rl">Zinsen</span><span class="rv neg">−7.800 €</span></div>
+            <div class="row"><span class="rl">AfA</span><span class="rv neg">−4.600 €</span></div>
+            <div class="row"><span class="rl">Nicht umlagef. Kosten Wohnung</span><span class="rv neg">−816 €</span></div>
+            <div class="row"><span class="rl">Gebäudeversicherung</span><span class="rv neg">−240 €</span></div>
+            <div class="row"><span class="rl">Hausverwaltung</span><span class="rv neg">−408 €</span></div>
+            <div class="row"><span class="rl">Sonstige Kosten</span><span class="rv neg">−720 €</span></div>
+            <div class="row steuer-ls-row" style="display:none;"><span class="rl">Umlagef. Kosten WE (×100 %)</span><span class="rv neg">−1.584 €</span></div>
+            <div class="row steuer-ls-row" style="display:none;"><span class="rl">Grundsteuer WE (×100 %)</span><span class="rv neg">−384 €</span></div>
+            <div class="divider"></div>
+            <div class="row"><span class="rl" style="font-weight:700;color:#0f172a;">Steuerliches Ergebnis</span><span id="steuerPrognoseErg" class="rv bold neg">−1.024 €</span></div>
+            <div class="blue-div"></div>
+            <div class="row"><span class="rl" style="font-weight:700;color:#0f172a;">Steuereffekt / Monat</span><span id="steuerPrognoseEff" class="rv big pos">+36 €</span></div>
+          </div>
+        </div>
+        <!-- AfA-Basis -->
+        <div class="card" style="padding:20px 22px;">
+          <div class="sec-label" style="margin-bottom:14px;">AfA-Basis</div>
+          <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:0;">
+            <div style="padding-right:14px;border-right:1px solid var(--border);"><div style="font-size:11px;color:var(--sub);margin-bottom:4px;">Grundstückswert</div><div style="font-size:15px;font-weight:800;font-variant-numeric:tabular-nums;">56.900 €</div></div>
+            <div style="padding:0 14px;border-right:1px solid var(--border);"><div style="font-size:11px;color:var(--sub);margin-bottom:4px;">Gebäudewert</div><div style="font-size:15px;font-weight:800;font-variant-numeric:tabular-nums;">218.100 €</div></div>
+            <div style="padding:0 14px;border-right:1px solid var(--border);"><div style="font-size:11px;color:var(--sub);margin-bottom:4px;">AfA-Bemessungsgrundlage</div><div style="font-size:15px;font-weight:800;font-variant-numeric:tabular-nums;">230.000 €</div></div>
+            <div style="padding:0 14px;border-right:1px solid var(--border);"><div style="font-size:11px;color:var(--sub);margin-bottom:4px;">AfA / Jahr (2 %)</div><div style="font-size:15px;font-weight:800;font-variant-numeric:tabular-nums;">4.600 €</div></div>
+            <div style="padding-left:14px;"><div style="font-size:11px;color:var(--sub);margin-bottom:4px;">Grenzsteuersatz</div><div style="font-size:15px;font-weight:800;">42 %</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ VERLAUF ═══ -->
+      <div id="dp3" style="display:none;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+          <div style="font-size:20px;font-weight:800;letter-spacing:-0.5px;">Verlauf</div>
+          <div style="display:flex;gap:8px;"><button class="add-btn">+ Status</button><button class="add-btn">+ Kosten</button></div>
+        </div>
+        <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;">
+          <div class="card" style="padding:20px 24px;">
+            <div class="feed-item"><div class="feed-dot" style="background:#16a34a;"></div><div class="feed-body"><div class="feed-title">Vermietet</div><div class="feed-sub">Aktiver Mietvertrag seit 15.04.2025</div></div><div class="feed-right"><div class="feed-date">15.04.2025</div></div></div>
+            <div class="feed-item"><div style="width:32px;height:32px;border-radius:8px;background:rgba(59,130,246,0.1);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:var(--blue);flex-shrink:0;">€</div><div class="feed-body"><div class="feed-title">Vermietungsprovision</div><div class="feed-sub">Makler · 2 Kaltmieten</div><span class="tag-abs">absetzbar</span></div><div class="feed-right"><div class="feed-amt">−2.100 €</div><div class="feed-date">15.03.2025</div></div></div>
+            <div class="feed-item"><div class="feed-dot" style="background:#d97706;"></div><div class="feed-body"><div class="feed-title">Leerstand</div><div class="feed-sub">01.03.2025 – 14.04.2025 · 45 Tage</div></div><div class="feed-right"><div class="feed-date">01.03.2025</div></div></div>
+            <div class="feed-item"><div style="width:32px;height:32px;border-radius:8px;background:rgba(220,38,38,0.08);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:var(--neg);flex-shrink:0;">€</div><div class="feed-body"><div class="feed-title">WEG Sonderumlage Dach</div><div class="feed-sub">Beschluss WEG-Versammlung 12.01.2025</div><span class="tag-nabs">nicht absetzbar</span></div><div class="feed-right"><div class="feed-amt">−4.500 €</div><div class="feed-date">15.02.2025</div></div></div>
+            <div class="feed-item"><div class="feed-dot" style="background:#16a34a;"></div><div class="feed-body"><div class="feed-title">Vermietet</div><div class="feed-sub">01.01.2025 – 28.02.2025</div></div><div class="feed-right"><div class="feed-date">01.01.2025</div></div></div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:12px;">
+            <div class="card" style="padding:18px 20px;">
+              <div class="sec-label" style="margin-bottom:12px;">Sonderkosten 2025</div>
+              <div class="row"><span class="rl">Absetzbar</span><span class="rv pos">2.100 €</span></div>
+              <div class="row"><span class="rl">Nicht absetzbar</span><span class="rv neg">4.500 €</span></div>
+              <div class="divider"></div>
+              <div class="row"><span class="rl" style="font-weight:700;">Gesamt</span><span class="rv bold">6.600 €</span></div>
+            </div>
+            <div class="card" style="padding:18px 20px;">
+              <div class="sec-label" style="margin-bottom:10px;">Leerstandsquote 2025</div>
+              <div style="font-size:28px;font-weight:800;color:var(--neg);margin-bottom:4px;font-variant-numeric:tabular-nums;">12,3 %</div>
+              <div style="font-size:12px;color:var(--sub);">45 von 365 Tagen</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ FINANZIERUNG ═══ -->
+      <div id="dp4" style="display:none;">
+        <div style="font-size:20px;font-weight:800;letter-spacing:-0.5px;margin-bottom:16px;">Finanzierung</div>
+        <div style="display:grid;grid-template-columns:300px 1fr;gap:16px;">
+          <div class="card" style="padding:20px 22px;">
+            <div class="sec-label" style="margin-bottom:14px;">Finanzierungsübersicht</div>
+            <div class="kv-row"><span class="rl">Darlehensbetrag</span><span class="rv">210.000 €</span></div>
+            <div class="kv-row"><span class="rl">Restschuld (heute)</span><span class="rv">197.840 €</span></div>
+            <div class="kv-row"><span class="rl">Monatliche Rate</span><span class="rv">880 €</span></div>
+            <div class="kv-row"><span class="rl">Zinssatz</span><span class="rv">3,85 %</span></div>
+            <div class="kv-row"><span class="rl">Tilgungssatz</span><span class="rv">2,15 %</span></div>
+            <div class="kv-row"><span class="rl">Zinsbindung bis</span><span class="rv" style="display:flex;align-items:baseline;gap:6px;">03/2034 <span style="font-size:11px;color:var(--sub);font-weight:400;">noch 8 J.</span></span></div>
+            <div class="kv-row"><span class="rl">Restschuld Zinsbindungsende</span><span class="rv">177.608 €</span></div>
+            <div class="divider"></div>
+            <div class="warn">⚠ Ab 03/2034: Anschlussfinanzierung noch offen — Konditionen können sich ändern.</div>
+          </div>
+          <div class="card" style="padding:20px 16px;">
+            <div class="sec-label" style="padding:0 6px;margin-bottom:14px;">Tilgungsplan</div>
+            <table class="amt">
+              <thead><tr><th>Jahr</th><th>Schuld Anfang</th><th>Zinsen</th><th>Tilgung</th><th>Jahresrate</th><th>Schuld Ende</th></tr></thead>
+              <tbody>
+              <tr><td>2024</td><td>210.000 €</td><td>6.562 €</td><td>3.838 €</td><td>10.560 €</td><td>206.162 €</td></tr>
+              <tr><td>2025</td><td>206.162 €</td><td>7.937 €</td><td>2.623 €</td><td>10.560 €</td><td>203.539 €</td></tr>
+              <tr><td>2026</td><td>203.539 €</td><td>7.836 €</td><td>2.724 €</td><td>10.560 €</td><td>200.815 €</td></tr>
+              <tr><td>2027</td><td>200.815 €</td><td>7.731 €</td><td>2.829 €</td><td>10.560 €</td><td>197.986 €</td></tr>
+              <tr><td>2028</td><td>197.986 €</td><td>7.622 €</td><td>2.938 €</td><td>10.560 €</td><td>195.048 €</td></tr>
+              <tr><td>2030</td><td>188.829 €</td><td>7.392 €</td><td>3.168 €</td><td>10.560 €</td><td>185.661 €</td></tr>
+              <tr><td>2032</td><td>182.122 €</td><td>7.143 €</td><td>3.417 €</td><td>10.560 €</td><td>178.705 €</td></tr>
+              <tr class="hl"><td>2034 ★</td><td>178.574 €</td><td>2.292 €</td><td>966 €</td><td>3.258 €</td><td>177.608 €</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ IMMOBILIENDATEN ═══ -->
+      <div id="dp5" style="display:none;">
+        <div style="font-size:20px;font-weight:800;letter-spacing:-0.5px;margin-bottom:16px;">Immobiliendaten</div>
+        <div class="card" style="overflow:hidden;">
+          <div style="display:flex;min-height:580px;">
+            <!-- Sub-nav: 9 Sektionen -->
+            <div style="width:175px;flex-shrink:0;border-right:1px solid var(--border);padding:14px 8px;background:#fafafa;display:flex;flex-direction:column;gap:2px;">
+              <div class="ds-si on" id="dsi0"><div style="width:6px;height:6px;border-radius:50%;background:var(--blue);flex-shrink:0;"></div>Stammdaten</div>
+              <div class="ds-si vis" id="dsi1">Objektdaten</div>
+              <div class="ds-si vis" id="dsi2">Kauf</div>
+              <div class="ds-si" id="dsi3">Einnahmen</div>
+              <div class="ds-si" id="dsi4">Annahmen</div>
+              <div class="ds-si" id="dsi5">Kosten</div>
+              <div class="ds-si" id="dsi6">Finanzierung</div>
+              <div class="ds-si" id="dsi7">AfA &amp; Steuer</div>
+              <div style="flex:1;"></div>
+              <div class="ds-si" id="dsi8" style="color:var(--neg);">⚠ Gefahrenzone</div>
+            </div>
+            <!-- Content -->
+            <div style="flex:1;padding:24px 28px;overflow-y:auto;">
+
+              <!-- dds0: Stammdaten -->
+              <div id="dds0" style="display:block;">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px 20px;max-width:560px;">
+                  <div class="fg"><div class="fl">Name <span class="rs">*</span></div><input class="fi" value="ETW Dresden Neustadt"/></div>
+                  <div class="fg"><div class="fl">Typ</div>
+                    <select class="fi"><option selected>Eigentumswohnung</option><option>Mehrfamilienhaus</option><option>Einfamilienhaus</option><option>Grundstück</option><option>Gewerbe</option><option>Sonstiges</option></select>
+                  </div>
+                  <div class="fg"><div class="fl">Adresse <span class="rs">*</span></div><input class="fi" value="Dresdner Str. 12"/></div>
+                  <div class="fg"><div class="fl">Stadt <span class="rs">*</span></div><input class="fi" value="Dresden"/></div>
+                  <div class="fg"><div class="fl">PLZ</div><input class="fi" value="01099"/></div>
+                  <div class="fg"><div class="fl">Bundesland</div><input class="fi" value="Sachsen"/></div>
+                  <div class="fg"><div class="fl">Erwerb</div>
+                    <select class="fi"><option selected>Kauf</option><option>Erbschaft</option><option>Schenkung</option></select>
+                  </div>
+                  <div class="fg"><div class="fl">Baujahr</div><input class="fi" value="1998"/></div>
+                  <div class="fg" style="grid-column:1/-1;"><div class="fl">Notizen</div><textarea class="fi" rows="2" placeholder="Freie Anmerkungen…"></textarea></div>
+                </div>
+              </div>
+
+              <!-- dds1: Objektdaten (inkl. Fotos) -->
+              <div id="dds1" style="display:none;max-width:580px;">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px 20px;">
+                  <div class="fg"><div class="fl">Wohnfläche (m²) <span class="rs">*</span></div><input class="fi" value="68"/></div>
+                  <div class="fg"><div class="fl">Nutzfläche (m²)</div><input class="fi" value="" placeholder="–"/></div>
+                  <div class="fg"><div class="fl">Zimmer</div><input class="fi" value="3"/></div>
+                  <div class="fg"><div class="fl">Stellplatz</div>
+                    <select class="fi"><option>Nicht vorhanden</option><option selected>Tiefgarage</option><option>Außenstellplatz</option><option>Garage</option></select>
+                  </div>
+                  <div class="fg"><div class="fl">Heizung</div>
+                    <select class="fi"><option selected>Fernwärme</option><option>Gas-Zentralheizung</option><option>Öl-Zentralheizung</option><option>Wärmepumpe</option><option>Pellets</option><option>Strom</option><option>Sonstiges</option></select>
+                  </div>
+                  <div class="fg"><div class="fl">Energieklasse</div>
+                    <select class="fi"><option>A+</option><option>A</option><option>B</option><option selected>C</option><option>D</option><option>E</option><option>F</option><option>G</option><option>H</option></select>
+                  </div>
+                  <div class="fg"><div class="fl">Zustand</div>
+                    <select class="fi"><option>Neuwertig</option><option>Sehr gut</option><option selected>Gepflegt</option><option>Renovierungsbedürftig</option><option>Sanierungsbedürftig</option></select>
+                  </div>
+                  <div class="fg"><div class="fl">Letzte Renovierung</div><input class="fi" value="2019 (Küche, Bad)"/></div>
+                </div>
+                <div style="margin-top:16px;">
+                  <div class="fl" style="margin-bottom:8px;">Ausstattung</div>
+                  <div style="display:flex;flex-wrap:wrap;gap:14px;">
+                    <label class="ck-row"><div class="ck-box on"><svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><polyline points="2 6 5 9 10 3"/></svg></div><span style="font-size:13px;color:#0f172a;">Balkon</span></label>
+                    <label class="ck-row"><div class="ck-box"></div><span style="font-size:13px;color:#0f172a;">Terrasse</span></label>
+                    <label class="ck-row"><div class="ck-box"></div><span style="font-size:13px;color:#0f172a;">Garten</span></label>
+                    <label class="ck-row"><div class="ck-box on"><svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><polyline points="2 6 5 9 10 3"/></svg></div><span style="font-size:13px;color:#0f172a;">Keller</span></label>
+                    <label class="ck-row"><div class="ck-box"></div><span style="font-size:13px;color:#0f172a;">Einbauküche</span></label>
+                  </div>
+                </div>
+                <div class="divider" style="margin:20px 0;"></div>
+                <div class="fl" style="margin-bottom:10px;">Fotos</div>
+                <div style="font-size:13px;color:var(--sub);margin-bottom:14px;">Füge Fotos hinzu — Außenansicht, Wohnbereich, Küche, Bad. Max. 15 Fotos.</div>
+                <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
+                  <div class="foto-slot"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg><span>+ Foto</span></div>
+                  <div class="foto-slot"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg><span>+ Foto</span></div>
+                  <div class="foto-slot"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg><span>+ Foto</span></div>
+                </div>
+                <button class="add-btn">+ Weiteres Foto</button>
+              </div>
+
+              <!-- dds2: Kauf -->
+              <div id="dds2" style="display:none;max-width:580px;">
+                <div class="sub-lbl" style="margin-top:0;">Kaufdaten</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px 20px;">
+                  <div class="fg"><div class="fl">Kaufdatum</div><input class="fi" value="01.01.2024"/></div>
+                  <div class="fg"><div class="fl">Wirtschaftlicher Übergang <span class="rs">*</span></div><input class="fi" value="15.03.2024"/></div>
+                </div>
+                <div class="sub-lbl">Kaufpreis</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px 20px;">
+                  <div class="fg"><div class="fl">Kaufpreis Wohnung <span class="rs">*</span></div><input class="fi" value="265.000 €"/></div>
+                  <div class="fg"><div class="fl">Kaufpreis Stellplatz</div><input class="fi" value="10.000 €"/></div>
+                </div>
+                <div class="sub-lbl">Kaufnebenkosten</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px 20px;">
+                  <div class="fg"><div class="fl">Grunderwerbsteuer</div><input class="fi" value="9.625 €"/></div>
+                  <div class="fg"><div class="fl">Notarkosten</div><input class="fi" value="3.200 €"/></div>
+                  <div class="fg"><div class="fl">Grundbuchkosten</div><input class="fi" value="1.175 €"/></div>
+                  <div class="fg"><div class="fl">Maklerprovision</div><input class="fi" value="—" placeholder="z.B. 3,57 %"/></div>
+                  <div class="fg"><div class="fl">Gutachterkosten</div><input class="fi" value="—" placeholder="z.B. 1.200 €"/></div>
+                  <div class="fg"><div class="fl">Renovierung gesamt</div><input class="fi" value="—" placeholder="z.B. 8.000 €"/></div>
+                  <div class="fg" style="grid-column:1/-1;"><div class="fl" style="color:var(--dim);">davon aktivierungspflichtig</div><input class="fi" value="—" placeholder="z.B. 5.000 €" style="max-width:260px;"/></div>
+                </div>
+                <div class="sub-lbl">Zusammenfassung</div>
+                <div class="ro-sum">
+                  <div class="row"><span class="rl">Kaufpreis (WE + TE)</span><span class="rv">275.000 €</span></div>
+                  <div class="row"><span class="rl">Kaufnebenkosten</span><span class="rv">14.000 €</span></div>
+                  <div class="row"><span class="rl">Renovierung</span><span class="rv">—</span></div>
+                  <div class="divider"></div>
+                  <div class="row"><span class="rl" style="font-weight:700;color:#0f172a;">Gesamtinvestment</span><span class="rv bold">289.000 €</span></div>
+                </div>
+              </div>
+
+              <!-- dds3: Einnahmen -->
+              <div id="dds3" style="display:none;max-width:560px;">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px 20px;">
+                  <div class="fg"><div class="fl">Kaltmiete / Monat <span class="rs">*</span></div><input class="fi" value="1.050 €"/></div>
+                  <div class="fg"><div class="fl">Stellplatzmiete / Monat</div><input class="fi" value="80 €"/></div>
+                  <div class="fg" style="grid-column:1/-1;"><div class="fl">Sonstige Einnahmen / Monat</div><input class="fi" value="—" placeholder="z.B. Garage, Lager…" style="max-width:260px;"/></div>
+                </div>
+                <div class="ro-sum">
+                  <div class="sub-lbl" style="margin-top:0;">Zusammenfassung</div>
+                  <div class="row"><span class="rl">Bruttomiete / Monat</span><span class="rv">1.130 €</span></div>
+                  <div class="row"><span class="rl">Bruttorendite</span><span class="rv">4,9 %</span></div>
+                </div>
+              </div>
+
+              <!-- dds4: Annahmen -->
+              <div id="dds4" style="display:none;max-width:560px;">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px 20px;">
+                  <div class="fg"><div class="fl">Leerstandsquote (Annahme)</div><input class="fi" value="3 %"/></div>
+                  <div style="grid-column:1/-1;height:1px;background:var(--border);margin:4px 0;"></div>
+                  <div class="fg" style="grid-column:1/-1;">
+                    <div class="fl">Marktmiete / m²</div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start;">
+                      <input class="fi" value="14,00 €/m²"/>
+                      <div style="padding:12px 14px;background:#f8fafc;border:1px solid var(--border);border-radius:9px;">
+                        <div style="font-size:10px;font-weight:700;color:var(--dim);letter-spacing:0.4px;text-transform:uppercase;margin-bottom:8px;">Marktmiete-Vergleich</div>
+                        <div style="display:flex;justify-content:space-between;padding:2px 0;"><span style="font-size:12px;color:var(--sub);">Marktmiete (68 m²)</span><span style="font-size:12px;font-weight:600;">952 €/Mon</span></div>
+                        <div style="display:flex;justify-content:space-between;padding:2px 0;"><span style="font-size:12px;color:var(--sub);">Ist-Miete</span><span style="font-size:12px;font-weight:600;">1.050 €/Mon</span></div>
+                        <div style="height:1px;background:var(--border);margin:5px 0;"></div>
+                        <div style="display:flex;justify-content:space-between;"><span style="font-size:12px;font-weight:700;">Differenz</span><span style="font-size:12px;font-weight:700;color:var(--pos);">+10,3 % über Markt</span></div>
+                      </div>
+                    </div>
+                  </div>
+                  <div style="grid-column:1/-1;height:1px;background:var(--border);margin:4px 0;"></div>
+                  <div class="fg" style="grid-column:1/-1;">
+                    <div class="fl">Aktueller Marktwert</div>
+                    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+                      <div class="seg" style="width:190px;"><div class="seg-btn on" id="mwGesamt">Gesamt (€)</div><div class="seg-btn" id="mwQm">€ / m²</div></div>
+                      <div id="mwDisplay" style="font-size:15px;font-weight:700;color:#0f172a;font-variant-numeric:tabular-nums;">320.000 €</div>
+                    </div>
+                    <input class="fi" id="mwInput" value="320.000 €" style="max-width:280px;"/>
+                    <div style="font-size:12px;color:var(--pos);font-weight:600;margin-top:8px;">Wertsteigerung: +45.000 € (+16,4 %) seit Kauf</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- dds5: Kosten -->
+              <div id="dds5" style="display:none;max-width:580px;">
+                <div class="sub-lbl" style="margin-top:0;">Hausgeld Wohnung</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px 20px;margin-bottom:12px;">
+                  <div class="fg"><div class="fl">Hausgeld gesamt / Monat <span class="rs">*</span></div><input class="fi" value="260 €"/></div>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+                  <div id="hgSplitToggle" class="tgl on"><div class="tgl-th"></div></div>
+                  <span style="font-size:13px;color:var(--sub);font-weight:500;">Aufteilen</span>
+                </div>
+                <div id="hgSplitFields" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px 16px;margin-bottom:12px;padding:14px;background:#f8fafc;border-radius:10px;border:1px solid var(--border);">
+                  <div class="fg"><div class="fl">Umlagefähig / Mon <span class="rs">*</span></div><input class="fi" value="132 €"/></div>
+                  <div class="fg"><div class="fl">Rücklage / Mon</div><input class="fi" value="60 €"/></div>
+                  <div class="fg"><div class="fl">Nicht umlagef. (auto)</div><input class="fi" value="68 €" readonly/></div>
+                </div>
+                <div id="hgWarnBox" class="warn" style="display:none;margin-bottom:12px;">⚠ Steuerliche Berechnung ungenau — Hausgeld wird vollständig als Werbungskosten angesetzt. Für genaue Berechnung aufteilen.</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px 20px;">
+                  <div class="fg"><div class="fl">Grundsteuer WE / Jahr <span class="rs">*</span></div><input class="fi" value="384 €"/></div>
+                  <div class="fg"><div class="fl">Verwaltung / Jahr</div><input class="fi" value="408 €"/></div>
+                  <div class="fg"><div class="fl">Gebäudeversicherung / Jahr</div><input class="fi" value="240 €"/></div>
+                  <div class="fg"><div class="fl">Sonstige Kosten / Monat</div><input class="fi" value="60 €"/></div>
+                </div>
+                <div class="divider" style="margin:20px 0;"></div>
+                <div class="sub-lbl">Hausgeld Stellplatz</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px 20px;margin-bottom:12px;">
+                  <div class="fg"><div class="fl">Hausgeld TE gesamt / Monat</div><input class="fi" value="" placeholder="z.B. 45 €"/></div>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+                  <div id="hgTeSplitToggle" class="tgl"><div class="tgl-th"></div></div>
+                  <span style="font-size:13px;color:var(--sub);font-weight:500;">Aufteilen</span>
+                </div>
+                <div id="hgTeWarnBox" class="warn" style="margin-bottom:12px;">⚠ Steuerliche Berechnung ungenau — Hausgeld Stellplatz wird vollständig als Werbungskosten angesetzt. Für genaue Berechnung aufteilen.</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px 20px;">
+                  <div class="fg"><div class="fl">Grundsteuer TE / Jahr</div><input class="fi" value="" placeholder="z.B. 80 €"/></div>
+                </div>
+                <div class="ro-sum">
+                  <div class="sub-lbl" style="margin-top:0;">Zusammenfassung</div>
+                  <div class="row"><span class="rl">Nicht umlagef. Kosten WE / Mon</span><span class="rv bold">68 €</span></div>
+                </div>
+              </div>
+
+              <!-- dds6: Finanzierung -->
+              <div id="dds6" style="display:none;max-width:580px;">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px 20px;">
+                  <div class="fg"><div class="fl">Darlehensbetrag <span class="rs">*</span></div><input class="fi" value="210.000 €"/></div>
+                  <div class="fg"><div class="fl">Zinssatz <span class="rs">*</span></div><input class="fi" value="3,85 %"/></div>
+                  <div class="fg"><div class="fl">Tilgungssatz <span class="rs">*</span></div><input class="fi" value="2,15 %"/></div>
+                  <div class="fg"><div class="fl">Zinsbindung (Jahre) <span class="rs">*</span></div><input class="fi" value="10"/></div>
+                  <div class="fg"><div class="fl">Darlehensbeginn <span class="rs">*</span></div><input class="fi" value="01.04.2024"/></div>
+                  <div class="fg"><div class="fl">Monatliche Rate</div><input class="fi" value="880 €"/></div>
+                </div>
+                <div class="sub-lbl">Eigenkapital</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px 20px;">
+                  <div class="fg"><div class="fl">Eigenkapital eingebracht</div><input class="fi" value="80.000 €"/></div>
+                  <div class="fg"><div class="fl">Eigenprovisions-Vereinbarung</div><input class="fi" value="—" placeholder="z.B. 5.950 €"/></div>
+                </div>
+                <div class="ro-sum">
+                  <div class="sub-lbl" style="margin-top:0;">Zusammenfassung (berechnet)</div>
+                  <div class="row"><span class="rl">Zinsen / Mon</span><span class="rv">674 €</span></div>
+                  <div class="row"><span class="rl">Tilgung / Mon</span><span class="rv">206 €</span></div>
+                  <div class="row"><span class="rl">Eigenkapital (genutzt)</span><span class="rv">80.000 €</span></div>
+                  <div class="row"><span class="rl">Anfangs-LTV</span><span class="rv">72,4 % <span class="pill-o" style="font-size:9px;">Ok</span></span></div>
+                </div>
+              </div>
+
+              <!-- dds7: AfA & Steuer -->
+              <div id="dds7" style="display:none;max-width:580px;">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px 20px;">
+                  <div class="fg"><div class="fl">Grundstückswert (Regierungs-Excel) <span class="rs">*</span></div><input class="fi" value="56.900 €"/></div>
+                  <div class="fg"><div class="fl">Gebäudewert (Regierungs-Excel) <span class="rs">*</span></div><input class="fi" value="218.100 €"/></div>
+                  <div class="fg"><div class="fl">AfA-Satz <span class="rs">*</span></div><input class="fi" value="2 %"/></div>
+                  <div class="fg"><div class="fl">Grenzsteuersatz <span class="rs">*</span></div><input class="fi" value="42 %"/></div>
+                </div>
+                <div class="ro-sum">
+                  <div class="sub-lbl" style="margin-top:0;">Zusammenfassung (berechnet)</div>
+                  <div class="row"><span class="rl">AfA-Bemessungsgrundlage</span><span class="rv">230.000 €</span></div>
+                  <div class="row"><span class="rl">AfA / Jahr</span><span class="rv">4.600 €</span></div>
+                  <div class="row"><span class="rl">AfA / Monat</span><span class="rv">383 €</span></div>
+                </div>
+              </div>
+
+              <!-- dds8: Gefahrenzone -->
+              <div id="dds8" style="display:none;max-width:460px;">
+                <div style="background:rgba(239,68,68,0.05);border:1px solid rgba(239,68,68,0.2);border-radius:12px;padding:22px;">
+                  <div style="font-size:15px;font-weight:700;color:var(--neg);margin-bottom:8px;">⚠ Gefahrenzone</div>
+                  <div style="font-size:13px;color:var(--sub);line-height:1.6;margin-bottom:18px;">Diese Immobilie und alle zugehörigen Daten (Statusverlauf, außergewöhnliche Kosten) werden unwiderruflich gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.</div>
+                  <button style="padding:11px 28px;background:var(--neg);color:#fff;border:none;border-radius:9px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">Immobilie löschen</button>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  componentDidMount() {
+    // Main nav
+    for (let i = 0; i < 6; i++) {
+      const el = document.getElementById('nav' + i);
+      if (el) el.addEventListener('click', () => this.switchTab(i));
+    }
+    document.getElementById('editBtn')?.addEventListener('click', () => this.switchTab(5));
+
+    // Info modal
+    document.getElementById('infoOverlay')?.addEventListener('click', () => this.closeInfo());
+    document.getElementById('infoCloseBtn')?.addEventListener('click', () => this.closeInfo());
+    document.querySelectorAll('.info-btn').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        const d = btn.dataset;
+        this.openInfo(d.title, d.formula, d.desc, d.rating, d.bench.split('||'));
+      });
+    });
+
+    // Cashflow prognose toggle
+    document.getElementById('cfVoll')?.addEventListener('click', () => this.setCfMode('voll'));
+    document.getElementById('cfLeer')?.addEventListener('click', () => this.setCfMode('leer'));
+
+    // Steuer prognose toggle
+    document.getElementById('steuerVoll')?.addEventListener('click', () => {
+      document.getElementById('steuerVoll').classList.add('on');
+      document.getElementById('steuerLeer').classList.remove('on');
+      this.updateSteuerPrognose(false);
+    });
+    document.getElementById('steuerLeer')?.addEventListener('click', () => {
+      document.getElementById('steuerLeer').classList.add('on');
+      document.getElementById('steuerVoll').classList.remove('on');
+      this.updateSteuerPrognose(true);
+    });
+
+    // Generic seg-btns (exclude specific ones)
+    const excluded = ['cfVoll','cfLeer','steuerVoll','steuerLeer','mwGesamt','mwQm'];
+    document.querySelectorAll('.seg-btn').forEach(btn => {
+      if (excluded.includes(btn.id)) return;
+      btn.addEventListener('click', () => {
+        btn.closest('.seg').querySelectorAll('.seg-btn').forEach(b => b.classList.remove('on'));
+        btn.classList.add('on');
+      });
+    });
+
+    // Immobiliendaten sub-tabs
+    for (let i = 0; i < 9; i++) {
+      const el = document.getElementById('dsi' + i);
+      if (el) el.addEventListener('click', () => this.dsTab(i));
+    }
+
+    // HG split toggles
+    document.getElementById('hgSplitToggle')?.addEventListener('click', () => {
+      const tgl = document.getElementById('hgSplitToggle');
+      const fields = document.getElementById('hgSplitFields');
+      const warn = document.getElementById('hgWarnBox');
+      const isOn = tgl.classList.toggle('on');
+      if (fields) fields.style.display = isOn ? 'grid' : 'none';
+      if (warn) warn.style.display = isOn ? 'none' : 'block';
+    });
+    document.getElementById('hgTeSplitToggle')?.addEventListener('click', () => {
+      const tgl = document.getElementById('hgTeSplitToggle');
+      const warn = document.getElementById('hgTeWarnBox');
+      const isOn = tgl.classList.toggle('on');
+      if (warn) warn.style.display = isOn ? 'none' : 'block';
+    });
+
+    // Ausstattung checkboxes
+    document.querySelectorAll('.ck-row').forEach(row => {
+      row.addEventListener('click', () => {
+        const box = row.querySelector('.ck-box');
+        if (box) box.classList.toggle('on');
+        if (box) {
+          const svg = box.querySelector('svg');
+          if (box.classList.contains('on') && !svg) {
+            box.innerHTML = '<svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><polyline points="2 6 5 9 10 3"/></svg>';
+          } else if (!box.classList.contains('on')) {
+            box.innerHTML = '';
+          }
+        }
+      });
+    });
+
+    // Marktwert switcher
+    const mwG = document.getElementById('mwGesamt');
+    const mwQ = document.getElementById('mwQm');
+    const mwD = document.getElementById('mwDisplay');
+    const mwI = document.getElementById('mwInput');
+    if (mwG && mwQ) {
+      mwG.addEventListener('click', () => {
+        mwG.classList.add('on'); mwQ.classList.remove('on');
+        if (mwD) mwD.textContent = '320.000 €';
+        if (mwI) mwI.value = '320.000 €';
+      });
+      mwQ.addEventListener('click', () => {
+        mwQ.classList.add('on'); mwG.classList.remove('on');
+        if (mwD) mwD.textContent = '4.706 €/m²';
+        if (mwI) mwI.value = '4.706 €/m²';
+      });
+    }
+  }
+
+  switchTab(n) {
+    for (let i = 0; i < 6; i++) {
+      const nav = document.getElementById('nav' + i);
+      const panel = document.getElementById('dp' + i);
+      if (nav) nav.classList.toggle('on', i === n);
+      if (panel) panel.style.display = i === n ? 'block' : 'none';
+    }
+    const mc = document.getElementById('mainContent');
+    if (mc) mc.scrollTop = 0;
+  }
+
+  dsTab(n) {
+    for (let i = 0; i < 9; i++) {
+      const si = document.getElementById('dsi' + i);
+      const sec = document.getElementById('dds' + i);
+      if (si) si.classList.remove('on', 'vis');
+      if (sec) sec.style.display = 'none';
+    }
+    const activeSi = document.getElementById('dsi' + n);
+    const activeSec = document.getElementById('dds' + n);
+    if (activeSi) { activeSi.classList.add('on'); if (n < 8) activeSi.classList.add('vis'); }
+    if (activeSec) activeSec.style.display = 'block';
+  }
+
+  openInfo(title, formula, desc, rating, benchmarks) {
+    document.getElementById('iTitle').textContent = title;
+    document.getElementById('iFormula').textContent = formula;
+    document.getElementById('iDesc').textContent = desc;
+    const bg = { g:'rgba(22,163,74,0.1)', o:'rgba(217,119,6,0.1)', r:'rgba(220,38,38,0.1)' };
+    const col = { g:'#15803d', o:'#d97706', r:'#dc2626' };
+    const lbl = { g:'Gut', o:'Ok', r:'Schlecht' };
+    const keys = ['g','o','r'];
+    document.getElementById('iBench').innerHTML = benchmarks.map((b, i) => {
+      const k = keys[i];
+      return '<div style="display:flex;align-items:center;gap:10px;"><span style="background:' + bg[k] + ';color:' + col[k] + ';border-radius:20px;font-size:11px;font-weight:700;padding:3px 10px;white-space:nowrap;min-width:64px;text-align:center;">' + lbl[k] + '</span><span style="font-size:13px;color:#0f172a;font-weight:500;">' + b + '</span></div>';
+    }).join('');
+    document.getElementById('infoOverlay').style.display = 'block';
+    document.getElementById('infoModal').style.display = 'block';
+  }
+
+  closeInfo() {
+    document.getElementById('infoOverlay').style.display = 'none';
+    document.getElementById('infoModal').style.display = 'none';
+  }
+
+  setCfMode(mode) {
+    const voll = document.getElementById('cfVoll');
+    const leer = document.getElementById('cfLeer');
+    if (mode === 'voll') { voll?.classList.add('on'); leer?.classList.remove('on'); }
+    else { leer?.classList.add('on'); voll?.classList.remove('on'); }
+    const bigAfter = document.getElementById('cfBigAfter');
+    const smallBefore = document.getElementById('cfSmallBefore');
+    const lsRows = document.querySelectorAll('.cf-ls-row');
+    if (mode === 'leer') {
+      if (bigAfter) { bigAfter.textContent = '−1.079 €/Mon'; bigAfter.style.color = '#dc2626'; }
+      if (smallBefore) smallBefore.textContent = '−1.286 €';
+      lsRows.forEach(r => r.style.opacity = '1');
+    } else {
+      if (bigAfter) { bigAfter.textContent = '+215 €/Mon'; bigAfter.style.color = '#16a34a'; }
+      if (smallBefore) smallBefore.textContent = '+8 €';
+      lsRows.forEach(r => r.style.opacity = '0.3');
+    }
+  }
+
+  updateSteuerPrognose(isLeer) {
+    document.querySelectorAll('.steuer-ls-row').forEach(r => {
+      r.style.display = isLeer ? 'flex' : 'none';
+    });
+    const ein = document.getElementById('steuerPrognoseEin');
+    const erg = document.getElementById('steuerPrognoseErg');
+    const eff = document.getElementById('steuerPrognoseEff');
+    if (isLeer) {
+      if (ein) { ein.textContent = '0 €'; ein.className = 'rv'; }
+      if (erg) erg.textContent = '−16.552 €';
+      if (eff) eff.textContent = '+578 €';
+    } else {
+      if (ein) { ein.textContent = '+13.560 €'; ein.className = 'rv pos'; }
+      if (erg) erg.textContent = '−1.024 €';
+      if (eff) eff.textContent = '+36 €';
+    }
+  }
+
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

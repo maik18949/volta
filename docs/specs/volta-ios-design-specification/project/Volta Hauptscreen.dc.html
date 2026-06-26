@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body { font-family: 'DM Sans', -apple-system, sans-serif; background: #f0f4fa; color: #0f172a; }
+    :root { --blue:#3b82f6; --pos:#16a34a; --neg:#dc2626; --sub:#64748b; --dim:#94a3b8; --border:rgba(0,0,0,0.07); }
+    .prop-card { background:#fff; border-radius:14px; border:1px solid var(--border); overflow:hidden; cursor:pointer; transition:box-shadow 0.15s, transform 0.15s; }
+    .prop-card:hover { box-shadow:0 8px 28px rgba(0,0,0,0.1); transform:translateY(-2px); }
+  </style>
+</helmet>
+
+<div style="display:flex; flex-direction:column; height:100vh; overflow:hidden;">
+
+  <!-- Top bar -->
+  <div style="height:56px; flex-shrink:0; background:#fff; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; padding:0 28px; gap:16px;">
+    <div style="font-size:20px; font-weight:800; letter-spacing:-0.5px;">Volta<span style="color:var(--blue);">.</span></div>
+    <div style="display:flex; align-items:center; gap:10px;">
+      <div style="width:32px; height:32px; border-radius:50%; background:linear-gradient(135deg,#3b82f6,#6366f1); display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; color:#fff;">MK</div>
+    </div>
+  </div>
+
+  <!-- Body -->
+  <div style="flex:1; display:flex; overflow:hidden;">
+
+    <!-- Sidebar — navigation only -->
+    <div style="width:220px; flex-shrink:0; background:#fff; border-right:1px solid var(--border); display:flex; flex-direction:column; padding:20px 10px;">
+      <div style="font-size:11px; font-weight:700; color:var(--dim); letter-spacing:0.5px; text-transform:uppercase; margin-bottom:8px; padding:0 8px;">Tools</div>
+      <a href="Volta Setup.dc.html" style="display:flex; align-items:center; gap:10px; padding:9px 10px; border-radius:10px; font-size:14px; font-weight:500; color:var(--sub); text-decoration:none;">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+        Investment Rechner
+      </a>
+      <div style="flex:1;"></div>
+      <a href="Volta Setup.dc.html" style="display:flex; align-items:center; justify-content:center; gap:8px; padding:10px; background:var(--blue); color:#fff; border-radius:10px; font-size:14px; font-weight:600; text-decoration:none; box-shadow:0 2px 8px rgba(59,130,246,0.3);">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        Immobilie hinzufügen
+      </a>
+    </div>
+
+    <!-- Main -->
+    <div style="flex:1; overflow-y:auto; display:flex; flex-direction:column;">
+
+      <!-- Portfolio KPI Banner -->
+      <div style="border-bottom: 1px solid var(--border); padding: 20px 32px; flex-shrink: 0; background-color: #f0f4fb">
+        <div style="display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:14px;">
+          <div>
+            <div style="font-size:22px; font-weight:800; letter-spacing:-0.5px;">Mein Portfolio</div>
+            <div style="font-size:13px; color:var(--sub); margin-top:1px;">3 Immobilien · zuletzt aktualisiert heute</div>
+          </div>
+        </div>
+        <div style="display:grid; grid-template-columns:repeat(5,1fr); gap:0; border:1px solid var(--border); border-radius:12px; overflow:hidden;">
+          <div style="padding: 16px 20px; border-right: 1px solid var(--border); background-color: #ffffff">
+            <div style="font-size:11px; font-weight:600; color:var(--sub); margin-bottom:6px; text-transform:uppercase; letter-spacing:0.4px;">Cashflow / Mon</div>
+            <div style="font-size:24px; font-weight:800; color:var(--neg); font-variant-numeric:tabular-nums; letter-spacing:-0.5px;">−280 €</div>
+          </div>
+          <div style="padding: 16px 20px; border-right: 1px solid var(--border); background-color: #ffffff">
+            <div style="font-size:11px; font-weight:600; color:var(--sub); margin-bottom:6px; text-transform:uppercase; letter-spacing:0.4px;">Gesamtinvestment</div>
+            <div style="font-size:24px; font-weight:800; color:#0f172a; font-variant-numeric:tabular-nums; letter-spacing:-0.5px;">892.000 €</div>
+          </div>
+          <div style="padding: 16px 20px; border-right: 1px solid var(--border); background-color: #ffffff">
+            <div style="font-size:11px; font-weight:600; color:var(--sub); margin-bottom:6px; text-transform:uppercase; letter-spacing:0.4px;">Ø Nettorendite</div>
+            <div style="font-size:24px; font-weight:800; color:#0f172a; letter-spacing:-0.5px;">3,8 %</div>
+          </div>
+          <div style="padding: 16px 20px; border-right: 1px solid var(--border); background-color: #ffffff">
+            <div style="font-size:11px; font-weight:600; color:var(--sub); margin-bottom:6px; text-transform:uppercase; letter-spacing:0.4px;">Restschuld</div>
+            <div style="font-size:24px; font-weight:800; color:#0f172a; font-variant-numeric:tabular-nums; letter-spacing:-0.5px;">612.000 €</div>
+          </div>
+          <div style="padding: 16px 20px; background-color: #ffffff">
+            <div style="font-size:11px; font-weight:600; color:var(--sub); margin-bottom:6px; text-transform:uppercase; letter-spacing:0.4px;">Marktwert (ges.)</div>
+            <div style="font-size:24px; font-weight:800; color:var(--pos); font-variant-numeric:tabular-nums; letter-spacing:-0.5px;">1.050.000 €</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cards area -->
+      <div style="flex:1; padding:28px 32px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:20px;">
+          <div style="font-size:16px; font-weight:700; color:#0f172a;">Meine Immobilien</div>
+          <div style="display:flex; align-items:center; gap:8px; background:#fff; border:1px solid var(--border); border-radius:8px; padding:7px 12px; font-size:13px; font-weight:600; color:var(--sub); cursor:pointer;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="16" y2="12"></line><line x1="11" y1="18" x2="13" y2="18"></line></svg>
+            Datum ▾
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(320px,1fr)); gap:16px;">
+
+          <!-- Card 1 -->
+          <div class="prop-card" onclick="location.href='Volta Detail.dc.html'">
+            <div style="height:160px; background:linear-gradient(135deg,#3b82f6,#6366f1); position:relative; display:flex; align-items:center; justify-content:center; font-size:48px;">
+              🏢
+              <div style="position:absolute; inset:0; background:linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.45));"></div>
+              <div style="position:absolute; bottom:0; left:0; right:0; padding:12px 16px; display:flex; justify-content:space-between; align-items:flex-end;">
+                <span style="font-size:12px; color:rgba(255,255,255,0.9); font-weight:500;">Dresdner Str. 12 · Dresden</span>
+                <span style="background:#16a34a; color:#fff; font-size:10px; font-weight:700; padding:3px 8px; border-radius:5px;">Vermietet</span>
+              </div>
+            </div>
+            <div style="padding:16px 18px 18px;">
+              <div style="font-size:16px; font-weight:700; margin-bottom:2px;">ETW Dresden Neustadt</div>
+              <div style="font-size:12px; color:var(--sub); margin-bottom:14px;">68 m² · 3 Zi · seit 03/2024</div>
+              <div style="height:1px; background:var(--border); margin-bottom:12px;"></div>
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px 14px;">
+                <div><div style="font-size:11px; color:var(--sub); margin-bottom:2px;">Cashflow / Mon</div><div style="font-size:15px; font-weight:700; color:var(--neg);">−24 €</div></div>
+                <div><div style="font-size:11px; color:var(--sub); margin-bottom:2px;">Nettorendite</div><div style="font-size:15px; font-weight:700;">3,8 %</div></div>
+                <div><div style="font-size:11px; color:var(--sub); margin-bottom:2px;">Kaufpreis / m²</div><div style="font-size:13px; font-weight:600;">2.800 €/m²</div></div>
+                <div><div style="font-size:11px; color:var(--sub); margin-bottom:2px;">Restschuld</div><div style="font-size:13px; font-weight:600;">210.000 €</div></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 2 -->
+          <div class="prop-card" onclick="location.href='Volta Detail.dc.html'">
+            <div style="height:160px; background:linear-gradient(135deg,#64748b,#334155); position:relative; display:flex; align-items:center; justify-content:center; font-size:48px;">
+              🏠
+              <div style="position:absolute; inset:0; background:linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.45));"></div>
+              <div style="position:absolute; bottom:0; left:0; right:0; padding:12px 16px; display:flex; justify-content:space-between; align-items:flex-end;">
+                <span style="font-size:12px; color:rgba(255,255,255,0.9); font-weight:500;">Brandstraße 5 · Leipzig</span>
+                <span style="background:#d97706; color:#fff; font-size:10px; font-weight:700; padding:3px 8px; border-radius:5px;">Leerstand</span>
+              </div>
+            </div>
+            <div style="padding:16px 18px 18px;">
+              <div style="font-size:16px; font-weight:700; margin-bottom:2px;">EFH Leipzig Gohlis</div>
+              <div style="font-size:12px; color:var(--sub); margin-bottom:14px;">95 m² · 5 Zi · seit 08/2022</div>
+              <div style="height:1px; background:var(--border); margin-bottom:12px;"></div>
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px 14px;">
+                <div><div style="font-size:11px; color:var(--sub); margin-bottom:2px;">Cashflow / Mon</div><div style="font-size:15px; font-weight:700; color:var(--neg);">−380 €</div></div>
+                <div><div style="font-size:11px; color:var(--sub); margin-bottom:2px;">Nettorendite</div><div style="font-size:15px; font-weight:700;">2,9 %</div></div>
+                <div><div style="font-size:11px; color:var(--sub); margin-bottom:2px;">Kaufpreis / m²</div><div style="font-size:13px; font-weight:600;">2.200 €/m²</div></div>
+                <div><div style="font-size:11px; color:var(--sub); margin-bottom:2px;">Restschuld</div><div style="font-size:13px; font-weight:600;">185.000 €</div></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 3 -->
+          <div class="prop-card" onclick="location.href='Volta Detail.dc.html'">
+            <div style="height:160px; background:linear-gradient(135deg,#10b981,#0d9488); position:relative; display:flex; align-items:center; justify-content:center; font-size:48px;">
+              🏙️
+              <div style="position:absolute; inset:0; background:linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.45));"></div>
+              <div style="position:absolute; bottom:0; left:0; right:0; padding:12px 16px; display:flex; justify-content:space-between; align-items:flex-end;">
+                <span style="font-size:12px; color:rgba(255,255,255,0.9); font-weight:500;">Leopoldstr. 88 · München</span>
+                <span style="background:#16a34a; color:#fff; font-size:10px; font-weight:700; padding:3px 8px; border-radius:5px;">Vermietet</span>
+              </div>
+            </div>
+            <div style="padding:16px 18px 18px;">
+              <div style="font-size:16px; font-weight:700; margin-bottom:2px;">ETW München Schwabing</div>
+              <div style="font-size:12px; color:var(--sub); margin-bottom:14px;">54 m² · 2 Zi · seit 01/2023</div>
+              <div style="height:1px; background:var(--border); margin-bottom:12px;"></div>
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px 14px;">
+                <div><div style="font-size:11px; color:var(--sub); margin-bottom:2px;">Cashflow / Mon</div><div style="font-size:15px; font-weight:700; color:var(--pos);">+124 €</div></div>
+                <div><div style="font-size:11px; color:var(--sub); margin-bottom:2px;">Nettorendite</div><div style="font-size:15px; font-weight:700;">4,7 %</div></div>
+                <div><div style="font-size:11px; color:var(--sub); margin-bottom:2px;">Kaufpreis / m²</div><div style="font-size:13px; font-weight:600;">7.800 €/m²</div></div>
+                <div><div style="font-size:11px; color:var(--sub); margin-bottom:2px;">Restschuld</div><div style="font-size:13px; font-weight:600;">217.000 €</div></div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</x-dc>
+</body>
+</html>
