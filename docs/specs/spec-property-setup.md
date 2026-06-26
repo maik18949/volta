@@ -159,6 +159,7 @@ HAUSGELD STELLPLATZ
   Hausgeld Stellplatz gesamt/Monat: [Währungsfeld]
 
   [Toggle] Aufteilen
+  ⓘ "Hausgeld aufteilen, wenn der Mietvertrag eine Nebenkostenvereinbarung für den Stellplatz enthält."
   └─ Wenn aktiv:
        davon umlagefähig/Monat:            [Währungsfeld]  → hoaFeeParkingRecoverableMonthly
        davon Instandhaltungsrücklage/Monat: [Währungsfeld] → hoaFeeParkingMaintenanceReserveMonthly
