@@ -6,17 +6,34 @@ Zeigt monatlichen Cashflow: oben eine Kompaktkarte für den Prognose-Monat, daru
 
 ---
 
-## Card 1 — Prognose-Monat (kompakt)
+## Card 1 — Prognose-Monat
 
-Typischer Monat bei wählbarem Szenario. Werte direkt aus Einstellungen — kein Ist.
+Vollständige Aufschlüsselung aller Posten für einen typischen Monat. Werte direkt aus Einstellungen — kein Ist. Identische Struktur wie eine Monatsspalte der Jahrestabelle.
 
 ```
 PROGNOSE / MONAT
 
-[Vollvermietung]  [Leerstand]                  ← Segmented Control / Toggle, Standard = Vollvermietung
+[Vollvermietung]  [Leerstand]                  ← Segmented Control, Standard = Vollvermietung
 
-Cashflow nach Steuern:   [−24 € / Mon]        ← 22px, fett, rot oder grün
-Vor Steuer: [−424 €]    Steuereffekt: [+399 €]  ← kleiner, rechts
+Einnahmen                          +X.XXX €
+Kreditrate                           −XXX €
+──── Kosten Wohnung ────
+Nicht umlagef. HG                    −XXX €
+Instandhaltungsrücklage WE           −XXX €
+Gebäudeversicherung                  −XXX €    ← nur wenn > 0
+Verwaltung                           −XXX €
+Sonstige Kosten                      −XXX €    ← nur wenn > 0
+Umlagef. Kosten WE                   −XXX €    ← nur bei Leerstand
+Grundsteuer WE                        −XX €    ← nur bei Leerstand
+──── Kosten Stellplatz ────                    ← nur wenn parkingType != .nichtVorhanden
+Nicht umlagef. HG TE                 −XXX €
+Instandhaltungsrücklage TE            −XX €
+Umlagef. Kosten TE                    −XX €
+Grundsteuer TE                        −XX €
+──── Zusammenfassung ────
+CF vor Steuern                       −XXX €    (fett)
+Steuereffekt                         +XXX €    (blau)
+CF nach Steuern                      +XXX €    (22px, fett, rot oder grün)
 ```
 
 **Toggle-Logik:**
