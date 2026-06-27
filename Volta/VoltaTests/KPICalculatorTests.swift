@@ -135,10 +135,6 @@ final class KPICalculatorTests: XCTestCase {
 
     func test_actualVacancyRate_fiftyPercentLeerstand() {
         // 100 days total, first 50 days Leerstand, next 50 days Vermietet → 50%
-        let start = f.economicTransferDate
-        let midpoint = Calendar.current.date(byAdding: .day, value: 50, to: start)!
-        let entry1 = StatusEntry(date: start, status: .leerstand)
-        let entry2 = StatusEntry(date: midpoint, status: .vermietet)
         // We need today to be start + 100 days — but we can't control Date()
         // Instead, use a range entirely in the past: set economicTransferDate 100 days ago
         let hundredDaysAgo = Calendar.current.date(byAdding: .day, value: -100, to: Date())!
