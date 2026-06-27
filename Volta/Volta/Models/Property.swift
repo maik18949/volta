@@ -24,20 +24,16 @@ enum PropertyType: String, Codable, CaseIterable {
 }
 
 enum AcquisitionType: String, Codable, CaseIterable {
-    case kauf = "Kauf"
+    case kauf      = "Kauf"
     case erbschaft = "Erbschaft"
     case schenkung = "Schenkung"
-    case kaufUndRenovierung = "Kauf_und_Renovierung"
-    case neubau = "Neubau"
 }
 
 enum ParkingType: String, Codable, CaseIterable {
-    case keiner = "Keiner"
-    case tiefgarage = "Tiefgarage"
+    case nichtVorhanden   = "Nicht vorhanden"
+    case tiefgarage       = "Tiefgarage"
     case aussenstellplatz = "Außenstellplatz"
-    case carport = "Carport"
-    case doppelparker = "Doppelparker"
-    case garage = "Garage"
+    case garage           = "Garage"
 }
 
 enum HeatingType: String, Codable, CaseIterable {
@@ -100,7 +96,7 @@ class Property {
     var hasBasement: Bool = false
     var basementSizeSqm: Double?
     var hasFittedKitchen: Bool = false
-    var parkingType: ParkingType?
+    var parkingType: ParkingType = ParkingType.nichtVorhanden
     var parkingCount: Int = 0
     var heatingType: HeatingType?
     var energyEfficiencyClass: EnergyClass?

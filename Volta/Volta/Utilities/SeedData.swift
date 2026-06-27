@@ -77,7 +77,7 @@ enum SeedData {
         // Statushistorie
         let statusMietgarantie = StatusEntry(
             statusFrom: Date.firstDay(year: 2026, month: 2),
-            status: .leerstandMietgarantie,
+            status: .mietgarantie,
             incomeActualMonthly: 998,
             notes: "Mietgarantie Cosona"
         )

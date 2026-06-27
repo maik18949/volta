@@ -26,7 +26,7 @@ class WizardState {
     var hasGarden: Bool = false
     var hasBasement: Bool = false
     var hasFittedKitchen: Bool = false
-    var parkingType: ParkingType? = nil
+    var parkingType: ParkingType = .nichtVorhanden
     var parkingCount: Int = 0
     var heatingType: HeatingType? = nil
     var energyEfficiencyClass: EnergyClass? = nil

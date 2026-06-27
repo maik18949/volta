@@ -2,16 +2,14 @@ import Foundation
 import SwiftData
 
 enum PropertyStatus: String, Codable, CaseIterable {
-    case vermietet = "Vermietet"
-    case leerstandMietgarantie = "Leerstand + Mietgarantie"
-    case leerstand = "Leerstand"
-    case eigennutzung = "Eigennutzung"
-    case renovierung = "Renovierung"
+    case vermietet    = "Vermietet"
+    case leerstand    = "Leerstand"
+    case mietgarantie = "Mietgarantie"
 
     var hasIncome: Bool {
         switch self {
-        case .vermietet, .leerstandMietgarantie, .eigennutzung: return true
-        case .leerstand, .renovierung: return false
+        case .vermietet, .mietgarantie: return true
+        case .leerstand: return false
         }
     }
 }
