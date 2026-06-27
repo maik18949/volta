@@ -11,30 +11,30 @@ class PropertyViewModel {
 
     // MARK: - Kauf / Preis
 
-    var purchasePrice: Double {
-        property.purchasePriceUnit + property.purchasePriceParking
-    }
+    var totalPurchasePrice: Double { property.purchasePriceUnit + property.purchasePriceParking }
+
+    /// Legacy alias used by downstream KPI helpers that still reference `purchasePrice`.
+    var purchasePrice: Double { totalPurchasePrice }
 
     var closingCostsTotal: Double {
-        KPICalculator.closingCostsTotal(
-            landTransferTax: property.landTransferTax,
-            notaryCosts: property.notaryCosts,
-            landRegistryCosts: property.landRegistryCosts,
-            agentFee: property.agentFee,
-            appraisalCosts: property.appraisalCosts
-        )
+        property.landTransferTax + property.notaryCosts + property.landRegistryCosts
+            + property.agentFee + property.appraisalCosts + property.brokerCommissionAgreement
     }
 
     var totalInvestment: Double {
-        KPICalculator.totalInvestment(
-            purchasePrice: purchasePrice,
-            closingCostsTotal: closingCostsTotal,
-            renovationModernizationCosts: property.renovationModernizationCosts
-        )
+        totalPurchasePrice + closingCostsTotal + property.renovationModernizationCosts
     }
 
-    var equityUsed: Double {
-        KPICalculator.equityUsed(totalInvestment: totalInvestment, loanAmount: property.loanAmount)
+    var equityUsed: Double { totalInvestment - property.loanAmount }
+
+    var purchasePricePerSqm: Double {
+        guard property.livingAreaSqm > 0 else { return 0 }
+        return totalPurchasePrice / property.livingAreaSqm
+    }
+
+    var totalInvestmentPerSqm: Double {
+        guard property.livingAreaSqm > 0 else { return 0 }
+        return totalInvestment / property.livingAreaSqm
     }
 
     // MARK: - Einnahmen
@@ -131,14 +131,14 @@ class PropertyViewModel {
 
     // MARK: - AfA & Steuer
 
-    var afaBasis: Double {
-        DepreciationCalculator.afaBasis(
-            buildingValue: property.buildingValue,
-            closingCostsTotal: closingCostsTotal,
-            purchasePrice: purchasePrice,
-            renovationAfaEligible: property.renovationAfaEligible
-        )
+    var afaBemessungsgrundlage: Double {
+        property.buildingValue
+            + (closingCostsTotal * property.buildingValue / max(1, totalPurchasePrice))
+            + property.renovationAfaEligible
     }
+
+    /// Alias so downstream callers using `afaBasis` continue to work.
+    var afaBasis: Double { afaBemessungsgrundlage }
 
     var depreciationYearly: Double {
         DepreciationCalculator.depreciationYearly(afaBasis: afaBasis, rate: property.depreciationRate)

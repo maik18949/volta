@@ -32,7 +32,7 @@ extension Color {
     static let appSidebarBackground = Color(hex: "#f0f4fb")               // sidebar surface (not in design spec)
 }
 
-private extension Color {
+extension Color {
     init(hex: String) {
         let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
         var int: UInt64 = 0
