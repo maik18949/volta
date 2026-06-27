@@ -1,55 +1,46 @@
 import SwiftUI
 
 extension Color {
-    // MARK: - Accent
-    static let appAccent = Color(hex: "#2563EB")
+    // Background gradient
+    static let appGradientFrom = Color(hex: "#dce8f8")
+    static let appGradientTo   = Color(hex: "#e8f0fb")
 
-    // MARK: - Status / Value colours
-    static let appPositive = Color(hex: "#16A34A")
-    static let appNegative = Color(hex: "#DC2626")
+    // Accent
+    static let appAccent        = Color(hex: "#3b82f6")
+    static let appSectionLabel  = Color(hex: "#1d4ed8")
 
-    // MARK: - Backgrounds
-    static let appContentBackground = Color(
-        light: Color(hex: "#FFFFFF"),
-        dark: Color(hex: "#111827")
-    )
-    static let appCardBackground = Color(
-        light: Color(hex: "#F5F5F5"),
-        dark: Color(hex: "#1F2937")
-    )
-    static let appSidebarBackground = Color(
-        light: Color(hex: "#F5F5F5"),
-        dark: Color(hex: "#0D1117")
-    )
+    // Semantic value colours
+    static let appPositiveLarge = Color(hex: "#15803d")   // large result values
+    static let appPositiveRow   = Color(hex: "#059669")   // row-level positive
+    static let appNegative      = Color(hex: "#dc2626")   // negative values
 
-    // MARK: - Text
-    static let appPrimaryText = Color(
-        light: Color(hex: "#111827"),
-        dark: Color(hex: "#F9FAFB")
-    )
-    static let appSecondaryText = Color(
-        light: Color(hex: "#6B7280"),
-        dark: Color(hex: "#9CA3AF")
-    )
+    // Text
+    static let appPrimaryText   = Color(hex: "#0f172a")
+    static let appSecondaryText = Color(hex: "#475569")
+    static let appDimText       = Color(hex: "#94a3b8")
+
+    // Surfaces
+    static let appCardBackground = Color.white.opacity(0.80)
+    static let appSumRowTint     = Color(hex: "#eff6ff").opacity(0.5)
+
+    // Warning
+    static let appWarning = Color(hex: "#D97706")
+
+    // Aliases for backwards compatibility
+    static let appPositive          = appPositiveRow
+    static let appContentBackground = appCardBackground
+    static let appSidebarBackground = Color(hex: "#f0f4fb")
 }
 
-extension Color {
+private extension Color {
     init(hex: String) {
         let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
         var int: UInt64 = 0
         Scanner(string: hex).scanHexInt64(&int)
-        let r = Double((int >> 16) & 0xFF) / 255.0
-        let g = Double((int >> 8) & 0xFF) / 255.0
-        let b = Double(int & 0xFF) / 255.0
+        let r = Double((int >> 16) & 0xFF) / 255
+        let g = Double((int >> 8)  & 0xFF) / 255
+        let b = Double(int & 0xFF)          / 255
         self.init(red: r, green: g, blue: b)
-    }
-
-    init(light: Color, dark: Color) {
-        self.init(NSColor(name: nil, dynamicProvider: { appearance in
-            appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
-                ? NSColor(dark)
-                : NSColor(light)
-        }))
     }
 }
 
