@@ -3,7 +3,7 @@ import SwiftUI
 struct GlassCard<Content: View>: View {
     let content: () -> Content
 
-    init(@ViewBuilder content: () -> Content) {
+    init(@ViewBuilder content: @escaping () -> Content) {
         self.content = content
     }
 
