@@ -24,14 +24,14 @@ final class CashflowCalculatorTests: XCTestCase {
         XCTAssertEqual(result, f.operatingCostsRecoverableMonthly, accuracy: 0.01)
     }
 
-    func test_ownerBorneRecoverable_mietgarantie_isZero() {
+    func test_ownerBorneRecoverable_mietgarantie_isFullRecoverable() {
         let result = CashflowCalculator.ownerBorneRecoverableCosts(
             status: .mietgarantie,
             hoaFeeRecoverableMonthly: f.hoaFeeRecoverableMonthly,
             propertyTaxMonthly: f.propertyTaxMonthly,
             propertyInsuranceMonthly: 0.0
         )
-        XCTAssertEqual(result, 0.0, accuracy: 0.001)
+        XCTAssertEqual(result, f.operatingCostsRecoverableMonthly, accuracy: 0.01)
     }
 
     func test_cashflowBeforeTax_vermietet() {

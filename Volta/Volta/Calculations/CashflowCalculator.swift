@@ -12,9 +12,9 @@ enum CashflowCalculator {
         propertyInsuranceMonthly: Double
     ) -> Double {
         switch status {
-        case .vermietet, .mietgarantie:
+        case .vermietet:
             return 0.0
-        case .leerstand:
+        case .leerstand, .mietgarantie:
             return hoaFeeRecoverableMonthly + propertyTaxMonthly + propertyInsuranceMonthly
         }
     }
