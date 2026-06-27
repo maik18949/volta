@@ -87,11 +87,89 @@ final class KPICalculatorTests: XCTestCase {
         XCTAssertNil(result)
     }
 
-    func test_breakEvenRentMonthly() {
-        let result = KPICalculator.breakEvenRentMonthly(
-            operatingCostsNonRecoverableMonthly: f.operatingCostsNonRecoverableMonthly,
-            monthlyMortgage: f.monthlyMortgageActual
+    func test_breakEvenRent_noParking() {
+        // hoaFeeNonRecoverable=125 + maintenanceReserve=34.76 + mgmt=396/12=33 + insurance=0 + other=0 + mortgage=1242.85
+        // = 125 + 34.76 + 33 + 1242.85 = 1435.61
+        let result = KPICalculator.breakEvenRent(
+            hoaFeeNonRecoverableMonthly: f.hoaFeeNonRecoverableMonthly,
+            hoaFeeMaintenanceReserveMonthly: f.maintenanceReserveMonthly,
+            hoaFeeParkingNonRecoverableMonthly: 0,
+            hoaFeeParkingRecoverableMonthly: 0,
+            hoaFeeParkingMaintenanceReserveMonthly: 0,
+            propertyTaxParkingAnnual: 0,
+            propertyManagementAnnual: f.propertyManagementAnnual,
+            propertyInsuranceAnnual: f.propertyInsuranceAnnual,
+            otherCostsMonthly: 0,
+            monthlyMortgage: f.monthlyMortgageActual,
+            hasParking: false
         )
         XCTAssertEqual(result, 1_435.61, accuracy: 0.01)
+    }
+
+    func test_breakEvenRent_withParking() {
+        // Same as above + parking: nonRecoverable=20 + recoverable=10 + reserve=5 + taxParking=120/12=10
+        // = 1435.61 + 20 + 10 + 5 + 10 = 1480.61
+        let result = KPICalculator.breakEvenRent(
+            hoaFeeNonRecoverableMonthly: f.hoaFeeNonRecoverableMonthly,
+            hoaFeeMaintenanceReserveMonthly: f.maintenanceReserveMonthly,
+            hoaFeeParkingNonRecoverableMonthly: 20,
+            hoaFeeParkingRecoverableMonthly: 10,
+            hoaFeeParkingMaintenanceReserveMonthly: 5,
+            propertyTaxParkingAnnual: 120,
+            propertyManagementAnnual: f.propertyManagementAnnual,
+            propertyInsuranceAnnual: f.propertyInsuranceAnnual,
+            otherCostsMonthly: 0,
+            monthlyMortgage: f.monthlyMortgageActual,
+            hasParking: true
+        )
+        XCTAssertEqual(result, 1_480.61, accuracy: 0.01)
+    }
+
+    func test_actualVacancyRate_noEntries_returnsNil() {
+        let result = KPICalculator.actualVacancyRate(
+            statusEntries: [],
+            economicTransferDate: f.economicTransferDate
+        )
+        XCTAssertNil(result)
+    }
+
+    func test_actualVacancyRate_fiftyPercentLeerstand() {
+        // 100 days total, first 50 days Leerstand, next 50 days Vermietet → 50%
+        let start = f.economicTransferDate
+        let midpoint = Calendar.current.date(byAdding: .day, value: 50, to: start)!
+        let entry1 = StatusEntry(date: start, status: .leerstand)
+        let entry2 = StatusEntry(date: midpoint, status: .vermietet)
+        // We need today to be start + 100 days — but we can't control Date()
+        // Instead, use a range entirely in the past: set economicTransferDate 100 days ago
+        let hundredDaysAgo = Calendar.current.date(byAdding: .day, value: -100, to: Date())!
+        let fiftyDaysAgo   = Calendar.current.date(byAdding: .day, value: -50,  to: Date())!
+        let e1 = StatusEntry(date: hundredDaysAgo, status: .leerstand)
+        let e2 = StatusEntry(date: fiftyDaysAgo, status: .vermietet)
+        let result = KPICalculator.actualVacancyRate(
+            statusEntries: [e1, e2],
+            economicTransferDate: hundredDaysAgo
+        )
+        XCTAssertNotNil(result)
+        XCTAssertEqual(result!, 0.5, accuracy: 0.02)
+    }
+
+    func test_capitalGain_nilMarketValue_returnsNil() {
+        let result = KPICalculator.capitalGain(
+            currentMarketValue: nil,
+            totalPurchasePrice: f.purchasePrice
+        )
+        XCTAssertNil(result)
+    }
+
+    func test_capitalGain_positiveGain() {
+        // currentMarketValue = 300_000, purchasePrice = 278_600
+        // absolute = 21_400, percent = 21_400 / 278_600 ≈ 0.07682
+        let result = KPICalculator.capitalGain(
+            currentMarketValue: 300_000,
+            totalPurchasePrice: f.purchasePrice
+        )
+        XCTAssertNotNil(result)
+        XCTAssertEqual(result!.absolute, 21_400, accuracy: 0.01)
+        XCTAssertEqual(result!.percent, 0.07682, accuracy: 0.0001)
     }
 }

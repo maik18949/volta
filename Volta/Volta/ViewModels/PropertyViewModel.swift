@@ -238,9 +238,18 @@ class PropertyViewModel {
     }
 
     var breakEvenRentMonthly: Double {
-        KPICalculator.breakEvenRentMonthly(
-            operatingCostsNonRecoverableMonthly: operatingCostsNonRecoverableMonthly,
-            monthlyMortgage: monthlyMortgage
+        KPICalculator.breakEvenRent(
+            hoaFeeNonRecoverableMonthly: hoaFeeNonRecoverableMonthly,
+            hoaFeeMaintenanceReserveMonthly: property.hoaFeeMaintenanceReserveMonthly,
+            hoaFeeParkingNonRecoverableMonthly: hoaFeeParkingNonRecoverableMonthly,
+            hoaFeeParkingRecoverableMonthly: property.hoaFeeParkingRecoverableMonthly,
+            hoaFeeParkingMaintenanceReserveMonthly: property.hoaFeeParkingMaintenanceReserveMonthly,
+            propertyTaxParkingAnnual: property.propertyTaxParkingAnnual,
+            propertyManagementAnnual: property.propertyManagementAnnual,
+            propertyInsuranceAnnual: property.propertyInsuranceAnnual,
+            otherCostsMonthly: property.otherCostsMonthly,
+            monthlyMortgage: monthlyMortgage,
+            hasParking: hasParking
         )
     }
 

@@ -198,9 +198,18 @@ class InvestmentCalculatorViewModel {
 
     var breakEvenRentMonthly: Double? {
         guard hasFinancingData else { return nil }
-        return KPICalculator.breakEvenRentMonthly(
-            operatingCostsNonRecoverableMonthly: operatingCostsNonRecoverableMonthly,
-            monthlyMortgage: monthlyMortgage
+        return KPICalculator.breakEvenRent(
+            hoaFeeNonRecoverableMonthly: effectiveNonRecoverableMonthly,
+            hoaFeeMaintenanceReserveMonthly: calculation.maintenanceReserveMonthly,
+            hoaFeeParkingNonRecoverableMonthly: 0,
+            hoaFeeParkingRecoverableMonthly: 0,
+            hoaFeeParkingMaintenanceReserveMonthly: 0,
+            propertyTaxParkingAnnual: 0,
+            propertyManagementAnnual: calculation.propertyManagementAnnual,
+            propertyInsuranceAnnual: 0,
+            otherCostsMonthly: 0,
+            monthlyMortgage: monthlyMortgage,
+            hasParking: calculation.purchasePriceParking > 0
         )
     }
 
