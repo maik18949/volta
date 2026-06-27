@@ -5,7 +5,7 @@ struct WizardStepKosten: View {
 
     var nonRecoverableMonthly: Double {
         (state.hoaFeeTotalMonthly - state.hoaFeeRecoverableMonthly)
-            + state.maintenanceReserveMonthly
+            + state.hoaFeeMaintenanceReserveMonthly
             + state.propertyManagementAnnual / 12
             + state.otherCostsMonthly
     }
@@ -20,7 +20,7 @@ struct WizardStepKosten: View {
             CurrencyField(label: "davon umlagefähig/Monat *", value: $state.hoaFeeRecoverableMonthly, isRequired: true)
             CurrencyField(label: "Grundsteuer/Jahr *", value: $state.propertyTaxAnnual, isRequired: true)
             CurrencyField(label: "Hausverwaltung/Jahr", value: $state.propertyManagementAnnual)
-            CurrencyField(label: "Instandhaltungsrücklage/Monat (zusätzl.)", value: $state.maintenanceReserveMonthly)
+            CurrencyField(label: "Instandhaltungsrücklage/Monat (zusätzl.)", value: $state.hoaFeeMaintenanceReserveMonthly)
             CurrencyField(label: "Gebäudeversicherung/Jahr (falls sep.)", value: $state.propertyInsuranceAnnual)
             CurrencyField(label: "Sonstige Kosten/Monat", value: $state.otherCostsMonthly)
 

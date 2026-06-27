@@ -171,14 +171,14 @@ struct AddPropertyWizard: View {
         p.coldRentMonthly = wizardState.coldRentMonthly
         p.parkingRentMonthly = wizardState.parkingRentMonthly
         p.otherIncomeMonthly = wizardState.otherIncomeMonthly
-        p.serviceChargeRecoverableMonthly = wizardState.serviceChargeRecoverableMonthly
+        p.warmmieteMonthly = wizardState.warmmieteMonthly > 0 ? wizardState.warmmieteMonthly : nil
         p.vacancyRateAssumption = wizardState.vacancyRateAssumption
         p.rentMarketSqm = wizardState.rentMarketSqm > 0 ? wizardState.rentMarketSqm : nil
         p.hoaFeeTotalMonthly = wizardState.hoaFeeTotalMonthly
         p.hoaFeeRecoverableMonthly = wizardState.hoaFeeRecoverableMonthly
         p.propertyTaxAnnual = wizardState.propertyTaxAnnual
         p.propertyManagementAnnual = wizardState.propertyManagementAnnual
-        p.maintenanceReserveMonthly = wizardState.maintenanceReserveMonthly
+        p.hoaFeeMaintenanceReserveMonthly = wizardState.hoaFeeMaintenanceReserveMonthly
         p.propertyInsuranceAnnual = wizardState.propertyInsuranceAnnual
         p.otherCostsMonthly = wizardState.otherCostsMonthly
         p.loanAmount = wizardState.loanAmount
@@ -186,7 +186,7 @@ struct AddPropertyWizard: View {
         p.amortizationRate = wizardState.amortizationRate
         p.fixedInterestPeriodYears = wizardState.fixedInterestPeriodYears
         p.loanStartDate = wizardState.loanStartDate
-        p.monthlyMortgageActual = wizardState.monthlyMortgageActual > 0 ? wizardState.monthlyMortgageActual : nil
+        p.monthlyMortgage = wizardState.monthlyMortgage
         p.landValue = wizardState.landValue
         p.buildingValue = wizardState.buildingValue
         p.depreciationRate = wizardState.depreciationRate

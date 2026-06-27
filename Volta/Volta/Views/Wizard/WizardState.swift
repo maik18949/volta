@@ -50,7 +50,7 @@ class WizardState {
     var coldRentMonthly: Double = 0.0
     var parkingRentMonthly: Double = 0.0
     var otherIncomeMonthly: Double = 0.0
-    var serviceChargeRecoverableMonthly: Double = 0.0
+    var warmmieteMonthly: Double = 0.0
     var vacancyRateAssumption: Double = 0.03
     var rentMarketSqm: Double = 0.0
 
@@ -59,7 +59,7 @@ class WizardState {
     var hoaFeeRecoverableMonthly: Double = 0.0
     var propertyTaxAnnual: Double = 0.0
     var propertyManagementAnnual: Double = 0.0
-    var maintenanceReserveMonthly: Double = 0.0
+    var hoaFeeMaintenanceReserveMonthly: Double = 0.0
     var propertyInsuranceAnnual: Double = 0.0
     var otherCostsMonthly: Double = 0.0
 
@@ -69,7 +69,7 @@ class WizardState {
     var amortizationRate: Double = 0.0
     var fixedInterestPeriodYears: Int = 10
     var loanStartDate: Date = Date()
-    var monthlyMortgageActual: Double = 0.0
+    var monthlyMortgage: Double = 0.0
 
     // AfA & Steuer
     var landValue: Double = 0.0

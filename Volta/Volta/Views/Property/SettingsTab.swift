@@ -114,7 +114,7 @@ struct SettingsTab: View {
             CurrencyField(label: "davon umlagefähig/Monat *", value: $property.hoaFeeRecoverableMonthly, isRequired: true)
             CurrencyField(label: "Grundsteuer/Jahr *", value: $property.propertyTaxAnnual, isRequired: true)
             CurrencyField(label: "Hausverwaltung/Jahr", value: $property.propertyManagementAnnual)
-            CurrencyField(label: "Instandhaltungsrücklage/Monat", value: $property.maintenanceReserveMonthly)
+            CurrencyField(label: "Instandhaltungsrücklage/Monat", value: $property.hoaFeeMaintenanceReserveMonthly)
             CurrencyField(label: "Gebäudeversicherung/Jahr", value: $property.propertyInsuranceAnnual)
             CurrencyField(label: "Sonstige Kosten/Monat", value: $property.otherCostsMonthly)
         }
@@ -135,10 +135,7 @@ struct SettingsTab: View {
                     .datePickerStyle(.compact)
                     .frame(width: 160)
             }
-            CurrencyField(label: "Tatsächliche Rate (optional)", value: Binding(
-                get: { property.monthlyMortgageActual ?? 0 },
-                set: { property.monthlyMortgageActual = $0 > 0 ? $0 : nil }
-            ))
+            CurrencyField(label: "Tatsächliche Rate (optional)", value: $property.monthlyMortgage)
         }
     }
 

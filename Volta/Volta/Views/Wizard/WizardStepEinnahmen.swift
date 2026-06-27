@@ -19,7 +19,7 @@ struct WizardStepEinnahmen: View {
             CurrencyField(label: "Kaltmiete/Monat *", value: $state.coldRentMonthly, isRequired: true)
             CurrencyField(label: "Parkingmiete/Monat", value: $state.parkingRentMonthly)
             CurrencyField(label: "Sonstige Einnahmen/Monat", value: $state.otherIncomeMonthly)
-            CurrencyField(label: "Umlagefähige NK/Monat (Hausgeld-Anteil)", value: $state.serviceChargeRecoverableMonthly)
+            CurrencyField(label: "Bruttomiete/Monat (informativ)", value: $state.warmmieteMonthly)
             PercentField(label: "Leerstandsquote (Annahme)", value: $state.vacancyRateAssumption)
             CurrencyField(label: "Marktmiete/m² (informativ)", value: $state.rentMarketSqm)
 

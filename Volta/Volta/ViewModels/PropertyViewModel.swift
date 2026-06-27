@@ -67,7 +67,7 @@ class PropertyViewModel {
     var operatingCostsNonRecoverableMonthly: Double {
         KPICalculator.operatingCostsNonRecoverableMonthly(
             hoaFeeNonRecoverable: hoaFeeNonRecoverableMonthly,
-            maintenanceReserve: property.maintenanceReserveMonthly,
+            maintenanceReserve: property.hoaFeeMaintenanceReserveMonthly,
             propertyManagementMonthly: propertyManagementMonthly,
             otherCostsMonthly: property.otherCostsMonthly
         )
@@ -88,11 +88,13 @@ class PropertyViewModel {
     // MARK: - Finanzierung
 
     var monthlyMortgage: Double {
-        AmortizationCalculator.effectiveMonthlyMortgage(
+        if property.monthlyMortgage > 0 {
+            return property.monthlyMortgage
+        }
+        return AmortizationCalculator.monthlyMortgageCalc(
             loanAmount: property.loanAmount,
             interestRate: property.interestRate,
-            amortizationRate: property.amortizationRate,
-            monthlyMortgageActual: property.monthlyMortgageActual
+            amortizationRate: property.amortizationRate
         )
     }
 
