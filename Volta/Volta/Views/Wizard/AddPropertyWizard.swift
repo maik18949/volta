@@ -195,10 +195,10 @@ struct AddPropertyWizard: View {
         if wizardState.requiresStatusOnboarding {
             let income = wizardState.firstStatus.hasIncome ? wizardState.firstStatusIncome : 0.0
             let entry = StatusEntry(
-                statusFrom: wizardState.firstStatusDate.firstDayOfMonth,
+                date: wizardState.firstStatusDate.firstDayOfMonth,
                 status: wizardState.firstStatus,
-                incomeActualMonthly: income,
-                notes: wizardState.firstStatusNotes.isEmpty ? nil : wizardState.firstStatusNotes
+                incomeActualMonthly: wizardState.firstStatus.hasIncome ? income : nil,
+                notes: wizardState.firstStatusNotes
             )
             entry.property = p
             p.statusHistory = [entry]

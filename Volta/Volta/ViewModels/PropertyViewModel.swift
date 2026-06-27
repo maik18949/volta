@@ -237,8 +237,8 @@ class PropertyViewModel {
     func activeStatus(for month: Date) -> StatusEntry? {
         let monthStart = month.firstDayOfMonth
         return property.statusHistory
-            .filter { $0.statusFrom.firstDayOfMonth <= monthStart }
-            .sorted { $0.statusFrom < $1.statusFrom }
+            .filter { $0.date.firstDayOfMonth <= monthStart }
+            .sorted { $0.date < $1.date }
             .last
     }
 
@@ -261,7 +261,7 @@ class PropertyViewModel {
             .reduce(0) { $0 + $1.amount }
 
         let beforeTax = CashflowCalculator.cashflowBeforeTax(
-            incomeActualMonthly: status.incomeActualMonthly,
+            incomeActualMonthly: status.incomeActualMonthly ?? 0.0,
             monthlyMortgage: monthlyMortgage,
             operatingCostsNonRecoverableMonthly: operatingCostsNonRecoverableMonthly,
             ownerBorneRecoverableMonthly: ownerRecoverable,

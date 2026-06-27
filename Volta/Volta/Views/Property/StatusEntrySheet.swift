@@ -20,7 +20,7 @@ struct StatusEntrySheet: View {
     init(property: Property, entry: StatusEntry? = nil) {
         self.property = property
         self.entry = entry
-        _statusFrom = State(initialValue: entry?.statusFrom ?? Date())
+        _statusFrom = State(initialValue: entry?.date ?? Date())
         _status = State(initialValue: entry?.status ?? .vermietet)
         _incomeActualMonthly = State(initialValue: entry?.incomeActualMonthly ?? 0.0)
         _notes = State(initialValue: entry?.notes ?? "")
@@ -102,18 +102,18 @@ struct StatusEntrySheet: View {
     }
 
     private func save() {
-        let income = status.hasIncome ? incomeActualMonthly : 0.0
+        let income: Double? = status.hasIncome ? incomeActualMonthly : nil
         if let entry {
-            entry.statusFrom = statusFrom
+            entry.date = statusFrom
             entry.status = status
             entry.incomeActualMonthly = income
-            entry.notes = notes.isEmpty ? nil : notes
+            entry.notes = notes
         } else {
             let newEntry = StatusEntry(
-                statusFrom: statusFrom,
+                date: statusFrom,
                 status: status,
                 incomeActualMonthly: income,
-                notes: notes.isEmpty ? nil : notes
+                notes: notes
             )
             modelContext.insert(newEntry)
             property.statusHistory.append(newEntry)

@@ -16,17 +16,18 @@ enum PropertyStatus: String, Codable, CaseIterable {
 
 @Model
 class StatusEntry {
-    var id: UUID = UUID()
-    var property: Property?
-    var statusFrom: Date = Date()
+    var date: Date = Date()
     var status: PropertyStatus = PropertyStatus.vermietet
-    var incomeActualMonthly: Double = 0.0
-    var notes: String?
+    var incomeActualMonthly: Double?    // nur für .mietgarantie — Garantiebetrag/Monat
+    var notes: String = ""
+    var createdAt: Date = Date()        // für Feed-Sortierung bei gleichem Datum
+    var property: Property?
 
-    init(statusFrom: Date, status: PropertyStatus, incomeActualMonthly: Double, notes: String? = nil) {
-        self.statusFrom = statusFrom
+    init(date: Date, status: PropertyStatus, incomeActualMonthly: Double? = nil, notes: String = "") {
+        self.date = date
         self.status = status
         self.incomeActualMonthly = incomeActualMonthly
         self.notes = notes
+        self.createdAt = Date()
     }
 }
