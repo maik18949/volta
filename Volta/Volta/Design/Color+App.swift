@@ -21,15 +21,15 @@ extension Color {
 
     // Surfaces
     static let appCardBackground = Color.white.opacity(0.80)
-    static let appSumRowTint     = Color(hex: "#eff6ff").opacity(0.5)
+    static let appSumRowTint     = Color(hex: "#eff6ff").opacity(0.5)  // sum-row tint (not in design spec)
 
     // Warning
     static let appWarning = Color(hex: "#D97706")
 
-    // Aliases for backwards compatibility
+    // MARK: - Legacy (backwards compat — do not use in new code)
     static let appPositive          = appPositiveRow
     static let appContentBackground = appCardBackground
-    static let appSidebarBackground = Color(hex: "#f0f4fb")
+    static let appSidebarBackground = Color(hex: "#f0f4fb")               // sidebar surface (not in design spec)
 }
 
 private extension Color {
