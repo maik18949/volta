@@ -4,7 +4,7 @@ enum CashflowCalculator {
 
     /// Umlagefähige Kosten die der Eigentümer trägt, abhängig vom Status.
     /// Bei Vermietung zahlt der Mieter — Eigentümer trägt 0.
-    /// Bei Leerstand/Eigennutzung/Renovierung trägt der Eigentümer die vollen umlagefähigen Kosten.
+    /// Bei Leerstand/Mietgarantie trägt der Eigentümer die vollen umlagefähigen Kosten.
     static func ownerBorneRecoverableCosts(
         status: PropertyStatus,
         hoaFeeRecoverableMonthly: Double,

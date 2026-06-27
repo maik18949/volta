@@ -26,9 +26,8 @@ struct WizardStepObjektdaten: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Stellplatz").font(.appCaption).foregroundStyle(Color.appSecondaryText)
                     Picker("", selection: $state.parkingType) {
-                        Text("Keiner").tag(Optional<ParkingType>.none)
                         ForEach(ParkingType.allCases, id: \.self) { t in
-                            Text(t.rawValue).tag(Optional(t))
+                            Text(t.rawValue).tag(t)
                         }
                     }.pickerStyle(.menu)
                 }

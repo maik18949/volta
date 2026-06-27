@@ -74,4 +74,10 @@ final class CashflowCalculatorTests: XCTestCase {
         )
         XCTAssertEqual(result, -136.51, accuracy: 0.01)
     }
+
+    func test_propertyStatus_hasIncome() {
+        XCTAssertTrue(PropertyStatus.vermietet.hasIncome)
+        XCTAssertFalse(PropertyStatus.leerstand.hasIncome)
+        XCTAssertTrue(PropertyStatus.mietgarantie.hasIncome)
+    }
 }
