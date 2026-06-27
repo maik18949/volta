@@ -54,8 +54,20 @@ class PropertyViewModel {
 
     // MARK: - Kosten
 
+    var hasParking: Bool {
+        property.parkingType != .nichtVorhanden
+    }
+
     var hoaFeeNonRecoverableMonthly: Double {
-        property.hoaFeeTotalMonthly - property.hoaFeeRecoverableMonthly
+        property.hoaFeeTotalMonthly
+            - property.hoaFeeRecoverableMonthly
+            - property.hoaFeeMaintenanceReserveMonthly
+    }
+
+    var hoaFeeParkingNonRecoverableMonthly: Double {
+        property.hoaFeeParkingTotalMonthly
+            - property.hoaFeeParkingRecoverableMonthly
+            - property.hoaFeeParkingMaintenanceReserveMonthly
     }
 
     var propertyTaxMonthly: Double { property.propertyTaxAnnual / 12.0 }
@@ -245,27 +257,56 @@ class PropertyViewModel {
     var currentStatus: StatusEntry? { activeStatus(for: Date()) }
 
     func cashflowActual(for month: Date) -> (beforeTax: Double, afterTax: Double)? {
-        guard let status = activeStatus(for: month),
+        let calendar = Calendar.current
+        let comps = calendar.dateComponents([.year, .month], from: month)
+        guard let monthYear = comps.year, let monthMonth = comps.month,
               month.firstDayOfMonth >= property.economicTransferDate.firstDayOfMonth else {
             return nil
         }
+
         let ownerRecoverable = CashflowCalculator.ownerBorneRecoverableCosts(
-            status: status.status,
+            month: monthMonth,
+            year: monthYear,
+            statusEntries: property.statusHistory,
             hoaFeeRecoverableMonthly: property.hoaFeeRecoverableMonthly,
-            propertyTaxMonthly: propertyTaxMonthly,
-            propertyInsuranceMonthly: propertyInsuranceMonthly
+            propertyTaxAnnual: property.propertyTaxAnnual
         )
+
+        // Income: use status-based income for the month (simplified: active status at month start)
+        let income: Double
+        if let status = activeStatus(for: month) {
+            switch status.status {
+            case .vermietet:
+                income = property.coldRentMonthly + property.parkingRentMonthly + property.otherIncomeMonthly
+            case .mietgarantie:
+                income = status.incomeActualMonthly ?? 0.0
+            case .leerstand:
+                income = 0.0
+            }
+        } else {
+            income = 0.0
+        }
+
         let monthStart = month.firstDayOfMonth
         let extraordinary = property.extraordinaryCosts
             .filter { $0.costMonth.firstDayOfMonth == monthStart }
             .reduce(0) { $0 + $1.amount }
 
         let beforeTax = CashflowCalculator.cashflowBeforeTax(
-            incomeActualMonthly: status.incomeActualMonthly ?? 0.0,
+            einnahmen: income,
             monthlyMortgage: monthlyMortgage,
-            operatingCostsNonRecoverableMonthly: operatingCostsNonRecoverableMonthly,
-            ownerBorneRecoverableMonthly: ownerRecoverable,
-            extraordinaryCostsThisMonth: extraordinary
+            hoaFeeNonRecoverableMonthly: hoaFeeNonRecoverableMonthly,
+            hoaFeeMaintenanceReserveMonthly: property.hoaFeeMaintenanceReserveMonthly,
+            propertyInsuranceAnnual: property.propertyInsuranceAnnual,
+            propertyManagementAnnual: property.propertyManagementAnnual,
+            otherCostsMonthly: property.otherCostsMonthly,
+            ownerBorneRecoverableCosts: ownerRecoverable,
+            hoaFeeParkingNonRecoverableMonthly: hoaFeeParkingNonRecoverableMonthly,
+            hoaFeeParkingMaintenanceReserveMonthly: property.hoaFeeParkingMaintenanceReserveMonthly,
+            hoaFeeParkingRecoverableMonthly: property.hoaFeeParkingRecoverableMonthly,
+            propertyTaxParkingAnnual: property.propertyTaxParkingAnnual,
+            hasParking: hasParking,
+            extraordinaryCostsMonth: extraordinary
         )
         let afterTax = CashflowCalculator.cashflowAfterTax(
             cashflowBeforeTax: beforeTax,
