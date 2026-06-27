@@ -14,6 +14,7 @@ struct VoltaApp: App {
             StatusEntry.self,
             ExtraordinaryCost.self,
             InvestmentCalculation.self,
+            PropertyPhoto.self,
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
         do {

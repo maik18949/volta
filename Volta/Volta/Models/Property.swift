@@ -161,6 +161,7 @@ class Property {
     // Relationen
     @Relationship(deleteRule: .cascade) var statusHistory: [StatusEntry] = []
     @Relationship(deleteRule: .cascade) var extraordinaryCosts: [ExtraordinaryCost] = []
+    @Relationship(deleteRule: .cascade) var photos: [PropertyPhoto] = []
 
     var sortOrder: Int = 0
     var createdAt: Date = Date()
