@@ -17,7 +17,7 @@ enum SidebarItem: String, CaseIterable, Identifiable {
 }
 
 struct AppShellView: View {
-    @State private var selectedItem: SidebarItem = .portfolio
+    @State private var selectedItem: SidebarItem? = .portfolio
 
     var body: some View {
         NavigationSplitView(columnVisibility: .constant(.all)) {
@@ -28,7 +28,7 @@ struct AppShellView: View {
             .navigationSplitViewColumnWidth(min: 160, ideal: 180, max: 220)
             .navigationTitle("Volta")
         } detail: {
-            switch selectedItem {
+            switch selectedItem ?? .portfolio {
             case .portfolio:
                 NavigationStack {
                     PortfolioView()

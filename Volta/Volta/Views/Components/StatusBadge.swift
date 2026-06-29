@@ -7,11 +7,9 @@ struct StatusBadge: View {
 
     private var color: Color {
         switch status {
-        case .vermietet:             return .appPositive
-        case .leerstandMietgarantie: return Color(hex: "#D97706")
-        case .leerstand:             return .appNegative
-        case .eigennutzung:          return .appAccent
-        case .renovierung:           return Color(hex: "#7C3AED")
+        case .vermietet:    return .appPositive
+        case .mietgarantie: return Color(hex: "#D97706")
+        case .leerstand:    return .appNegative
         }
     }
 

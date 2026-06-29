@@ -40,9 +40,79 @@ enum KPICalculator {
         return purchasePrice / totalRent
     }
 
-    /// Break-Even-Miete = nicht-umlagefähige Kosten + Kreditrate
-    static func breakEvenRentMonthly(operatingCostsNonRecoverableMonthly: Double, monthlyMortgage: Double) -> Double {
-        operatingCostsNonRecoverableMonthly + monthlyMortgage
+    /// Break-Even-Miete = alle Eigentümer-Kosten im Vermietungsszenario + Kreditrate
+    /// Enthält NICHT: propertyTaxAnnual (WE) und hoaFeeRecoverableMonthly (WE) — Mieter zahlt
+    static func breakEvenRent(
+        hoaFeeNonRecoverableMonthly: Double,
+        hoaFeeMaintenanceReserveMonthly: Double,
+        hoaFeeParkingNonRecoverableMonthly: Double,
+        hoaFeeParkingRecoverableMonthly: Double,
+        hoaFeeParkingMaintenanceReserveMonthly: Double,
+        propertyTaxParkingAnnual: Double,
+        propertyManagementAnnual: Double,
+        propertyInsuranceAnnual: Double,
+        otherCostsMonthly: Double,
+        monthlyMortgage: Double,
+        hasParking: Bool
+    ) -> Double {
+        var result = hoaFeeNonRecoverableMonthly
+            + hoaFeeMaintenanceReserveMonthly
+            + (propertyManagementAnnual / 12)
+            + (propertyInsuranceAnnual / 12)
+            + otherCostsMonthly
+            + monthlyMortgage
+        if hasParking {
+            result += hoaFeeParkingNonRecoverableMonthly
+                + hoaFeeParkingRecoverableMonthly
+                + hoaFeeParkingMaintenanceReserveMonthly
+                + (propertyTaxParkingAnnual / 12)
+        }
+        return result
+    }
+
+    /// Tatsächliche Leerstandsquote seit Besitzübergang bis heute
+    /// Gibt nil zurück wenn keine StatusEntries vorhanden oder gesamtEigentumstage == 0
+    static func actualVacancyRate(
+        statusEntries: [StatusEntry],
+        economicTransferDate: Date
+    ) -> Double? {
+        guard !statusEntries.isEmpty else { return nil }
+        let today = Date()
+        let calendar = Calendar.current
+        let totalDays = calendar.dateComponents([.day], from: economicTransferDate, to: today).day ?? 0
+        guard totalDays > 0 else { return nil }
+
+        // Sort entries by date ascending
+        let sorted = statusEntries.sorted { $0.date < $1.date }
+
+        var vacancyDays = 0
+        for (index, entry) in sorted.enumerated() {
+            let segmentStart = max(entry.date, economicTransferDate)
+            let segmentEnd: Date
+            if index + 1 < sorted.count {
+                segmentEnd = sorted[index + 1].date
+            } else {
+                segmentEnd = today
+            }
+            guard segmentEnd > segmentStart else { continue }
+            if entry.status == .leerstand || entry.status == .mietgarantie {
+                let days = calendar.dateComponents([.day], from: segmentStart, to: segmentEnd).day ?? 0
+                vacancyDays += days
+            }
+        }
+        return Double(vacancyDays) / Double(totalDays)
+    }
+
+    /// Wertsteigerung = aktueller Marktwert - Gesamtkaufpreis
+    /// Gibt nil zurück wenn currentMarketValue nil, <= 0 oder totalPurchasePrice <= 0
+    static func capitalGain(
+        currentMarketValue: Double?,
+        totalPurchasePrice: Double
+    ) -> (absolute: Double, percent: Double)? {
+        guard let currentMarketValue, currentMarketValue > 0, totalPurchasePrice > 0 else { return nil }
+        let absolute = currentMarketValue - totalPurchasePrice
+        let percent = absolute / totalPurchasePrice
+        return (absolute, percent)
     }
 
     // MARK: - Intermediate helpers (used by ViewModels)

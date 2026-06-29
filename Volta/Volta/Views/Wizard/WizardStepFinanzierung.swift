@@ -15,7 +15,7 @@ struct WizardStepFinanzierung: View {
             loanAmount: state.loanAmount,
             interestRate: state.interestRate,
             amortizationRate: state.amortizationRate,
-            monthlyMortgageActual: state.monthlyMortgageActual > 0 ? state.monthlyMortgageActual : nil
+            monthlyMortgageActual: state.monthlyMortgage > 0 ? state.monthlyMortgage : nil
         )
     }
 
@@ -36,7 +36,7 @@ struct WizardStepFinanzierung: View {
                 DatePicker("", selection: $state.loanStartDate, displayedComponents: .date)
                     .datePickerStyle(.compact).frame(width: 160)
             }
-            CurrencyField(label: "Tatsächliche Rate (optional)", value: $state.monthlyMortgageActual)
+            CurrencyField(label: "Tatsächliche Rate (optional)", value: $state.monthlyMortgage)
 
             Divider()
 

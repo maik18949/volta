@@ -24,20 +24,16 @@ enum PropertyType: String, Codable, CaseIterable {
 }
 
 enum AcquisitionType: String, Codable, CaseIterable {
-    case kauf = "Kauf"
+    case kauf      = "Kauf"
     case erbschaft = "Erbschaft"
     case schenkung = "Schenkung"
-    case kaufUndRenovierung = "Kauf_und_Renovierung"
-    case neubau = "Neubau"
 }
 
 enum ParkingType: String, Codable, CaseIterable {
-    case keiner = "Keiner"
-    case tiefgarage = "Tiefgarage"
+    case nichtVorhanden   = "Nicht vorhanden"
+    case tiefgarage       = "Tiefgarage"
     case aussenstellplatz = "Außenstellplatz"
-    case carport = "Carport"
-    case doppelparker = "Doppelparker"
-    case garage = "Garage"
+    case garage           = "Garage"
 }
 
 enum HeatingType: String, Codable, CaseIterable {
@@ -100,7 +96,7 @@ class Property {
     var hasBasement: Bool = false
     var basementSizeSqm: Double?
     var hasFittedKitchen: Bool = false
-    var parkingType: ParkingType?
+    var parkingType: ParkingType = ParkingType.nichtVorhanden
     var parkingCount: Int = 0
     var heatingType: HeatingType?
     var energyEfficiencyClass: EnergyClass?
@@ -124,18 +120,27 @@ class Property {
     var coldRentMonthly: Double = 0.0
     var parkingRentMonthly: Double = 0.0
     var otherIncomeMonthly: Double = 0.0
-    var serviceChargeRecoverableMonthly: Double = 0.0
+    var warmmieteMonthly: Double?             // Bruttomiete / Monat, optional, informativ
     var vacancyRateAssumption: Double = 0.03
     var rentMarketSqm: Double?
+    var currentMarketValue: Double?           // Aktueller Marktwert gesamt (manuell, Schätzung)
 
-    // Kosten
+    // Kosten Wohnung
     var hoaFeeTotalMonthly: Double = 0.0
     var hoaFeeRecoverableMonthly: Double = 0.0
+    var isHoaUnitSplit: Bool = false
+    var hoaFeeMaintenanceReserveMonthly: Double = 0.0
     var propertyTaxAnnual: Double = 0.0
     var propertyManagementAnnual: Double = 0.0
-    var maintenanceReserveMonthly: Double = 0.0
     var propertyInsuranceAnnual: Double = 0.0
     var otherCostsMonthly: Double = 0.0
+
+    // Kosten Stellplatz
+    var hoaFeeParkingTotalMonthly: Double = 0.0
+    var isHoaParkingSplit: Bool = false
+    var hoaFeeParkingRecoverableMonthly: Double = 0.0
+    var hoaFeeParkingMaintenanceReserveMonthly: Double = 0.0
+    var propertyTaxParkingAnnual: Double = 0.0
 
     // Finanzierung
     var loanAmount: Double = 0.0
@@ -143,20 +148,22 @@ class Property {
     var amortizationRate: Double = 0.0
     var fixedInterestPeriodYears: Int = 10
     var loanStartDate: Date = Date()
-    var monthlyMortgageActual: Double?
+    var monthlyMortgage: Double = 0.0         // direkt gespeichert, editierbar im Wizard
+    var equityContributed: Double = 0.0
+    var brokerCommissionAgreement: Double = 0.0
 
     // AfA & Steuer
     var landValue: Double = 0.0
     var buildingValue: Double = 0.0
     var depreciationRate: Double = 0.02
     var marginalTaxRate: Double = 0.0
-    var landGuidelineValueSqm: Double?
 
     // Relationen
-    @Relationship(deleteRule: .cascade) var rentGuarantee: RentGuarantee?
     @Relationship(deleteRule: .cascade) var statusHistory: [StatusEntry] = []
     @Relationship(deleteRule: .cascade) var extraordinaryCosts: [ExtraordinaryCost] = []
+    @Relationship(deleteRule: .cascade) var photos: [PropertyPhoto] = []
 
+    var sortOrder: Int = 0
     var createdAt: Date = Date()
     var updatedAt: Date = Date()
 

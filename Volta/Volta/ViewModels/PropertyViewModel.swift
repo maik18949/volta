@@ -11,30 +11,30 @@ class PropertyViewModel {
 
     // MARK: - Kauf / Preis
 
-    var purchasePrice: Double {
-        property.purchasePriceUnit + property.purchasePriceParking
-    }
+    var totalPurchasePrice: Double { property.purchasePriceUnit + property.purchasePriceParking }
+
+    /// Legacy alias used by downstream KPI helpers that still reference `purchasePrice`.
+    var purchasePrice: Double { totalPurchasePrice }
 
     var closingCostsTotal: Double {
-        KPICalculator.closingCostsTotal(
-            landTransferTax: property.landTransferTax,
-            notaryCosts: property.notaryCosts,
-            landRegistryCosts: property.landRegistryCosts,
-            agentFee: property.agentFee,
-            appraisalCosts: property.appraisalCosts
-        )
+        property.landTransferTax + property.notaryCosts + property.landRegistryCosts
+            + property.agentFee + property.appraisalCosts + property.brokerCommissionAgreement
     }
 
     var totalInvestment: Double {
-        KPICalculator.totalInvestment(
-            purchasePrice: purchasePrice,
-            closingCostsTotal: closingCostsTotal,
-            renovationModernizationCosts: property.renovationModernizationCosts
-        )
+        totalPurchasePrice + closingCostsTotal + property.renovationModernizationCosts
     }
 
-    var equityUsed: Double {
-        KPICalculator.equityUsed(totalInvestment: totalInvestment, loanAmount: property.loanAmount)
+    var equityUsed: Double { totalInvestment - property.loanAmount }
+
+    var purchasePricePerSqm: Double {
+        guard property.livingAreaSqm > 0 else { return 0 }
+        return totalPurchasePrice / property.livingAreaSqm
+    }
+
+    var totalInvestmentPerSqm: Double {
+        guard property.livingAreaSqm > 0 else { return 0 }
+        return totalInvestment / property.livingAreaSqm
     }
 
     // MARK: - Einnahmen
@@ -54,8 +54,20 @@ class PropertyViewModel {
 
     // MARK: - Kosten
 
+    var hasParking: Bool {
+        property.parkingType != .nichtVorhanden
+    }
+
     var hoaFeeNonRecoverableMonthly: Double {
-        property.hoaFeeTotalMonthly - property.hoaFeeRecoverableMonthly
+        property.hoaFeeTotalMonthly
+            - property.hoaFeeRecoverableMonthly
+            - property.hoaFeeMaintenanceReserveMonthly
+    }
+
+    var hoaFeeParkingNonRecoverableMonthly: Double {
+        property.hoaFeeParkingTotalMonthly
+            - property.hoaFeeParkingRecoverableMonthly
+            - property.hoaFeeParkingMaintenanceReserveMonthly
     }
 
     var propertyTaxMonthly: Double { property.propertyTaxAnnual / 12.0 }
@@ -67,7 +79,7 @@ class PropertyViewModel {
     var operatingCostsNonRecoverableMonthly: Double {
         KPICalculator.operatingCostsNonRecoverableMonthly(
             hoaFeeNonRecoverable: hoaFeeNonRecoverableMonthly,
-            maintenanceReserve: property.maintenanceReserveMonthly,
+            maintenanceReserve: property.hoaFeeMaintenanceReserveMonthly,
             propertyManagementMonthly: propertyManagementMonthly,
             otherCostsMonthly: property.otherCostsMonthly
         )
@@ -88,11 +100,13 @@ class PropertyViewModel {
     // MARK: - Finanzierung
 
     var monthlyMortgage: Double {
-        AmortizationCalculator.effectiveMonthlyMortgage(
+        if property.monthlyMortgage > 0 {
+            return property.monthlyMortgage
+        }
+        return AmortizationCalculator.monthlyMortgageCalc(
             loanAmount: property.loanAmount,
             interestRate: property.interestRate,
-            amortizationRate: property.amortizationRate,
-            monthlyMortgageActual: property.monthlyMortgageActual
+            amortizationRate: property.amortizationRate
         )
     }
 
@@ -117,14 +131,14 @@ class PropertyViewModel {
 
     // MARK: - AfA & Steuer
 
-    var afaBasis: Double {
-        DepreciationCalculator.afaBasis(
-            buildingValue: property.buildingValue,
-            closingCostsTotal: closingCostsTotal,
-            purchasePrice: purchasePrice,
-            renovationAfaEligible: property.renovationAfaEligible
-        )
+    var afaBemessungsgrundlage: Double {
+        property.buildingValue
+            + (closingCostsTotal * property.buildingValue / max(1, totalPurchasePrice))
+            + property.renovationAfaEligible
     }
+
+    /// Alias so downstream callers using `afaBasis` continue to work.
+    var afaBasis: Double { afaBemessungsgrundlage }
 
     var depreciationYearly: Double {
         DepreciationCalculator.depreciationYearly(afaBasis: afaBasis, rate: property.depreciationRate)
@@ -224,9 +238,18 @@ class PropertyViewModel {
     }
 
     var breakEvenRentMonthly: Double {
-        KPICalculator.breakEvenRentMonthly(
-            operatingCostsNonRecoverableMonthly: operatingCostsNonRecoverableMonthly,
-            monthlyMortgage: monthlyMortgage
+        KPICalculator.breakEvenRent(
+            hoaFeeNonRecoverableMonthly: hoaFeeNonRecoverableMonthly,
+            hoaFeeMaintenanceReserveMonthly: property.hoaFeeMaintenanceReserveMonthly,
+            hoaFeeParkingNonRecoverableMonthly: hoaFeeParkingNonRecoverableMonthly,
+            hoaFeeParkingRecoverableMonthly: property.hoaFeeParkingRecoverableMonthly,
+            hoaFeeParkingMaintenanceReserveMonthly: property.hoaFeeParkingMaintenanceReserveMonthly,
+            propertyTaxParkingAnnual: property.propertyTaxParkingAnnual,
+            propertyManagementAnnual: property.propertyManagementAnnual,
+            propertyInsuranceAnnual: property.propertyInsuranceAnnual,
+            otherCostsMonthly: property.otherCostsMonthly,
+            monthlyMortgage: monthlyMortgage,
+            hasParking: hasParking
         )
     }
 
@@ -235,35 +258,64 @@ class PropertyViewModel {
     func activeStatus(for month: Date) -> StatusEntry? {
         let monthStart = month.firstDayOfMonth
         return property.statusHistory
-            .filter { $0.statusFrom.firstDayOfMonth <= monthStart }
-            .sorted { $0.statusFrom < $1.statusFrom }
+            .filter { $0.date.firstDayOfMonth <= monthStart }
+            .sorted { $0.date < $1.date }
             .last
     }
 
     var currentStatus: StatusEntry? { activeStatus(for: Date()) }
 
     func cashflowActual(for month: Date) -> (beforeTax: Double, afterTax: Double)? {
-        guard let status = activeStatus(for: month),
+        let calendar = Calendar.current
+        let comps = calendar.dateComponents([.year, .month], from: month)
+        guard let monthYear = comps.year, let monthMonth = comps.month,
               month.firstDayOfMonth >= property.economicTransferDate.firstDayOfMonth else {
             return nil
         }
+
         let ownerRecoverable = CashflowCalculator.ownerBorneRecoverableCosts(
-            status: status.status,
+            month: monthMonth,
+            year: monthYear,
+            statusEntries: property.statusHistory,
             hoaFeeRecoverableMonthly: property.hoaFeeRecoverableMonthly,
-            propertyTaxMonthly: propertyTaxMonthly,
-            propertyInsuranceMonthly: propertyInsuranceMonthly
+            propertyTaxAnnual: property.propertyTaxAnnual
         )
+
+        // Income: use status-based income for the month (simplified: active status at month start)
+        let income: Double
+        if let status = activeStatus(for: month) {
+            switch status.status {
+            case .vermietet:
+                income = property.coldRentMonthly + property.parkingRentMonthly + property.otherIncomeMonthly
+            case .mietgarantie:
+                income = status.incomeActualMonthly ?? 0.0
+            case .leerstand:
+                income = 0.0
+            }
+        } else {
+            income = 0.0
+        }
+
         let monthStart = month.firstDayOfMonth
         let extraordinary = property.extraordinaryCosts
             .filter { $0.costMonth.firstDayOfMonth == monthStart }
             .reduce(0) { $0 + $1.amount }
 
         let beforeTax = CashflowCalculator.cashflowBeforeTax(
-            incomeActualMonthly: status.incomeActualMonthly,
+            einnahmen: income,
             monthlyMortgage: monthlyMortgage,
-            operatingCostsNonRecoverableMonthly: operatingCostsNonRecoverableMonthly,
-            ownerBorneRecoverableMonthly: ownerRecoverable,
-            extraordinaryCostsThisMonth: extraordinary
+            hoaFeeNonRecoverableMonthly: hoaFeeNonRecoverableMonthly,
+            hoaFeeMaintenanceReserveMonthly: property.hoaFeeMaintenanceReserveMonthly,
+            propertyInsuranceAnnual: property.propertyInsuranceAnnual,
+            propertyManagementAnnual: property.propertyManagementAnnual,
+            otherCostsMonthly: property.otherCostsMonthly,
+            ownerBorneRecoverableCosts: ownerRecoverable,
+            hoaFeeParkingNonRecoverableMonthly: hoaFeeParkingNonRecoverableMonthly,
+            hoaFeeParkingMaintenanceReserveMonthly: property.hoaFeeParkingMaintenanceReserveMonthly,
+            hoaFeeParkingRecoverableMonthly: property.hoaFeeParkingRecoverableMonthly,
+            propertyTaxParkingAnnual: property.propertyTaxParkingAnnual,
+            hasParking: hasParking,
+            extraordinaryCostsMonth: extraordinary
         )
         let afterTax = CashflowCalculator.cashflowAfterTax(
             cashflowBeforeTax: beforeTax,

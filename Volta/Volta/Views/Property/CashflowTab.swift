@@ -123,7 +123,7 @@ struct CashflowTab: View {
                     .font(.appBody)
                     .foregroundStyle(Color.appSecondaryText)
             } else {
-                let sorted = vm.property.statusHistory.sorted(by: { $0.statusFrom < $1.statusFrom })
+                let sorted = vm.property.statusHistory.sorted(by: { $0.date < $1.date })
                 VStack(spacing: 0) {
                     ForEach(sorted) { entry in
                         statusEntryRow(entry)
@@ -142,15 +142,17 @@ struct CashflowTab: View {
     private func statusEntryRow(_ entry: StatusEntry) -> some View {
         HStack {
             StatusBadge(status: entry.status)
-            Text("ab \(entry.statusFrom, format: .dateTime.day().month().year())")
+            Text("ab \(entry.date, format: .dateTime.day().month().year())")
                 .font(.appCaption)
                 .foregroundStyle(Color.appSecondaryText)
             Spacer()
-            Text(Formatters.formatCurrency(entry.incomeActualMonthly) + "/Mon")
-                .font(.appMono)
-                .foregroundStyle(Color.appPrimaryText)
-            if let notes = entry.notes, !notes.isEmpty {
-                Text(notes)
+            if let income = entry.incomeActualMonthly {
+                Text(Formatters.formatCurrency(income) + "/Mon")
+                    .font(.appMono)
+                    .foregroundStyle(Color.appPrimaryText)
+            }
+            if !entry.notes.isEmpty {
+                Text(entry.notes)
                     .font(.appCaption)
                     .foregroundStyle(Color.appSecondaryText)
                     .lineLimit(1)

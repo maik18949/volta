@@ -60,11 +60,11 @@ struct InvestmentPromoteSheet: View {
         p.hoaFeeTotalMonthly = calculation.hoaFeeNonRecoverableMonthly
         p.hoaFeeRecoverableMonthly = 0
         p.propertyManagementAnnual = calculation.propertyManagementAnnual
-        p.maintenanceReserveMonthly = calculation.maintenanceReserveMonthly
+        p.hoaFeeMaintenanceReserveMonthly = calculation.maintenanceReserveMonthly
         p.loanAmount = calculation.loanAmount
         p.interestRate = calculation.interestRate
         p.amortizationRate = calculation.amortizationRate
-        p.monthlyMortgageActual = calculation.monthlyMortgageActual
+        p.monthlyMortgage = calculation.monthlyMortgageActual ?? 0.0
         p.buildingValue = calculation.buildingValue
         p.depreciationRate = calculation.depreciationRate
         p.marginalTaxRate = calculation.marginalTaxRate
