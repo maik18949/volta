@@ -106,7 +106,12 @@ struct SetupStepObjektdaten: View {
                 Text("Fotos")
                     .font(.appSectionLabel).foregroundStyle(Color.appSectionLabel)
 
+                #if canImport(UIKit)
                 PhotoGrid(selectedImages: $state.photos, coverIndex: $state.coverIndex)
+                #else
+                Text("Fotos sind nur auf iOS verfügbar.")
+                    .font(.appSubtext).foregroundStyle(Color.appSecondaryText)
+                #endif
             }
             .padding(20)
         }

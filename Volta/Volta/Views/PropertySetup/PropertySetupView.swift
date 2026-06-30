@@ -224,7 +224,8 @@ struct PropertySetupView: View {
             modelContext.insert(entry)
         }
 
-        // Save photos
+        // Save photos (iOS only — UIImage not available on macOS)
+        #if canImport(UIKit)
         let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
         for (i, img) in state.photos.enumerated() {
             if let data = img.jpegData(compressionQuality: 0.8) {
@@ -240,6 +241,7 @@ struct PropertySetupView: View {
                 modelContext.insert(photo)
             }
         }
+        #endif
 
         dismiss()
     }

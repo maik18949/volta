@@ -92,6 +92,7 @@ struct PropertyCard: View {
 
     @ViewBuilder
     private var coverImageView: some View {
+        #if canImport(UIKit)
         let coverPhoto = property.photos.first(where: { $0.isCoverPhoto })
             ?? property.photos.sorted(by: { $0.sortOrder < $1.sortOrder }).first
 
@@ -103,6 +104,9 @@ struct PropertyCard: View {
         } else {
             placeholderGradient
         }
+        #else
+        placeholderGradient
+        #endif
     }
 
     private var placeholderGradient: some View {

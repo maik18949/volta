@@ -1,6 +1,7 @@
 import SwiftUI
 import PhotosUI
 
+#if canImport(UIKit)
 struct PhotoGrid: View {
     @Binding var selectedImages: [UIImage]
     @Binding var coverIndex: Int
@@ -86,3 +87,17 @@ struct PhotoGrid: View {
         }
     }
 }
+#else
+// Stub for macOS — photos are iOS-only in this app
+struct PhotoGrid: View {
+    @Binding var selectedImages: [Data]
+    @Binding var coverIndex: Int
+    var maxPhotos: Int = 15
+
+    var body: some View {
+        Text("Fotos sind nur auf iOS verfügbar.")
+            .foregroundStyle(Color.appSecondaryText)
+            .font(.appSubtext)
+    }
+}
+#endif

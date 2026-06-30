@@ -30,8 +30,10 @@ class PropertySetupState {
     var condition: PropertyCondition? = nil
     var lastRenovationYear: String = ""
 
-    // Photos (managed in Objektdaten step, saved on finish)
+    // Photos (managed in Objektdaten step, saved on finish — iOS only)
+    #if canImport(UIKit)
     var photos: [UIImage] = []
+    #endif
     var coverIndex: Int = 0
 
     // Kauf
