@@ -7,6 +7,7 @@ struct CashflowTab: View {
     @State private var selectedYear: Int = Calendar.current.component(.year, from: Date())
     @State private var showAddSheet = false
     @State private var editingEntry: StatusEntry? = nil
+    @State private var showEditSheet = false
 
     private var availableYears: [Int] {
         let start = Calendar.current.component(.year, from: vm.property.economicTransferDate)
@@ -27,8 +28,10 @@ struct CashflowTab: View {
         .sheet(isPresented: $showAddSheet) {
             StatusEntrySheet(property: vm.property)
         }
-        .sheet(item: $editingEntry) { entry in
-            StatusEntrySheet(property: vm.property, entry: entry)
+        .sheet(isPresented: $showEditSheet) {
+            if let entry = editingEntry {
+                StatusEntrySheet(property: vm.property, entry: entry)
+            }
         }
     }
 
@@ -159,7 +162,7 @@ struct CashflowTab: View {
                     .frame(maxWidth: 160, alignment: .trailing)
             }
             Menu {
-                Button { editingEntry = entry } label: {
+                Button { editingEntry = entry; showEditSheet = true } label: {
                     Label("Bearbeiten", systemImage: "pencil")
                 }
                 Divider()
