@@ -35,7 +35,9 @@ struct PropertySetupView: View {
             }
         }
         .navigationTitle("Immobilie hinzufügen")
+        #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
+        #endif
     }
 
     // MARK: - Sidebar
@@ -224,11 +226,10 @@ struct PropertySetupView: View {
             modelContext.insert(entry)
         }
 
-        // Save photos (iOS only — UIImage not available on macOS)
-        #if os(iOS)
+        // Save photos
         let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-        for (i, img) in state.photos.enumerated() {
-            if let data = img.jpegData(compressionQuality: 0.8) {
+        for (i, data) in state.photosData.enumerated() {
+            do {
                 let filename = "\(UUID().uuidString).jpg"
                 let url = docs.appendingPathComponent(filename)
                 try? data.write(to: url)
@@ -241,7 +242,6 @@ struct PropertySetupView: View {
                 modelContext.insert(photo)
             }
         }
-        #endif
 
         dismiss()
     }

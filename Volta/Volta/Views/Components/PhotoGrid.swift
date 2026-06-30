@@ -3,7 +3,7 @@ import PhotosUI
 
 #if os(iOS)
 struct PhotoGrid: View {
-    @Binding var selectedImages: [UIImage]
+    @Binding var photosData: [Data]
     @Binding var coverIndex: Int
     var maxPhotos: Int = 15
 
@@ -15,14 +15,16 @@ struct PhotoGrid: View {
             columns: Array(repeating: GridItem(.flexible(), spacing: 2), count: 3),
             spacing: 2
         ) {
-            ForEach(Array(selectedImages.enumerated()), id: \.offset) { i, img in
+            ForEach(Array(photosData.enumerated()), id: \.offset) { i, data in
                 ZStack(alignment: .topTrailing) {
-                    Image(uiImage: img)
-                        .resizable()
-                        .scaledToFill()
-                        .frame(minWidth: 0, maxWidth: .infinity)
-                        .aspectRatio(1, contentMode: .fill)
-                        .clipped()
+                    if let img = UIImage(data: data) {
+                        Image(uiImage: img)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(minWidth: 0, maxWidth: .infinity)
+                            .aspectRatio(1, contentMode: .fill)
+                            .clipped()
+                    }
                     if i == coverIndex {
                         Image(systemName: "star.fill")
                             .foregroundStyle(.yellow)
@@ -42,10 +44,8 @@ struct PhotoGrid: View {
                         actionPhotoIndex = nil
                     }
                     Button("Löschen", role: .destructive) {
-                        selectedImages.remove(at: i)
-                        if selectedImages.isEmpty {
-                            coverIndex = 0
-                        } else if coverIndex >= selectedImages.count {
+                        photosData.remove(at: i)
+                        if photosData.isEmpty || coverIndex >= photosData.count {
                             coverIndex = 0
                         }
                         actionPhotoIndex = nil
@@ -54,32 +54,25 @@ struct PhotoGrid: View {
                 .onTapGesture { actionPhotoIndex = i }
             }
 
-            if selectedImages.count < maxPhotos {
+            if photosData.count < maxPhotos {
                 PhotosPicker(
                     selection: $pickerItems,
-                    maxSelectionCount: maxPhotos - selectedImages.count,
+                    maxSelectionCount: maxPhotos - photosData.count,
                     matching: .images
                 ) {
                     RoundedRectangle(cornerRadius: 8)
-                        .stroke(
-                            Color.appDimText,
-                            style: StrokeStyle(lineWidth: 1.5, dash: [4])
-                        )
+                        .stroke(Color.appDimText, style: StrokeStyle(lineWidth: 1.5, dash: [4]))
                         .aspectRatio(1, contentMode: .fit)
-                        .overlay(
-                            Image(systemName: "plus")
-                                .foregroundStyle(Color.appDimText)
-                        )
+                        .overlay(Image(systemName: "plus").foregroundStyle(Color.appDimText))
                 }
             }
         }
         .onChange(of: pickerItems) { _, items in
             Task { @MainActor in
                 for item in items {
-                    if let data = try? await item.loadTransferable(type: Data.self),
-                       let img = UIImage(data: data) {
-                        selectedImages.append(img)
-                        if selectedImages.count == 1 { coverIndex = 0 }
+                    if let data = try? await item.loadTransferable(type: Data.self) {
+                        photosData.append(data)
+                        if photosData.count == 1 { coverIndex = 0 }
                     }
                 }
                 pickerItems = []
@@ -88,9 +81,8 @@ struct PhotoGrid: View {
     }
 }
 #else
-// Stub for macOS — photos are iOS-only in this app
 struct PhotoGrid: View {
-    @Binding var selectedImages: [Data]
+    @Binding var photosData: [Data]
     @Binding var coverIndex: Int
     var maxPhotos: Int = 15
 

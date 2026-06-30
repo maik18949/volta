@@ -107,7 +107,7 @@ struct SetupStepObjektdaten: View {
                     .font(.appSectionLabel).foregroundStyle(Color.appSectionLabel)
 
                 #if os(iOS)
-                PhotoGrid(selectedImages: $state.photos, coverIndex: $state.coverIndex)
+                PhotoGrid(photosData: $state.photosData, coverIndex: $state.coverIndex)
                 #else
                 Text("Fotos sind nur auf iOS verfügbar.")
                     .font(.appSubtext).foregroundStyle(Color.appSecondaryText)
