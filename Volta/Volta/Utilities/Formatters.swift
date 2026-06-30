@@ -79,4 +79,37 @@ enum Formatters {
         guard let value else { return "–" }
         return formatPercent(value)
     }
+
+    /// Format area in sqm — no decimal if whole number, one decimal otherwise
+    static func formatAreaSqm(_ value: Double) -> String {
+        if value.truncatingRemainder(dividingBy: 1) == 0 {
+            return String(Int(value))
+        }
+        return String(format: "%.1f", value)
+    }
+
+    /// Format room count — no decimal if whole number
+    static func formatRooms(_ value: Double) -> String {
+        if value.truncatingRemainder(dividingBy: 1) == 0 {
+            return String(Int(value))
+        }
+        return String(format: "%.1f", value)
+    }
+
+    /// Format date as "MM/YY"
+    static func formatMonthYear(_ date: Date) -> String {
+        let cal = Calendar.current
+        let month = cal.component(.month, from: date)
+        let year = cal.component(.year, from: date) % 100
+        return String(format: "%02d/%02d", month, year)
+    }
+
+    /// Format percent input value (already as decimal, e.g. 0.035) for display in text fields (shows 3.5)
+    static func formatPercentInput(_ value: Double) -> String {
+        let pct = value * 100
+        if pct.truncatingRemainder(dividingBy: 1) == 0 {
+            return String(Int(pct))
+        }
+        return String(format: "%.2f", pct)
+    }
 }
