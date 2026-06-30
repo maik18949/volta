@@ -38,7 +38,7 @@ enum SeedData {
         p.otherIncomeMonthly = 0
         p.warmmieteMonthly = 1_242
         p.vacancyRateAssumption = 0.03
-        p.rentMarketSqm = 13.50
+        p.marketRentPerSqm = 13.50
 
         // Kosten
         p.hoaFeeTotalMonthly = 417

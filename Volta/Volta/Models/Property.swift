@@ -122,8 +122,6 @@ class Property {
     var otherIncomeMonthly: Double = 0.0
     var warmmieteMonthly: Double?             // Bruttomiete / Monat, optional, informativ
     var vacancyRateAssumption: Double = 0.03
-    var rentMarketSqm: Double?
-    var currentMarketValue: Double?           // Aktueller Marktwert gesamt (manuell, Schätzung)
 
     // Kosten Wohnung
     var hoaFeeTotalMonthly: Double = 0.0

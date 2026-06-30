@@ -1,8 +1,9 @@
 import SwiftUI
-import Charts
 
 struct FinancingTab: View {
     let vm: PropertyViewModel
+
+    // MARK: - Data
 
     private var schedule: [AmortizationCalculator.AnnuityRow] {
         let months = vm.property.fixedInterestPeriodYears * 12
@@ -15,131 +16,279 @@ struct FinancingTab: View {
         )
     }
 
+    private var fixedRateEndDate: Date {
+        Calendar.current.date(
+            byAdding: .year,
+            value: vm.property.fixedInterestPeriodYears,
+            to: vm.property.loanStartDate
+        )!
+    }
+
+    private var yearsRemaining: Int {
+        max(0, Calendar.current.dateComponents([.year], from: Date(), to: fixedRateEndDate).year ?? 0)
+    }
+
+    private var remainingDebtAtFixedEnd: Double {
+        schedule.last?.remainingDebt ?? 0
+    }
+
+    // MARK: - Body
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
-                summarySection
-                ltvChartSection
-                scheduleSection
+                if vm.property.loanAmount == 0 {
+                    noLoanView
+                } else {
+                    summarySection
+                    scheduleSection
+                }
             }
             .padding(24)
         }
         .background(Color.appContentBackground)
     }
 
-    private var summarySection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            SectionHeader(title: "Finanzierungsübersicht")
+    // MARK: - No Loan
 
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                KPICard(label: "Darlehensbetrag", value: Formatters.formatCurrencyRounded(vm.property.loanAmount), width: 160)
-                KPICard(label: "Zinssatz", value: Formatters.formatPercentOneDecimal(vm.property.interestRate), width: 140)
-                KPICard(label: "Tilgungssatz", value: Formatters.formatPercentOneDecimal(vm.property.amortizationRate), width: 140)
-                KPICard(label: "Monatliche Rate", value: Formatters.formatCurrency(vm.monthlyMortgage), width: 160)
-                KPICard(label: "Zinsen / Jahr", value: Formatters.formatCurrencyRounded(vm.interestAnnual), width: 160)
-                KPICard(label: "Zinsbindungsende",
-                        value: Calendar.current.date(
-                            byAdding: .year, value: vm.property.fixedInterestPeriodYears,
-                            to: vm.property.loanStartDate
-                        ).map { $0.formatted(.dateTime.month().year()) } ?? "–",
-                        width: 160)
-                KPICard(label: "Aktuelle Restschuld", value: Formatters.formatCurrencyRounded(vm.remainingDebtNow), width: 170)
-                KPICard(label: "LTV aktuell",
-                        value: vm.ltvRatio.map { Formatters.formatPercentOneDecimal($0) } ?? "–",
-                        valueColor: vm.ltvRatio.map { Color.valueColor(0.75 - $0) } ?? .appPrimaryText,
-                        width: 140)
-                KPICard(label: "Eigenkapital", value: Formatters.formatCurrencyRounded(vm.equityUsed), width: 150)
-            }
-        }
+    private var noLoanView: some View {
+        Text("Keine Finanzierung erfasst.\nFinanzierungsdaten können im Immobiliendaten-Tab ergänzt werden.")
+            .font(.appBody)
+            .foregroundStyle(Color.appSecondaryText)
+            .multilineTextAlignment(.center)
+            .frame(maxWidth: .infinity)
+            .padding(24)
     }
 
-    private var ltvChartSection: some View {
+    // MARK: - Sektion 1: Finanzierungsübersicht
+
+    private var summarySection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            SectionHeader(title: "LTV-Kurve über Zinsbindungsperiode")
+            SectionHeader(title: "Finanzierung")
 
-            Chart {
-                ForEach(schedule) { row in
-                    LineMark(
-                        x: .value("Monat", row.date),
-                        y: .value("LTV %", (row.remainingDebt / vm.totalInvestment) * 100)
-                    )
-                    .foregroundStyle(Color.appAccent)
-                }
+            VStack(spacing: 0) {
+                infoRow(label: "Darlehensbetrag",
+                        value: Formatters.formatCurrencyRounded(vm.property.loanAmount))
+                Divider().padding(.leading, 12)
 
-                RuleMark(y: .value("Pfandbrief-Grenze", 60))
-                    .foregroundStyle(Color.appPositive.opacity(0.6))
-                    .lineStyle(StrokeStyle(dash: [4, 4]))
-                    .annotation(position: .trailing) {
-                        Text("60% — Pfandbrief")
-                            .font(.appCaption)
-                            .foregroundStyle(Color.appPositive)
-                    }
+                infoRow(label: "Restschuld (heute)",
+                        value: Formatters.formatCurrencyRounded(vm.remainingDebtNow))
+                Divider().padding(.leading, 12)
+
+                infoRow(label: "Monatliche Rate",
+                        value: Formatters.formatCurrency(vm.monthlyMortgage))
+                Divider().padding(.leading, 12)
+
+                infoRow(label: "Zinssatz",
+                        value: Formatters.formatPercentOneDecimal(vm.property.interestRate))
+                Divider().padding(.leading, 12)
+
+                infoRow(label: "Tilgungssatz",
+                        value: Formatters.formatPercentOneDecimal(vm.property.amortizationRate))
+                Divider().padding(.leading, 12)
+
+                infoRow(label: "Zinsbindung bis",
+                        value: "\(Formatters.formatMonthYear(fixedRateEndDate)) (noch \(yearsRemaining) Jahre)")
+                Divider().padding(.leading, 12)
+
+                infoRow(label: "Restschuld Zinsbindungsende",
+                        value: Formatters.formatCurrencyRounded(remainingDebtAtFixedEnd))
             }
-            .frame(height: 200)
-            .padding(12)
+            .padding(.horizontal, 12)
             .background(Color.appCardBackground)
             .clipShape(RoundedRectangle(cornerRadius: 10))
         }
     }
+
+    @ViewBuilder
+    private func infoRow(label: String, value: String) -> some View {
+        HStack {
+            Text(label)
+                .font(.appBody)
+                .foregroundStyle(Color.appSecondaryText)
+            Spacer()
+            Text(value)
+                .font(.appBody)
+                .foregroundStyle(Color.appPrimaryText)
+        }
+        .padding(.vertical, 8)
+    }
+
+    // MARK: - Sektion 2: Tilgungsplan (jahresweise)
 
     private var scheduleSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             SectionHeader(title: "Tilgungsplan (\(vm.property.fixedInterestPeriodYears) Jahre)")
 
             VStack(spacing: 0) {
-                scheduleHeader
+                yearlyScheduleHeader
 
                 Divider()
 
-                ForEach(schedule.filter { $0.id % 12 == 0 }) { row in
-                    scheduleRow(row: row)
+                ForEach(yearlySchedule()) { row in
+                    yearlyScheduleRow(row: row)
                 }
             }
             .background(Color.appCardBackground)
             .clipShape(RoundedRectangle(cornerRadius: 10))
+
+            let endFormatted = Formatters.formatMonthYear(fixedRateEndDate)
+            Text("⚠ Ab \(endFormatted): Anschlussfinanzierung noch offen — Konditionen können sich ändern.")
+                .font(.appCaption)
+                .foregroundStyle(Color.appWarning)
+                .padding(.top, 4)
         }
     }
 
-    private var scheduleHeader: some View {
+    // MARK: - Yearly Schedule
+
+    struct YearlyRow: Identifiable {
+        let id: Int              // Jahr (z.B. 2025)
+        let yearStart: Date
+        let startDebt: Double
+        let totalInterest: Double
+        let totalPrincipal: Double
+        let totalPayment: Double
+        let endDebt: Double
+        let isFixedRateEnd: Bool
+    }
+
+    private func yearlySchedule() -> [YearlyRow] {
+        guard !schedule.isEmpty else { return [] }
+
+        let fixedEndYear = Calendar.current.component(.year, from: fixedRateEndDate)
+
+        // Group monthly rows by year
+        var grouped: [Int: [AmortizationCalculator.AnnuityRow]] = [:]
+        for row in schedule {
+            let year = Calendar.current.component(.year, from: row.date)
+            grouped[year, default: []].append(row)
+        }
+
+        let sortedYears = grouped.keys.sorted()
+
+        return sortedYears.compactMap { year -> YearlyRow? in
+            guard let rows = grouped[year], !rows.isEmpty else { return nil }
+
+            let firstRowId = rows.first!.id  // 1-based month index
+            let startDebt: Double
+            if firstRowId == 1 {
+                startDebt = vm.property.loanAmount
+            } else {
+                let prevRows = schedule.filter { r in
+                    Calendar.current.component(.year, from: r.date) < year
+                }
+                startDebt = prevRows.last?.remainingDebt ?? vm.property.loanAmount
+            }
+
+            let totalInterest = rows.reduce(0) { $0 + $1.interest }
+            let totalPrincipal = rows.reduce(0) { $0 + $1.principal }
+            let totalPayment = rows.reduce(0) { $0 + $1.payment }
+            let endDebt = rows.last!.remainingDebt
+
+            let isFixedRateEnd = (year == fixedEndYear)
+
+            let yearStart = Calendar.current.date(from: DateComponents(year: year, month: 1, day: 1))!
+
+            return YearlyRow(
+                id: year,
+                yearStart: yearStart,
+                startDebt: startDebt,
+                totalInterest: totalInterest,
+                totalPrincipal: totalPrincipal,
+                totalPayment: totalPayment,
+                endDebt: endDebt,
+                isFixedRateEnd: isFixedRateEnd
+            )
+        }
+    }
+
+    private var yearlyScheduleHeader: some View {
         HStack {
-            Text("Datum").font(.appCaption).foregroundStyle(Color.appSecondaryText).frame(width: 80, alignment: .leading)
+            Text("Jahr")
+                .font(.appCaption)
+                .foregroundStyle(Color.appSecondaryText)
+                .frame(width: 48, alignment: .leading)
             Spacer()
-            Text("Zinsen").font(.appCaption).foregroundStyle(Color.appSecondaryText).frame(width: 90, alignment: .trailing)
-            Text("Tilgung").font(.appCaption).foregroundStyle(Color.appSecondaryText).frame(width: 90, alignment: .trailing)
-            Text("Rate").font(.appCaption).foregroundStyle(Color.appSecondaryText).frame(width: 90, alignment: .trailing)
-            Text("Restschuld").font(.appCaption).foregroundStyle(Color.appSecondaryText).frame(width: 110, alignment: .trailing)
+            Text("RS Anfang")
+                .font(.appCaption)
+                .foregroundStyle(Color.appSecondaryText)
+                .frame(width: 88, alignment: .trailing)
+            Text("Zinsen")
+                .font(.appCaption)
+                .foregroundStyle(Color.appSecondaryText)
+                .frame(width: 80, alignment: .trailing)
+            Text("Tilgung")
+                .font(.appCaption)
+                .foregroundStyle(Color.appSecondaryText)
+                .frame(width: 80, alignment: .trailing)
+            Text("Rate")
+                .font(.appCaption)
+                .foregroundStyle(Color.appSecondaryText)
+                .frame(width: 80, alignment: .trailing)
+            Text("RS Ende")
+                .font(.appCaption)
+                .foregroundStyle(Color.appSecondaryText)
+                .frame(width: 88, alignment: .trailing)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 6)
     }
 
     @ViewBuilder
-    private func scheduleRow(row: AmortizationCalculator.AnnuityRow) -> some View {
-        HStack {
-            Text(row.date, format: .dateTime.month().year())
-                .font(.appCaption)
-                .foregroundStyle(Color.appSecondaryText)
-                .frame(width: 80, alignment: .leading)
-            Spacer()
-            Text(Formatters.formatCurrencyRounded(row.interest))
-                .font(.appMonoSmall)
-                .foregroundStyle(Color.appNegative)
-                .frame(width: 90, alignment: .trailing)
-            Text(Formatters.formatCurrencyRounded(row.principal))
-                .font(.appMonoSmall)
-                .foregroundStyle(Color.appPositive)
-                .frame(width: 90, alignment: .trailing)
-            Text(Formatters.formatCurrencyRounded(row.payment))
-                .font(.appMonoSmall)
-                .foregroundStyle(Color.appPrimaryText)
-                .frame(width: 90, alignment: .trailing)
-            Text(Formatters.formatCurrencyRounded(row.remainingDebt))
-                .font(.appMonoSmall)
-                .foregroundStyle(Color.appPrimaryText)
-                .frame(width: 110, alignment: .trailing)
+    private func yearlyScheduleRow(row: YearlyRow) -> some View {
+        VStack(spacing: 0) {
+            if row.isFixedRateEnd {
+                Divider()
+            }
+
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("\(row.id)")
+                        .font(.appMonoSmall)
+                        .foregroundStyle(Color.appPrimaryText)
+                    if row.isFixedRateEnd {
+                        Text("Zinsbindungsende")
+                            .font(.system(size: 9, weight: .medium))
+                            .foregroundStyle(Color.appAccent)
+                            .padding(.horizontal, 4)
+                            .padding(.vertical, 2)
+                            .background(Color.appAccent.opacity(0.12))
+                            .clipShape(RoundedRectangle(cornerRadius: 4))
+                    }
+                }
+                .frame(width: 48, alignment: .leading)
+
+                Spacer()
+
+                Text(Formatters.formatCurrencyRounded(row.startDebt))
+                    .font(.appMonoSmall)
+                    .foregroundStyle(Color.appPrimaryText)
+                    .frame(width: 88, alignment: .trailing)
+                Text(Formatters.formatCurrencyRounded(row.totalInterest))
+                    .font(.appMonoSmall)
+                    .foregroundStyle(Color.appNegative)
+                    .frame(width: 80, alignment: .trailing)
+                Text(Formatters.formatCurrencyRounded(row.totalPrincipal))
+                    .font(.appMonoSmall)
+                    .foregroundStyle(Color.appPositive)
+                    .frame(width: 80, alignment: .trailing)
+                Text(Formatters.formatCurrencyRounded(row.totalPayment))
+                    .font(.appMonoSmall)
+                    .foregroundStyle(Color.appPrimaryText)
+                    .frame(width: 80, alignment: .trailing)
+                Text(Formatters.formatCurrencyRounded(row.endDebt))
+                    .font(.appMonoSmall)
+                    .foregroundStyle(Color.appPrimaryText)
+                    .frame(width: 88, alignment: .trailing)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+            .background(row.isFixedRateEnd ? Color.appAccent.opacity(0.06) : Color.clear)
+
+            if row.isFixedRateEnd {
+                Divider()
+            }
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 6)
-        .background(row.id % 24 == 0 ? Color.appCardBackground : Color.appCardBackground.opacity(0.6))
     }
 }
