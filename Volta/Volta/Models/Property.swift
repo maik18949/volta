@@ -122,8 +122,6 @@ class Property {
     var otherIncomeMonthly: Double = 0.0
     var warmmieteMonthly: Double?             // Bruttomiete / Monat, optional, informativ
     var vacancyRateAssumption: Double = 0.03
-    var rentMarketSqm: Double?
-    var currentMarketValue: Double?           // Aktueller Marktwert gesamt (manuell, Schätzung)
 
     // Kosten Wohnung
     var hoaFeeTotalMonthly: Double = 0.0
@@ -162,6 +160,10 @@ class Property {
     @Relationship(deleteRule: .cascade) var statusHistory: [StatusEntry] = []
     @Relationship(deleteRule: .cascade) var extraordinaryCosts: [ExtraordinaryCost] = []
     @Relationship(deleteRule: .cascade) var photos: [PropertyPhoto] = []
+
+    // Annahmen
+    var currentMarketValue: Double? = nil
+    var marketRentPerSqm: Double? = nil
 
     var sortOrder: Int = 0
     var createdAt: Date = Date()
