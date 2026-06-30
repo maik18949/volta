@@ -164,7 +164,6 @@ class Property {
     @Relationship(deleteRule: .cascade) var photos: [PropertyPhoto] = []
 
     // Annahmen
-    var currentMarketValue: Double? = nil
     var marketRentPerSqm: Double? = nil
 
     var sortOrder: Int = 0
