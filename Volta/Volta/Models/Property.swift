@@ -163,10 +163,6 @@ class Property {
     @Relationship(deleteRule: .cascade) var extraordinaryCosts: [ExtraordinaryCost] = []
     @Relationship(deleteRule: .cascade) var photos: [PropertyPhoto] = []
 
-    // Annahmen
-    var currentMarketValue: Double? = nil
-    var marketRentPerSqm: Double? = nil
-
     var sortOrder: Int = 0
     var createdAt: Date = Date()
     var updatedAt: Date = Date()
