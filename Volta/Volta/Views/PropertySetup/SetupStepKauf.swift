@@ -82,8 +82,8 @@ struct SetupStepKauf: View {
             Text(label)
                 .font(.appCaption).foregroundStyle(Color.appSecondaryText)
             TextField("0", text: text)
-                .textFieldStyle(.roundedBorder)
                 .keyboardType(.decimalPad)
+                .textFieldStyle(.roundedBorder)
         }
     }
 

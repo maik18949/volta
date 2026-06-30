@@ -87,8 +87,8 @@ struct SetupStepAfA: View {
         VStack(alignment: .leading, spacing: 4) {
             Text(label).font(.appCaption).foregroundStyle(Color.appSecondaryText)
             TextField("0", text: text)
-                .textFieldStyle(.roundedBorder)
                 .keyboardType(.decimalPad)
+                .textFieldStyle(.roundedBorder)
         }
     }
 
@@ -97,8 +97,8 @@ struct SetupStepAfA: View {
         VStack(alignment: .leading, spacing: 4) {
             Text(label).font(.appCaption).foregroundStyle(Color.appSecondaryText)
             TextField(placeholder, text: text)
-                .textFieldStyle(.roundedBorder)
                 .keyboardType(.decimalPad)
+                .textFieldStyle(.roundedBorder)
         }
     }
 

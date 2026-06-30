@@ -66,8 +66,8 @@ struct SetupStepFinanzierung: View {
                     Text("Monatsrate (€)")
                         .font(.appCaption).foregroundStyle(Color.appSecondaryText)
                     TextField(Formatters.formatCurrencyRounded(computedMonthlyRate), text: $state.monthlyMortgage)
-                        .textFieldStyle(.roundedBorder)
                         .keyboardType(.decimalPad)
+                        .textFieldStyle(.roundedBorder)
                     Text("Leer lassen für automatische Berechnung")
                         .font(.appSubtext).foregroundStyle(Color.appDimText)
                 }
@@ -113,8 +113,8 @@ struct SetupStepFinanzierung: View {
         VStack(alignment: .leading, spacing: 4) {
             Text(label).font(.appCaption).foregroundStyle(Color.appSecondaryText)
             TextField("0", text: text)
-                .textFieldStyle(.roundedBorder)
                 .keyboardType(.decimalPad)
+                .textFieldStyle(.roundedBorder)
         }
     }
 
@@ -123,8 +123,8 @@ struct SetupStepFinanzierung: View {
         VStack(alignment: .leading, spacing: 4) {
             Text(label).font(.appCaption).foregroundStyle(Color.appSecondaryText)
             TextField(placeholder, text: text)
-                .textFieldStyle(.roundedBorder)
                 .keyboardType(.decimalPad)
+                .textFieldStyle(.roundedBorder)
         }
     }
 

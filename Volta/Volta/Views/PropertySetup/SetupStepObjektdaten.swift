@@ -15,22 +15,22 @@ struct SetupStepObjektdaten: View {
                     Text("Wohnfläche (m²) *")
                         .font(.appCaption).foregroundStyle(Color.appSecondaryText)
                     TextField("z.B. 68", text: $state.livingAreaSqm)
-                        .textFieldStyle(.roundedBorder)
                         .keyboardType(.decimalPad)
+                        .textFieldStyle(.roundedBorder)
                 }
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Nutzfläche (m²)")
                         .font(.appCaption).foregroundStyle(Color.appSecondaryText)
                     TextField("optional", text: $state.usableAreaSqm)
-                        .textFieldStyle(.roundedBorder)
                         .keyboardType(.decimalPad)
+                        .textFieldStyle(.roundedBorder)
                 }
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Zimmer")
                         .font(.appCaption).foregroundStyle(Color.appSecondaryText)
                     TextField("z.B. 3", text: $state.rooms)
-                        .textFieldStyle(.roundedBorder)
                         .keyboardType(.decimalPad)
+                        .textFieldStyle(.roundedBorder)
                 }
 
                 // Ausstattung
@@ -98,8 +98,8 @@ struct SetupStepObjektdaten: View {
                     Text("Letzte Renovierung (Jahr)")
                         .font(.appCaption).foregroundStyle(Color.appSecondaryText)
                     TextField("optional", text: $state.lastRenovationYear)
-                        .textFieldStyle(.roundedBorder)
                         .keyboardType(.numberPad)
+                        .textFieldStyle(.roundedBorder)
                 }
 
                 // Fotos
