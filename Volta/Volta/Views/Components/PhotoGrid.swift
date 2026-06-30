@@ -1,7 +1,7 @@
 import SwiftUI
 import PhotosUI
 
-#if canImport(UIKit)
+#if os(iOS)
 struct PhotoGrid: View {
     @Binding var selectedImages: [UIImage]
     @Binding var coverIndex: Int

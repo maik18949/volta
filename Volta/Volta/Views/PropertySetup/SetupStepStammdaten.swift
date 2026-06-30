@@ -45,7 +45,7 @@ struct SetupStepStammdaten: View {
                         .font(.appCaption)
                         .foregroundStyle(Color.appSecondaryText)
                     TextField("z.B. 1985", text: $state.yearBuilt)
-                        .keyboardType(.numberPad)
+                        .numberKeyboard()
                         .textFieldStyle(.roundedBorder)
                 }
 

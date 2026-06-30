@@ -92,7 +92,7 @@ struct PropertyCard: View {
 
     @ViewBuilder
     private var coverImageView: some View {
-        #if canImport(UIKit)
+        #if os(iOS)
         let coverPhoto = property.photos.first(where: { $0.isCoverPhoto })
             ?? property.photos.sorted(by: { $0.sortOrder < $1.sortOrder }).first
 

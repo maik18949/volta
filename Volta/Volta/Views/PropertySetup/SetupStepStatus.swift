@@ -36,7 +36,7 @@ struct SetupStepStatus: View {
                         Text("Einnahme/Monat (€)")
                             .font(.appCaption).foregroundStyle(Color.appSecondaryText)
                         TextField("Garantiebetrag", text: $state.firstStatusIncome)
-                            .keyboardType(.decimalPad)
+                            .decimalKeyboard()
                             .textFieldStyle(.roundedBorder)
                     }
                 }

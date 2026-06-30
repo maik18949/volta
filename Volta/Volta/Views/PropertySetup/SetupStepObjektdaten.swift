@@ -15,21 +15,21 @@ struct SetupStepObjektdaten: View {
                     Text("Wohnfläche (m²) *")
                         .font(.appCaption).foregroundStyle(Color.appSecondaryText)
                     TextField("z.B. 68", text: $state.livingAreaSqm)
-                        .keyboardType(.decimalPad)
+                        .decimalKeyboard()
                         .textFieldStyle(.roundedBorder)
                 }
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Nutzfläche (m²)")
                         .font(.appCaption).foregroundStyle(Color.appSecondaryText)
                     TextField("optional", text: $state.usableAreaSqm)
-                        .keyboardType(.decimalPad)
+                        .decimalKeyboard()
                         .textFieldStyle(.roundedBorder)
                 }
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Zimmer")
                         .font(.appCaption).foregroundStyle(Color.appSecondaryText)
                     TextField("z.B. 3", text: $state.rooms)
-                        .keyboardType(.decimalPad)
+                        .decimalKeyboard()
                         .textFieldStyle(.roundedBorder)
                 }
 
@@ -98,7 +98,7 @@ struct SetupStepObjektdaten: View {
                     Text("Letzte Renovierung (Jahr)")
                         .font(.appCaption).foregroundStyle(Color.appSecondaryText)
                     TextField("optional", text: $state.lastRenovationYear)
-                        .keyboardType(.numberPad)
+                        .numberKeyboard()
                         .textFieldStyle(.roundedBorder)
                 }
 
@@ -106,7 +106,7 @@ struct SetupStepObjektdaten: View {
                 Text("Fotos")
                     .font(.appSectionLabel).foregroundStyle(Color.appSectionLabel)
 
-                #if canImport(UIKit)
+                #if os(iOS)
                 PhotoGrid(selectedImages: $state.photos, coverIndex: $state.coverIndex)
                 #else
                 Text("Fotos sind nur auf iOS verfügbar.")

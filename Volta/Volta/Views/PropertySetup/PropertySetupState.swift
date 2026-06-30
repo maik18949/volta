@@ -31,7 +31,7 @@ class PropertySetupState {
     var lastRenovationYear: String = ""
 
     // Photos (managed in Objektdaten step, saved on finish — iOS only)
-    #if canImport(UIKit)
+    #if os(iOS)
     var photos: [UIImage] = []
     #endif
     var coverIndex: Int = 0

@@ -21,15 +21,15 @@ struct HoaFeeSection: View {
                 .foregroundStyle(Color.appSectionLabel)
 
             TextField("Gesamt/Monat (€)", text: $total)
-                .keyboardType(.decimalPad)
+                .decimalKeyboard()
 
             Toggle("Aufteilen", isOn: $isSplit)
 
             if isSplit {
                 TextField("davon umlagefähig/Monat (€)", text: $recoverable)
-                    .keyboardType(.decimalPad)
+                    .decimalKeyboard()
                 TextField("davon Instandhaltungsrücklage/Monat (€)", text: $maintenanceReserve)
-                    .keyboardType(.decimalPad)
+                    .decimalKeyboard()
                 Text("davon nicht umlagefähig: \(Formatters.formatCurrency(nonRecoverable))/Monat")
                     .foregroundStyle(Color.appSecondaryText)
                     .font(.appSubtext)

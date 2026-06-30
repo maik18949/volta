@@ -225,7 +225,7 @@ struct PropertySetupView: View {
         }
 
         // Save photos (iOS only — UIImage not available on macOS)
-        #if canImport(UIKit)
+        #if os(iOS)
         let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
         for (i, img) in state.photos.enumerated() {
             if let data = img.jpegData(compressionQuality: 0.8) {
