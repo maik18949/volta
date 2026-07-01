@@ -42,8 +42,10 @@ enum SeedData {
 
         // Kosten
         p.hoaFeeTotalMonthly = 417
+        p.isHoaUnitSplit = true
         p.hoaFeeRecoverableMonthly = 292
         p.hoaFeeMaintenanceReserveMonthly = 34.76
+        p.isHoaParkingSplit = true   // TG hat kein separates Hausgeld
         p.propertyTaxAnnual = 205
         p.propertyManagementAnnual = 396
         p.propertyInsuranceAnnual = 0
