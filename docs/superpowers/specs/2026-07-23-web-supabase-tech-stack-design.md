@@ -42,12 +42,16 @@ Die SwiftData-Entities werden 1:1 zu Postgres-Tabellen:
 
 ## Doku-Änderungen (Scope dieses Umsetzungsschritts)
 
+Alle Markdown-Dokumentation im Repo (außer `docs/superpowers/`-Plänen und dem Swift-Code selbst) wird durchgesehen und Swift/SwiftUI/SwiftData-spezifische Stellen werden auf die neuen Äquivalente umgeschrieben. Produktbeschreibung, Formeln, UX-Verhalten und fachliche Entscheidungen bleiben inhaltlich unverändert — nur die technische Repräsentation wechselt:
+
 - **`CLAUDEvolta.md`** — komplett neu geschrieben: neue Projekt-Übersicht, neue Tech-Stack-Tabelle, neue Projektstruktur (Next.js App Router: `app/`, `lib/calculations/`, `lib/supabase/`, `components/`), neues Datenmodell-Kapitel (Postgres statt SwiftData), neue Testing-Strategie (Vitest statt XCTest), neue Konventionen (TS/React statt Swift). Berechnungsformeln-Kapitel bleibt inhaltlich identisch, nur TS- statt Swift-Syntax.
 - **`README.md`** — Stack-Tabelle und Projektstruktur-Abschnitt aktualisiert, Feature-Liste bleibt unverändert (Produkt ändert sich nicht).
-- **`immobilien_datenmodell_v2.md`**, **`docs/specs/*.md`** — bleiben unverändert (Produkt-/Feature-Specs, keine Tech-Stack-Docs).
+- **`immobilien_datenmodell_v2.md`** — Dateipfade (`*.swift` → neue `.ts`/`.tsx`-Pfade unter `app/`/`lib/`/`components/`), `@Model`/`@Observable`-Referenzen → Postgres-Tabellen/React-State, Code-Snippets Swift → TypeScript. Produktlogik (KPI-Freischaltung, Sensitivitätsanalyse, Promote-Flow) bleibt gleich.
+- **`docs/specs/*.md`** (spec-data-model, spec-calculations, spec-design-system, spec-property-setup, spec-verlauf-tab, spec-immobiliendaten-tab, und weitere) — Swift-Code-Blöcke (`@Model class ...`) → TypeScript-Typen/Interfaces bzw. Postgres-Tabellendefinition, `.swift`-Dateipfade → neue Pfade, SwiftUI-Implementierungshinweise (z.B. `.background(.ultraThinMaterial)`) → CSS/Tailwind-Äquivalente. Fachliche Regeln, Layout-Beschreibungen, Feldlisten, Validierungslogik bleiben unverändert.
+- **`docs/specs/volta-ios-design-specification/README.md`** — wird geprüft und ggf. an neue Struktur angepasst (kurze Datei, 22 Zeilen).
 - Swift-Code (`Volta/`, `VoltaTests/`) bleibt unangetastet.
 
-**Out of scope:** Das tatsächliche Next.js-Projekt-Scaffold, Supabase-Projekt-Setup und die Portierung von Komponenten/Berechnungslogik sind kein Teil dieses Schritts — das ist ein späterer, separater Implementierungsschritt, sobald die Doku als Entscheidungsgrundlage steht.
+**Out of scope:** Das tatsächliche Next.js-Projekt-Scaffold, Supabase-Projekt-Setup und die Portierung von Komponenten/Berechnungslogik (echter Code) sind kein Teil dieses Schritts — das ist ein späterer, separater Implementierungsschritt, sobald die Doku als Entscheidungsgrundlage steht.
 
 ## Out of Scope / bewusst nicht entschieden
 
