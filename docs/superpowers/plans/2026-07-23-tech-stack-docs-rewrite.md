@@ -188,11 +188,13 @@ web/
 
 ## Datenmodell (Supabase / Postgres)
 
+> Feldquelle: `docs/specs/spec-data-model.md` (aktuelle v2-Spec) — **nicht** das alte Property-Modell, das vorher in dieser Datei stand. Die vorherige Fassung dieses Abschnitts war gegen ein veraltetes v1-Datenmodell gebaut (5-Werte-Status-Enum, `monthlyMortgageActual`/`remainingDebtCurrent`, separate `RentGuarantee`-Tabelle, kein Hausgeld-Split) — das ist inzwischen durch `spec-data-model.md` ersetzt. Diese Fassung hier ist 1:1 gegen die aktuelle Spec gebaut, damit beide Dokumente nicht wieder auseinanderlaufen.
+
 ### properties (Haupt-Tabelle)
 
 ```sql
--- Hinweis: Alle nicht-optionalen Felder haben Default-Werte,
--- analog zur früheren SwiftData-Konvention (Migrationssicherheit).
+-- Hinweis: Alle nicht-optionalen Felder haben Default-Werte, damit
+-- künftige Migrationen bestehende Zeilen nicht brechen.
 create type property_type as enum ('apartment', 'einfamilienhaus', 'mehrfamilienhaus', 'gewerbe', 'grundstuck', 'sonstiges');
 create type acquisition_type as enum ('kauf', 'erbschaft', 'schenkung');
 create type parking_type as enum ('nicht_vorhanden', 'tiefgarage', 'aussenstellplatz', 'garage');
@@ -226,42 +228,53 @@ create table properties (
   has_basement boolean not null default false,
   basement_size_sqm double precision,
   has_fitted_kitchen boolean not null default false,
-  parking_type parking_type not null default 'nicht_vorhanden',
+  parking_type parking_type not null default 'nicht_vorhanden',  -- Stellplatz-Felder nur relevant wenn != 'nicht_vorhanden'
   parking_count int not null default 0,
-  heating_type text,
-  energy_efficiency_class text,
-  condition text,
+  heating_type text,               -- Enum-Werte noch nicht in den Specs definiert ("unverändert" referenziert) — als text bis konkretisiert
+  energy_efficiency_class text,    -- s.o.
+  condition text,                  -- s.o.
   last_renovation_year int,
 
-  -- Kauf
-  purchase_date date not null default now(),
-  economic_transfer_date date not null default now(),
+  -- Kauf & Nebenkosten
+  purchase_date date not null default now(),           -- Label je acquisition_type (Kaufdatum / Erbschaft / Schenkung)
+  economic_transfer_date date not null default now(),  -- AfA-Startpunkt
   purchase_price_unit double precision not null default 0,
-  purchase_price_parking double precision not null default 0,
+  purchase_price_parking double precision not null default 0,   -- nur wenn parking_type != 'nicht_vorhanden'
   land_transfer_tax double precision not null default 0,
   notary_costs double precision not null default 0,
   land_registry_costs double precision not null default 0,
   agent_fee double precision not null default 0,
   appraisal_costs double precision not null default 0,
   renovation_modernization_costs double precision not null default 0,
-  renovation_afa_eligible double precision not null default 0,
+  renovation_afa_eligible double precision not null default 0,  -- aktivierungspflichtiger Anteil, erhöht AfA-Basis
 
-  -- Einnahmen (Prognose)
-  cold_rent_monthly double precision not null default 0,
-  parking_rent_monthly double precision not null default 0,
+  -- Einnahmen
+  cold_rent_monthly double precision not null default 0,        -- Nettomiete, UI-Label "Nettomiete"
+  warmmiete_monthly double precision,                            -- rein informativ
+  parking_rent_monthly double precision not null default 0,     -- nur wenn parking_type != 'nicht_vorhanden'
   other_income_monthly double precision not null default 0,
-  service_charge_recoverable_monthly double precision not null default 0,
-  vacancy_rate_assumption double precision not null default 0.03,
-  rent_market_sqm double precision,
 
-  -- Kosten
+  -- Annahmen
+  vacancy_rate_assumption double precision not null default 0.03,
+  rent_market_sqm double precision,       -- Marktmiete/m², informativ
+  current_market_value double precision,  -- aktueller Marktwert, manuell geschätzt
+
+  -- Kosten — Wohnung
   hoa_fee_total_monthly double precision not null default 0,
-  hoa_fee_recoverable_monthly double precision not null default 0,
+  is_hoa_unit_split boolean not null default false,
+  hoa_fee_recoverable_monthly double precision not null default 0,          -- nur wenn is_hoa_unit_split
+  hoa_fee_maintenance_reserve_monthly double precision not null default 0,  -- nur wenn is_hoa_unit_split
   property_tax_annual double precision not null default 0,
   property_management_annual double precision not null default 0,
-  maintenance_reserve_monthly double precision not null default 0,
   property_insurance_annual double precision not null default 0,
   other_costs_monthly double precision not null default 0,
+
+  -- Kosten — Stellplatz (nur wenn parking_type != 'nicht_vorhanden')
+  hoa_fee_parking_total_monthly double precision not null default 0,
+  is_hoa_parking_split boolean not null default false,
+  hoa_fee_parking_recoverable_monthly double precision not null default 0,          -- nur wenn is_hoa_parking_split
+  hoa_fee_parking_maintenance_reserve_monthly double precision not null default 0,  -- nur wenn is_hoa_parking_split
+  property_tax_parking_annual double precision not null default 0,
 
   -- Finanzierung
   loan_amount double precision not null default 0,
@@ -269,8 +282,9 @@ create table properties (
   amortization_rate double precision not null default 0,
   fixed_interest_period_years int not null default 10,
   loan_start_date date not null default now(),
-  monthly_mortgage_actual double precision,
-  remaining_debt_current double precision,
+  monthly_mortgage double precision not null default 0,          -- direkt gespeichert, im Wizard vorausgefüllt & editierbar
+  equity_contributed double precision not null default 0,        -- selbst eingebrachtes Eigenkapital
+  broker_commission_agreement double precision not null default 0,  -- Anteil aus Eigenprovisions-Vereinbarung
 
   -- AfA & Steuer
   land_value double precision not null default 0,
@@ -289,15 +303,17 @@ create policy "properties_owner" on properties for all using (user_id = auth.uid
 ### status_entries
 
 ```sql
-create type property_status as enum ('vermietet', 'leerstand_mietgarantie', 'leerstand', 'eigennutzung', 'renovierung');
+-- 3 Werte, nicht 5 — leerstandMietgarantie/eigennutzung/renovierung aus der
+-- alten v1-Spec existieren in der aktuellen Produktdefinition nicht mehr.
+create type property_status as enum ('vermietet', 'leerstand', 'mietgarantie');
 
 create table status_entries (
   id uuid primary key default gen_random_uuid(),
   property_id uuid not null references properties(id) on delete cascade,
-  status_from date not null default now(),
+  date date not null default now(),         -- Startdatum dieses Status
   status property_status not null default 'vermietet',
-  income_actual_monthly double precision not null default 0,
-  notes text
+  income_actual_monthly double precision,   -- nullable — nur für 'mietgarantie' befüllt
+  notes text not null default ''
 );
 
 alter table status_entries enable row level security;
@@ -309,15 +325,17 @@ create policy "status_entries_owner" on status_entries for all using (
 ### extraordinary_costs
 
 ```sql
-create type extraordinary_cost_category as enum ('sonderumlage', 'reparatur', 'gutachter', 'rechtskosten', 'sonstiges');
-
+-- Keine category-Enum mehr — description ist jetzt Freitext (z.B.
+-- "Vermietungsprovision", "WEG Sonderumlage"), date ist ein konkretes
+-- Datum statt auf Monatsanfang normalisiert.
 create table extraordinary_costs (
   id uuid primary key default gen_random_uuid(),
   property_id uuid not null references properties(id) on delete cascade,
-  cost_month date not null,          -- immer auf ersten Tag des Monats normalisiert
+  date date not null default now(),        -- Datum der Ausgabe
+  description text not null default '',
   amount double precision not null default 0,
-  category extraordinary_cost_category not null default 'sonstiges',
-  description_text text
+  is_deductible boolean not null default false,  -- steuerlich absetzbar (§9 EStG)?
+  notes text
 );
 
 alter table extraordinary_costs enable row level security;
@@ -326,24 +344,25 @@ create policy "extraordinary_costs_owner" on extraordinary_costs for all using (
 );
 ```
 
-### rent_guarantees
+### property_photos
 
 ```sql
-create table rent_guarantees (
+create table property_photos (
   id uuid primary key default gen_random_uuid(),
-  property_id uuid not null references properties(id) on delete cascade unique,
-  guarantee_provider text not null default '',
-  guarantee_amount_monthly double precision not null default 0,
-  guarantee_start_date date not null default now(),
-  guarantee_end_date date not null default now(),
-  guarantee_notes text not null default ''
+  property_id uuid not null references properties(id) on delete cascade,
+  file_path text not null,                    -- Pfad im Supabase Storage Bucket
+  is_cover_photo boolean not null default false,  -- max. 1 pro Immobilie (App-seitig durchgesetzt)
+  sort_order int not null default 0,
+  created_at timestamptz not null default now()
 );
 
-alter table rent_guarantees enable row level security;
-create policy "rent_guarantees_owner" on rent_guarantees for all using (
+alter table property_photos enable row level security;
+create policy "property_photos_owner" on property_photos for all using (
   property_id in (select id from properties where user_id = auth.uid())
 );
 ```
+
+**Kein `rent_guarantees`:** Die alte v1-Spec hatte eine eigene `RentGuarantee`-Tabelle (Anbieter, Start-/Enddatum). Im aktuellen Modell läuft eine Mietgarantie über `status_entries` mit `status = 'mietgarantie'` und `income_actual_monthly` — keine separate Tabelle nötig.
 
 TypeScript-Typen für alle Tabellen werden generiert (nicht manuell gepflegt):
 
@@ -376,10 +395,10 @@ const grossYield = (coldRentYearly + parkingRentYearly) / purchasePrice;
 ### Zinsen/Tilgung
 
 ```typescript
-// Berechnet — überschreibbar durch monthlyMortgageActual
-const interestMonthlyCalc = loanAmount * (interestRate / 12);
-const principalMonthlyCalc = loanAmount * (amortizationRate / 12);
-const monthlyMortgage = monthlyMortgageActual ?? (interestMonthlyCalc + principalMonthlyCalc);
+// monthlyMortgage ist direkt gespeichert (properties.monthly_mortgage) und im Wizard
+// mit diesem Wert vorausgefüllt — Nutzer kann ihn danach frei überschreiben
+// (z.B. Sondertilgung, abweichende Bankrate). Kein separates "Actual"-Feld.
+const monthlyMortgagePrefill = loanAmount * ((interestRate + amortizationRate) / 12);
 ```
 
 ### Dynamische Restschuld
@@ -545,14 +564,14 @@ Alle Formeln sind pure functions ohne Side Effects — exakt das, was unit-testb
 | `kpiCalculator.ts` | `grossYield`, `netYield`, `capRate`, `cashOnCash`, `dscr`, `mietmultiplikator`, `breakEvenRent` |
 | `cashflowCalculator.ts` | Cashflow je Status (vermietet / leerstand / mietgarantie), außerordentliche Kosten, Steuereffekt |
 | `depreciationCalculator.ts` | AfA-Basis-Formel, anteilige AfA im Erwerbsjahr, verschiedene `depreciationRate`-Szenarien |
-| `amortizationCalculator.ts` | `remainingDebt(atMonth)`, Tilgungsplan-Korrektheit, `monthlyMortgageActual`-Override |
+| `amortizationCalculator.ts` | `remainingDebt(atMonth)`, Tilgungsplan-Korrektheit, `monthlyMortgage`-Wizard-Vorbefüllung vs. manueller Überschreibung |
 | `taxCalculator.ts` | `taxableIncomeVV`, `taxEffectYearly`, negativer Steuereffekt = Erstattung |
 
 **Kritische Edge Cases:**
 - Division durch 0: kein Kaufpreis, kein Eigenkapital, kein Schuldenservice
-- `monthlyMortgageActual = undefined` → Fallback auf berechneten Wert
+- `monthlyMortgage` manuell überschrieben (z.B. Sondertilgung) vs. Wizard-Vorbefüllung `loanAmount × (interestRate + amortizationRate) / 12`
 - AfA-Beginn genau an `economicTransferDate` (erster voller Monat)
-- Cashflow bei `leerstandMietgarantie` vs. `leerstand` (umlagefähige Kosten-Logik)
+- Cashflow bei `mietgarantie` vs. `leerstand` (umlagefähige Kosten-Logik)
 - `effectiveGrossIncomeYearly` bei 0% Leerstand vs. 100% Leerstand
 
 **Fixture:** Dresdner ETW mit allen bekannten Werten als gemeinsames `tests/fixtures/dresdnerEtw.ts` — einmal definiert, in allen Calculator-Tests genutzt. Jede KPI wird gegen den händisch verifizierten Sollwert geprüft (Golden-Master-Ansatz).
@@ -574,8 +593,8 @@ Kein echter Supabase-Call in Component-Tests — Mock-Client oder Property-Objek
 
 Gezielte Tests für Invarianten, die die App voraussetzt:
 
-- Erster `status_entries`-Eintrag muss `status_from == economic_transfer_date` sein
-- `cost_month` in `extraordinary_costs` ist immer auf ersten Tag des Monats normalisiert
+- Erster `status_entries`-Eintrag muss `date == economic_transfer_date` sein
+- `status_entries.income_actual_monthly` ist nur bei `status = 'mietgarantie'` gesetzt, sonst `null`
 - `building_share_ratio + land_share_ratio ≈ 1.0` (aus Regierungs-Excel-Werten)
 - Promote-Flow: `investment_calculations` → `properties` kopiert alle Felder korrekt
 

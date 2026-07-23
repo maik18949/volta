@@ -27,19 +27,21 @@ Der bestehende Swift-Code (`Volta/`, `VoltaTests/`) bleibt unverändert im Repo 
 
 ## Datenmodell & Auth
 
-Die SwiftData-Entities werden 1:1 zu Postgres-Tabellen:
+Die Tabellen folgen 1:1 dem aktuellen Datenmodell aus `docs/specs/spec-data-model.md` (v2) — **nicht** dem älteren Modell, das noch in der alten `CLAUDEvolta.md` stand (das hatte ein 5-Werte-Status-Enum, eine separate `RentGuarantee`-Tabelle und kein Hausgeld-Split; alles davon ist in der aktuellen Spec überholt):
 
-- `properties` — Haupt-Entity mit allen Feldern aus `Property` (Stammdaten, Objektdaten, Kauf, Einnahmen, Kosten, Finanzierung, AfA), plus `user_id` (FK auf `auth.users`)
-- `status_entries` — 1:n zu `properties`
-- `extraordinary_costs` — 1:n zu `properties`
-- `rent_guarantees` — 1:1 zu `properties`
+- `properties` — Haupt-Entity mit allen Feldern aus `spec-data-model.md` (Stammdaten, Objektdaten, Kauf, Einnahmen, Annahmen, Kosten Wohnung + Stellplatz mit Hausgeld-Split, Finanzierung, AfA), plus `user_id` (FK auf `auth.users`)
+- `status_entries` — 1:n zu `properties`, Status-Enum hat 3 Werte (`vermietet` / `leerstand` / `mietgarantie`)
+- `extraordinary_costs` — 1:n zu `properties`, freie Textbeschreibung statt Kategorie-Enum
+- `property_photos` — 1:n zu `properties`, max. 15 pro Immobilie (App-seitig durchgesetzt)
 - `investment_calculations` — eigenständig wie bisher (Promote-Flow kopiert Felder nach `properties`)
 
-**Row-Level-Security:** Jede Tabelle bekommt eine RLS-Policy `user_id = auth.uid()`. Primär ein Sicherheitsnetz, da Daten jetzt im Web statt lokal liegen; offen für später mehr Nutzer falls gewünscht.
+Keine `rent_guarantees`-Tabelle: Mietgarantie läuft über `status_entries` mit `status = 'mietgarantie'` und `income_actual_monthly`.
+
+**Row-Level-Security:** Jede Tabelle bekommt eine RLS-Policy `user_id = auth.uid()` (bei Kind-Tabellen indirekt über `property_id`). Primär ein Sicherheitsnetz, da Daten jetzt im Web statt lokal liegen; offen für später mehr Nutzer falls gewünscht.
 
 **Auth-Flow:** Supabase Magic Link (E-Mail) — kein Passwort zu verwalten.
 
-**Enums** (`PropertyStatus`, `PropertyType`, `ExtraordinaryCostCategory` etc.) werden als Postgres-`enum`-Typen oder `text` mit `CHECK`-Constraint abgebildet — konkrete Wahl wird im Implementierungsplan getroffen.
+**Enums** (`PropertyType`, `AcquisitionType`, `ParkingType`, `PropertyStatus`) werden als Postgres-`enum`-Typen abgebildet. `HeatingType`/`EnergyClass`/`PropertyCondition` bleiben vorerst `text`, da die konkreten Werte in keiner Spec-Datei aufgelistet sind (dort steht nur "unverändert").
 
 ## Doku-Änderungen (Scope dieses Umsetzungsschritts)
 
