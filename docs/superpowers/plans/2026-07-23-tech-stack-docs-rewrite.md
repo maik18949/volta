@@ -28,7 +28,8 @@ Every task below applies this glossary. Do not invent new translations ad hoc �
 | `ModelContainer` | Supabase client (`lib/supabase/client.ts` / `server.ts`) |
 | Kein Backend | Supabase (Postgres + Auth) |
 | XCTest | Vitest |
-| Xcode | VS Code / any editor + `npm run dev` |
+| Xcode | VS Code / any editor + `pnpm dev` |
+| CocoaPods / SPM (kein Paketmanager) | pnpm |
 
 ### Code-level terms
 
@@ -119,6 +120,7 @@ Dieses Dokument beschreibt Architektur, Konventionen und Entscheidungen des Proj
 | Datumsverarbeitung | native `Date` (+ `date-fns` falls nötig) | Tilgungsplan, Monats-Iteration |
 | Testing | Vitest | Unit Tests für Berechnungslogik |
 | Hosting | Vercel | Standard-Hosting für Next.js |
+| Package-Manager | pnpm | Schnellere Installs, spart Speicherplatz (content-addressable store), verhindert phantom dependencies |
 | Abhängigkeiten extern | Next.js, React, Tailwind, Recharts, React Hook Form, Zod, `supabase-js`, Vitest | Schlanker Stack, kein zusätzliches globales State-Management, kein ORM |
 
 ---
@@ -641,7 +643,7 @@ Aktuelle Version: **v1.0.0** (initiales Schema, siehe Datenmodell-Abschnitt oben
 
 ## Debug-Seeding
 
-Im lokalen Dev-Modus (`npm run dev` gegen lokale Supabase-Instanz via `supabase start`) wird bei leerem Datenbestand die Dresdner ETW als Testimmobilie eingefügt:
+Im lokalen Dev-Modus (`pnpm dev` gegen lokale Supabase-Instanz via `supabase start`) wird bei leerem Datenbestand die Dresdner ETW als Testimmobilie eingefügt:
 
 ```typescript
 // scripts/seed.ts — nur gegen lokale/Dev-Supabase-Instanz ausführen, nie gegen Prod
@@ -746,6 +748,7 @@ Private Immobilienverwaltung als Web-App — Rendite, Cashflow, Steuer und Reali
 | Charts | Recharts |
 | Formulare | React Hook Form + Zod |
 | Hosting | Vercel |
+| Package-Manager | pnpm |
 
 ## Features
 
@@ -779,9 +782,9 @@ Supabase (Postgres) mit Row-Level-Security pro Nutzer. Kein manuelles Speichern 
 ## Entwicklung
 
 ```bash
-npm install
+pnpm install
 supabase start      # lokale Supabase-Instanz (Docker)
-npm run dev
+pnpm dev
 ```
 
 Berechnungslogik liegt vollständig in `lib/calculations/` als reine TS-Funktionen — unabhängig von React testbar (Vitest). Testfixture: Dresdner ETW (alle Werte bekannt und verifiziert).

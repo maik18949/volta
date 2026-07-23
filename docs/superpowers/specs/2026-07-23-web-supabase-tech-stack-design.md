@@ -22,7 +22,8 @@ Der bestehende Swift-Code (`Volta/`, `VoltaTests/`) bleibt unverändert im Repo 
 | Charts | Recharts | Ersetzt Swift Charts (LTV-Kurve, Tilgungsplan-Visualisierung) |
 | Berechnungslogik | Reine TypeScript-Funktionen (`lib/calculations/`) | 1:1-Portierung von `KPICalculator`, `CashflowCalculator`, `DepreciationCalculator`, `AmortizationCalculator`, `TaxCalculator` — bleiben pure functions, unit-testbar |
 | Testing | Vitest | Ersetzt XCTest; gleiche Test-Pyramide, Fokus auf `calculations/`, Dresdner ETW als Golden-Master-Fixture |
-| Hosting | Vercel (Deploy als späterer Schritt, zunächst lokal via `npm run dev`) | Standard-Hosting für Next.js |
+| Hosting | Vercel (Deploy als späterer Schritt, zunächst lokal via `pnpm dev`) | Standard-Hosting für Next.js |
+| Package-Manager | pnpm | Schnellere Installs, spart Speicherplatz (content-addressable store), verhindert phantom dependencies |
 
 ## Datenmodell & Auth
 
