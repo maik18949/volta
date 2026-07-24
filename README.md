@@ -1,17 +1,18 @@
 # Immobilien Portfolio Manager
 
-Private Immobilienverwaltung für macOS — Rendite, Cashflow, Steuer und Realität vs. Prognose auf einen Blick.
+Private Immobilienverwaltung als Web-App — Rendite, Cashflow, Steuer und Realität vs. Prognose auf einen Blick.
 
 ## Stack
 
 | Bereich | Technologie |
 |---|---|
-| Plattform | macOS 14+ (Sonoma) |
-| Sprache | Swift 5.9+ |
-| UI | SwiftUI |
-| Persistenz | SwiftData (lokal, iCloud-ready) |
-| Charts | Swift Charts |
-| Abhängigkeiten | keine |
+| Frontend | Next.js (App Router, TypeScript) |
+| Backend | Supabase (Postgres + Auth) |
+| Styling | Tailwind CSS |
+| Charts | Recharts |
+| Formulare | React Hook Form + Zod |
+| Hosting | Vercel |
+| Package-Manager | pnpm |
 
 ## Features
 
@@ -25,30 +26,32 @@ Private Immobilienverwaltung für macOS — Rendite, Cashflow, Steuer und Realit
 ## Projektstruktur
 
 ```
-ImmobilienPortfolio/
-├── Models/            # SwiftData Entitäten
-├── ViewModels/        # Berechnungen + State (@Observable)
-├── Views/
-│   ├── Portfolio/     # Gesamtübersicht
-│   ├── Property/      # Detail-Tabs (Übersicht, Cashflow, Steuer, Finanzierung, Einstellungen)
-│   ├── Wizard/        # Schritt-für-Schritt Eingabe neue Immobilie
-│   ├── InvestmentCalculator/
-│   └── Components/    # Wiederverwendbare UI-Bausteine
-├── Calculations/      # Pure Swift, kein SwiftUI — unit-testbar
-└── Utilities/         # Formatter, Date/Double Extensions
+web/
+├── app/               # Next.js App Router: Routen + Layouts
+│   ├── login/
+│   └── (app)/
+│       ├── properties/       # Property Setup + Detail-Tabs (Übersicht, Cashflow, Steuer, Finanzierung, Verlauf, Einstellungen)
+│       └── investment-calculator/
+├── components/        # Wiederverwendbare UI-Bausteine
+├── lib/
+│   ├── calculations/  # Reine TS-Funktionen, kein React — unit-testbar
+│   └── supabase/      # Client, generierte Typen
+└── tests/
 ```
 
 ## Datenspeicherung
 
-SwiftData speichert automatisch als SQLite in `~/Library/Application Support/com.*.ImmobilienPortfolio/`. Kein manuelles Speichern nötig. Selbst mit 500 Objekten und 20 Jahren Historiedaten bleibt die Datenbank unter 10 MB.
-
-iCloud-Sync kann später mit einer einzigen Änderung am `ModelContainer` aktiviert werden — keine Architektur-Anpassung nötig.
+Supabase (Postgres) mit Row-Level-Security pro Nutzer. Kein manuelles Speichern nötig, Schreiboperationen committen sofort über `supabase-js`. Backups übernimmt Supabase.
 
 ## Entwicklung
 
-Xcode öffnen, Schema auswählen, bauen. Keine externen Abhängigkeiten, kein SPM, kein CocoaPods.
+```bash
+pnpm install
+supabase start      # lokale Supabase-Instanz (Docker)
+pnpm dev
+```
 
-Berechnungslogik liegt vollständig in `Calculations/` als pure Swift-Funktionen — unabhängig von SwiftUI testbar. Testfixture: Dresdner ETW (alle Werte bekannt und verifiziert).
+Berechnungslogik liegt vollständig in `lib/calculations/` als reine TS-Funktionen — unabhängig von React testbar (Vitest). Testfixture: Dresdner ETW (alle Werte bekannt und verifiziert).
 
 ## Datenmodell
 
