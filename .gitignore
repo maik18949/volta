@@ -44,3 +44,7 @@ PreviewAssets.xcassets/
 
 # Backup
 *.orig
+
+# Claude Code local state
+.claude/settings.local.json
+.claude/worktrees/
