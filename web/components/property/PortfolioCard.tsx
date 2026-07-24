@@ -26,7 +26,7 @@ export function PortfolioCard({ totals }: { totals: PortfolioTotals }) {
         <div>
           <p className="text-[11px] text-text-secondary">Restschuld</p>
           <p className="text-[18px] font-extrabold text-text-primary">
-            {totals.remainingDebt !== 0 ? formatCurrency(totals.remainingDebt) : '–'}
+            {totals.remainingDebt > 0 ? formatCurrency(totals.remainingDebt) : '–'}
           </p>
         </div>
       </div>
