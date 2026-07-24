@@ -27,21 +27,23 @@ Der bestehende Swift-Code (`Volta/`, `VoltaTests/`) bleibt unverändert im Repo 
 
 ## Datenmodell & Auth
 
-Die Tabellen folgen 1:1 dem aktuellen Datenmodell aus `docs/specs/spec-data-model.md` (v2) — **nicht** dem älteren Modell, das noch in der alten `CLAUDEvolta.md` stand (das hatte ein 5-Werte-Status-Enum, eine separate `RentGuarantee`-Tabelle und kein Hausgeld-Split; alles davon ist in der aktuellen Spec überholt):
+Beim Review kamen drei sich widersprechende Datenmodell-Quellen ans Licht: die alte `CLAUDEvolta.md`, `immobilien_datenmodell_v2.md` und `docs/specs/spec-data-model.md` — alle drei nennen sich "aktuell", stimmen aber in Details nicht überein (Status-Enum 3 vs. 5 Werte, Feldname `date` vs. `status_from`, `ExtraordinaryCost` mit Kategorie-Enum vs. Freitext). Aufgelöst wurde das gegen den tatsächlich implementierten Swift-Code (`Volta/Volta/Models/*.swift`), da nur der Code beweisbar korrekt ist:
 
-- `properties` — Haupt-Entity mit allen Feldern aus `spec-data-model.md` (Stammdaten, Objektdaten, Kauf, Einnahmen, Annahmen, Kosten Wohnung + Stellplatz mit Hausgeld-Split, Finanzierung, AfA), plus `user_id` (FK auf `auth.users`)
-- `status_entries` — 1:n zu `properties`, Status-Enum hat 3 Werte (`vermietet` / `leerstand` / `mietgarantie`)
-- `extraordinary_costs` — 1:n zu `properties`, freie Textbeschreibung statt Kategorie-Enum
+- `properties` — Haupt-Entity mit allen Feldern aus `Property.swift` (Stammdaten, Objektdaten, Kauf, Einnahmen, Annahmen, Kosten Wohnung + Stellplatz mit Hausgeld-Split, Finanzierung, AfA, `sort_order`), plus `user_id` (FK auf `auth.users`)
+- `status_entries` — 1:n zu `properties`, Status-Enum hat 3 Werte (`vermietet` / `leerstand` / `mietgarantie`), plus `created_at` als Tie-Breaker bei gleichem `date`
+- `extraordinary_costs` — 1:n zu `properties`, behält Kategorie-Enum (`ExtraordinaryCostCategory`) und monatsnormalisiertes `cost_month` bei — **nicht** das Freitext-Modell aus `spec-data-model.md`, das vom echten Code abweicht
 - `property_photos` — 1:n zu `properties`, max. 15 pro Immobilie (App-seitig durchgesetzt)
 - `investment_calculations` — eigenständig wie bisher (Promote-Flow kopiert Felder nach `properties`)
 
-Keine `rent_guarantees`-Tabelle: Mietgarantie läuft über `status_entries` mit `status = 'mietgarantie'` und `income_actual_monthly`.
+Keine `rent_guarantees`-Tabelle: Mietgarantie läuft über `status_entries` mit `status = 'mietgarantie'` und `income_actual_monthly` — im Code existiert keine `RentGuarantee`-Klasse mehr.
 
 **Row-Level-Security:** Jede Tabelle bekommt eine RLS-Policy `user_id = auth.uid()` (bei Kind-Tabellen indirekt über `property_id`). Primär ein Sicherheitsnetz, da Daten jetzt im Web statt lokal liegen; offen für später mehr Nutzer falls gewünscht.
 
 **Auth-Flow:** Supabase Magic Link (E-Mail) — kein Passwort zu verwalten.
 
-**Enums** (`PropertyType`, `AcquisitionType`, `ParkingType`, `PropertyStatus`) werden als Postgres-`enum`-Typen abgebildet. `HeatingType`/`EnergyClass`/`PropertyCondition` bleiben vorerst `text`, da die konkreten Werte in keiner Spec-Datei aufgelistet sind (dort steht nur "unverändert").
+**Enums** (`PropertyType`, `AcquisitionType`, `ParkingType`, `PropertyStatus`, `HeatingType`, `EnergyClass`, `PropertyCondition`, `ExtraordinaryCostCategory`) werden alle als Postgres-`enum`-Typen abgebildet — die konkreten Werte stehen im Code, nicht in den Spec-Dateien.
+
+**Bekannte offene Spec-Ungenauigkeit (out of scope hier):** `docs/specs/spec-data-model.md` und `spec-verlauf-tab.md` beschreiben `ExtraordinaryCost` mit Freitext statt Kategorie-Enum — das weicht vom echten Code ab. Das ist ein Fehler in der Produkt-Spec selbst, nicht Teil dieses Tech-Stack-Umzugs, sollte aber separat korrigiert werden.
 
 ## Doku-Änderungen (Scope dieses Umsetzungsschritts)
 

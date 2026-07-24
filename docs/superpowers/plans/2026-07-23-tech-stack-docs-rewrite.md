@@ -188,7 +188,7 @@ web/
 
 ## Datenmodell (Supabase / Postgres)
 
-> Feldquelle: `docs/specs/spec-data-model.md` (aktuelle v2-Spec) — **nicht** das alte Property-Modell, das vorher in dieser Datei stand. Die vorherige Fassung dieses Abschnitts war gegen ein veraltetes v1-Datenmodell gebaut (5-Werte-Status-Enum, `monthlyMortgageActual`/`remainingDebtCurrent`, separate `RentGuarantee`-Tabelle, kein Hausgeld-Split) — das ist inzwischen durch `spec-data-model.md` ersetzt. Diese Fassung hier ist 1:1 gegen die aktuelle Spec gebaut, damit beide Dokumente nicht wieder auseinanderlaufen.
+> Feldquelle: der tatsächlich implementierte Swift-Code (`Volta/Volta/Models/*.swift`), nicht eine der drei sich widersprechenden Doku-Versionen. Beim Review kamen drei unterschiedliche Datenmodelle ans Licht: die alte `CLAUDEvolta.md` (5-Werte-Status-Enum, `monthlyMortgageActual`/`remainingDebtCurrent`, separate `RentGuarantee`-Tabelle), `immobilien_datenmodell_v2.md` (ebenfalls 5-Werte-Status-Enum, `status_from`, `cost_month`+Kategorie-Enum) und `docs/specs/spec-data-model.md` (3-Werte-Status-Enum, `date`, Freitext ohne Kategorie). Der echte Code in `Volta/Volta/Models/` folgt größtenteils `spec-data-model.md` (Property, StatusEntry — 3 Status, Feldname `date`), aber bei `ExtraordinaryCost` dem älteren Muster (`costMonth` normalisiert + Kategorie-Enum `ExtraordinaryCostCategory`, nicht Freitext). Diese Fassung hier folgt konsequent dem Code, da der Code die einzige Quelle ist, die tatsächlich läuft und nicht mit sich selbst im Widerspruch steht.
 
 ### properties (Haupt-Tabelle)
 
@@ -198,6 +198,9 @@ web/
 create type property_type as enum ('apartment', 'einfamilienhaus', 'mehrfamilienhaus', 'gewerbe', 'grundstuck', 'sonstiges');
 create type acquisition_type as enum ('kauf', 'erbschaft', 'schenkung');
 create type parking_type as enum ('nicht_vorhanden', 'tiefgarage', 'aussenstellplatz', 'garage');
+create type heating_type as enum ('fernwarme', 'gas', 'ol', 'warmepumpe', 'pellet', 'elektro', 'sonstiges');
+create type energy_class as enum ('a_plus_plus', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h');
+create type property_condition as enum ('neubau', 'erstbezug', 'gepflegt', 'renovierungsbedurftig', 'sanierungsbedurftig');
 
 create table properties (
   id uuid primary key default gen_random_uuid(),
@@ -230,9 +233,9 @@ create table properties (
   has_fitted_kitchen boolean not null default false,
   parking_type parking_type not null default 'nicht_vorhanden',  -- Stellplatz-Felder nur relevant wenn != 'nicht_vorhanden'
   parking_count int not null default 0,
-  heating_type text,               -- Enum-Werte noch nicht in den Specs definiert ("unverändert" referenziert) — als text bis konkretisiert
-  energy_efficiency_class text,    -- s.o.
-  condition text,                  -- s.o.
+  heating_type heating_type,
+  energy_efficiency_class energy_class,
+  condition property_condition,
   last_renovation_year int,
 
   -- Kauf & Nebenkosten
@@ -256,7 +259,7 @@ create table properties (
 
   -- Annahmen
   vacancy_rate_assumption double precision not null default 0.03,
-  rent_market_sqm double precision,       -- Marktmiete/m², informativ
+  market_rent_per_sqm double precision,   -- Marktmiete/m², informativ
   current_market_value double precision,  -- aktueller Marktwert, manuell geschätzt
 
   -- Kosten — Wohnung
@@ -292,6 +295,7 @@ create table properties (
   depreciation_rate double precision not null default 0.02,
   marginal_tax_rate double precision not null default 0,
 
+  sort_order int not null default 0,   -- manuelle Reihenfolge im Portfolio-Grid
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -304,7 +308,7 @@ create policy "properties_owner" on properties for all using (user_id = auth.uid
 
 ```sql
 -- 3 Werte, nicht 5 — leerstandMietgarantie/eigennutzung/renovierung aus der
--- alten v1-Spec existieren in der aktuellen Produktdefinition nicht mehr.
+-- alten v1-Spec existieren im tatsächlichen PropertyStatus-Enum nicht mehr.
 create type property_status as enum ('vermietet', 'leerstand', 'mietgarantie');
 
 create table status_entries (
@@ -313,7 +317,8 @@ create table status_entries (
   date date not null default now(),         -- Startdatum dieses Status
   status property_status not null default 'vermietet',
   income_actual_monthly double precision,   -- nullable — nur für 'mietgarantie' befüllt
-  notes text not null default ''
+  notes text not null default '',
+  created_at timestamptz not null default now()   -- Tie-Breaker-Sortierung bei gleichem `date`
 );
 
 alter table status_entries enable row level security;
@@ -325,17 +330,19 @@ create policy "status_entries_owner" on status_entries for all using (
 ### extraordinary_costs
 
 ```sql
--- Keine category-Enum mehr — description ist jetzt Freitext (z.B.
--- "Vermietungsprovision", "WEG Sonderumlage"), date ist ein konkretes
--- Datum statt auf Monatsanfang normalisiert.
+-- Behält die Kategorie-Enum + monatsnormalisiertes Datum bei — der
+-- tatsächliche Code (ExtraordinaryCost.swift) nutzt weiterhin category
+-- + costMonth, nicht das Freitext-Modell aus spec-data-model.md.
+create type extraordinary_cost_category as enum ('sonderumlage', 'reparatur', 'gutachter', 'rechtskosten', 'sonstiges');
+
 create table extraordinary_costs (
   id uuid primary key default gen_random_uuid(),
   property_id uuid not null references properties(id) on delete cascade,
-  date date not null default now(),        -- Datum der Ausgabe
-  description text not null default '',
+  cost_month date not null default now(),   -- auf ersten Tag des Monats normalisiert (App-seitig)
   amount double precision not null default 0,
-  is_deductible boolean not null default false,  -- steuerlich absetzbar (§9 EStG)?
-  notes text
+  category extraordinary_cost_category not null default 'sonstiges',
+  description_text text,
+  is_deductible boolean not null default true   -- §9 EStG Werbungskosten; Sonderumlage z.B. nicht immer
 );
 
 alter table extraordinary_costs enable row level security;
