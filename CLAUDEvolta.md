@@ -7,12 +7,12 @@ Dieses Dokument beschreibt Architektur, Konventionen und Entscheidungen des Proj
 
 ## Projekt-Übersicht
 
-**Name:** Immobilien Portfolio Manager
-**Plattform:** macOS 14+ (Sonoma)
-**Sprache:** Swift 5.9+
-**UI-Framework:** SwiftUI
-**Persistenz:** SwiftData
-**Ziel:** Private Immobilienverwaltung für einen einzelnen Nutzer — kein Multi-User, kein Backend
+**Name:** Immobilien Portfolio Manager (Volta)
+**Plattform:** Web App (Next.js, App Router)
+**Sprache:** TypeScript
+**UI-Framework:** React + Tailwind CSS
+**Backend:** Supabase (Postgres + Auth)
+**Ziel:** Private Immobilienverwaltung für einen einzelnen Nutzer mit Login — Daten liegen bei Supabase (Cloud), von jedem Gerät per Browser erreichbar
 
 ---
 
@@ -20,245 +20,273 @@ Dieses Dokument beschreibt Architektur, Konventionen und Entscheidungen des Proj
 
 | Bereich | Technologie | Begründung |
 |---|---|---|
-| UI | SwiftUI | Native macOS, deklarativ, wartbar |
-| Datenbank | SwiftData | Native Apple-Persistenz, iCloud-ready, kein ORM-Boilerplate |
-| Charts | Swift Charts | Native, keine externe Abhängigkeit |
-| Zahlenformatierung | Foundation (NumberFormatter) | Locale-aware EUR-Formatierung |
-| Datumsverarbeitung | Foundation (Calendar, DateComponents) | Tilgungsplan, Monats-Iteration |
-| Abhängigkeiten extern | **keine** | Kein SPM, kein CocoaPods — absichtlich dependency-free |
+| Frontend-Framework | Next.js (App Router) | Größtes Ökosystem, offizielle Supabase-Integration (Auth-Helpers, SSR) |
+| Sprache | TypeScript | Typsicherheit, generierte Supabase-Typen direkt nutzbar |
+| Backend/Datenbank | Supabase (Postgres) | Managed Postgres, Row-Level-Security, kein eigener Server nötig |
+| Auth | Supabase Auth (Magic Link) | Schützt Zugriff auf Finanzdaten, kein Passwort-Management |
+| Styling | Tailwind CSS | Design-Tokens aus `spec-design-system.md` als Tailwind-Theme, Utility-first |
+| Charts | Recharts | LTV-Kurve, Tilgungsplan-Visualisierung |
+| Formulare | React Hook Form + Zod | Feld-State/Performance, Schema-Validierung (Pflichtfelder, Warnschwellen) |
+| Datenzugriff | `supabase-js` Client + generierte TS-Typen (`supabase gen types typescript`) | Kein ORM-Overhead |
+| Zahlenformatierung | `Intl.NumberFormat('de-DE', ...)` | Locale-aware EUR-Formatierung |
+| Datumsverarbeitung | native `Date` (+ `date-fns` falls nötig) | Tilgungsplan, Monats-Iteration |
+| Testing | Vitest | Unit Tests für Berechnungslogik |
+| Hosting | Vercel | Standard-Hosting für Next.js |
+| Package-Manager | pnpm | Schnellere Installs, spart Speicherplatz (content-addressable store), verhindert phantom dependencies |
+| Abhängigkeiten extern | Next.js, React, Tailwind, Recharts, React Hook Form, Zod, `supabase-js`, Vitest | Schlanker Stack, kein zusätzliches globales State-Management, kein ORM |
 
 ---
 
 ## Projektstruktur
 
 ```
-ImmobilienPortfolio/
-├── ImmobilienPortfolioApp.swift       # App Entry Point, ModelContainer Setup
-├── CLAUDE.md                          # Diese Datei
+web/
+├── app/
+│   ├── layout.tsx                     # Root Layout, globale Styles
+│   ├── login/
+│   │   └── page.tsx                   # Magic-Link-Login
+│   └── (app)/                         # Geschützter Bereich (Auth-Check im Layout)
+│       ├── layout.tsx                 # Sidebar-Navigation
+│       ├── page.tsx                   # Portfolio-Übersicht (Hauptscreen)
+│       ├── properties/
+│       │   ├── new/
+│       │   │   └── page.tsx           # Property Setup (eigene Route, kein Modal)
+│       │   └── [id]/
+│       │       ├── layout.tsx         # Tab-Navigation
+│       │       ├── overview/page.tsx
+│       │       ├── cashflow/page.tsx
+│       │       ├── tax/page.tsx
+│       │       ├── financing/page.tsx
+│       │       ├── history/page.tsx
+│       │       └── settings/page.tsx
+│       └── investment-calculator/
+│           ├── page.tsx               # Sidebar-Liste aller Kaufkandidaten
+│           └── [id]/page.tsx          # KPI-Panel (fixiert) + Eingabe + Sensitivität
 │
-├── Models/                            # SwiftData Models
-│   ├── Property.swift                 # Haupt-Entity: Immobilie
-│   ├── StatusEntry.swift              # Statushistorie-Eintrag
-│   ├── ExtraordinaryCost.swift        # Außerordentliche Kosten
-│   ├── RentGuarantee.swift            # Mietgarantie
-│   └── InvestmentCalculation.swift    # Investment-Rechner (eigenständig)
+├── components/
+│   ├── property/
+│   │   ├── PropertyCard.tsx
+│   │   └── StatusBadge.tsx            # Vermietet / Leerstand etc.
+│   ├── kpi/
+│   │   ├── KpiCard.tsx
+│   │   └── KpiCardWithContext.tsx     # KPI + Benchmark-Erklärung
+│   ├── forms/
+│   │   ├── CurrencyField.tsx
+│   │   ├── PercentField.tsx
+│   │   ├── SelectField.tsx
+│   │   ├── DatePickerField.tsx
+│   │   └── NumberStepperControl.tsx
+│   └── layout/
+│       └── SectionHeader.tsx
 │
-├── ViewModels/                        # ObservableObject / @Observable
-│   ├── PropertyViewModel.swift        # KPI-Berechnungen pro Immobilie
-│   ├── PortfolioViewModel.swift       # Aggregierte Portfolio-KPIs
-│   └── InvestmentCalculatorViewModel.swift
+├── lib/
+│   ├── calculations/                  # Reine TS-Funktionen, kein React — unit-testbar
+│   │   ├── kpiCalculator.ts
+│   │   ├── cashflowCalculator.ts
+│   │   ├── depreciationCalculator.ts
+│   │   ├── amortizationCalculator.ts
+│   │   └── taxCalculator.ts
+│   ├── supabase/
+│   │   ├── client.ts                  # Browser-Client
+│   │   ├── server.ts                  # Server-Client (RSC/Route Handlers)
+│   │   └── types.ts                   # Generiert via `supabase gen types typescript`
+│   └── formatters.ts                  # currency/date/percent, shared
 │
-├── Views/
-│   ├── Portfolio/
-│   │   ├── PortfolioView.swift        # Übersicht alle Objekte
-│   │   └── PortfolioKPIView.swift     # Aggregierte Portfolio-KPIs
-│   │
-│   ├── Property/
-│   │   ├── PropertyDetailView.swift   # Container mit Tab-Navigation
-│   │   ├── OverviewTab.swift          # Statische KPIs + Objektinfos
-│   │   ├── CashflowTab.swift          # Soll/Ist nebeneinander
-│   │   ├── TaxTab.swift               # AfA, Werbungskosten, zvE
-│   │   ├── FinancingTab.swift         # Tilgungsplan, LTV-Kurve
-│   │   └── SettingsTab.swift          # Stammdaten bearbeiten
-│   │
-│   ├── Wizard/
-│   │   ├── AddPropertyWizard.swift    # Schritt-für-Schritt Eingabe
-│   │   ├── WizardStepStammdaten.swift
-│   │   ├── WizardStepObjektdaten.swift
-│   │   ├── WizardStepKauf.swift
-│   │   ├── WizardStepEinnahmen.swift
-│   │   ├── WizardStepKosten.swift
-│   │   ├── WizardStepFinanzierung.swift
-│   │   └── WizardStepAfA.swift
-│   │
-│   ├── InvestmentCalculator/
-│   │   ├── InvestmentCalculatorView.swift
-│   │   └── InvestmentResultView.swift
-│   │
-│   └── Components/                    # Wiederverwendbare UI-Komponenten
-│       ├── KPICard.swift
-│       ├── KPICardWithContext.swift    # KPI + Benchmark-Erklärung
-│       ├── SollIstRow.swift           # Soll/Ist Vergleichszeile
-│       ├── StatusBadge.swift          # Vermietet / Leerstand etc.
-│       ├── CurrencyField.swift        # EUR-Eingabefeld
-│       ├── PercentField.swift         # Prozent-Eingabefeld
-│       └── SectionHeader.swift
-│
-├── Calculations/                      # Pure Swift, kein SwiftUI
-│   ├── KPICalculator.swift            # Alle Rendite-KPIs
-│   ├── CashflowCalculator.swift       # Monatlicher Cashflow (Soll + Ist)
-│   ├── DepreciationCalculator.swift   # AfA-Berechnung
-│   ├── AmortizationCalculator.swift   # Tilgungsplan
-│   └── TaxCalculator.swift            # Steuereffekt V+V
-│
-└── Utilities/
-    ├── Formatters.swift               # NumberFormatter, DateFormatter (shared)
-    ├── Extensions+Date.swift          # firstDayOfMonth, monthsBetween etc.
-    └── Extensions+Double.swift        # .asCurrency, .asPercent etc.
+└── tests/
+    └── calculations/                  # Vitest, spiegelt lib/calculations/
 ```
 
 ---
 
-## Datenmodell (SwiftData)
+## Datenmodell (Supabase / Postgres)
 
-### Property (Haupt-Entity)
+> Feldquelle: der tatsächlich implementierte Swift-Code (`Volta/Volta/Models/*.swift`), nicht eine der drei sich widersprechenden Doku-Versionen. Beim Review kamen drei unterschiedliche Datenmodelle ans Licht: die alte `CLAUDEvolta.md` (5-Werte-Status-Enum, `monthlyMortgageActual`/`remainingDebtCurrent`, separate `RentGuarantee`-Tabelle), `immobilien_datenmodell_v2.md` (ebenfalls 5-Werte-Status-Enum, `status_from`, `cost_month`+Kategorie-Enum) und `docs/specs/spec-data-model.md` (3-Werte-Status-Enum, `date`, Freitext ohne Kategorie). Der echte Code in `Volta/Volta/Models/` folgt größtenteils `spec-data-model.md` (Property, StatusEntry — 3 Status, Feldname `date`), aber bei `ExtraordinaryCost` dem älteren Muster (`costMonth` normalisiert + Kategorie-Enum `ExtraordinaryCostCategory`, nicht Freitext). Diese Fassung hier folgt konsequent dem Code, da der Code die einzige Quelle ist, die tatsächlich läuft und nicht mit sich selbst im Widerspruch steht.
 
-// Hinweis iCloud/CloudKit-Kompatibilität:
-// Alle nicht-optionalen Felder haben Default-Werte damit SwiftData Migrationen
-// bei aktiviertem CloudKit-Sync korrekt funktionieren.
-// Kind-Entitäten (StatusEntry, ExtraordinaryCost, RentGuarantee) haben optionale
-// property-Referenz aus demselben Grund — in der App immer gesetzt.
-```swift
-@Model
-class Property {
-    // Stammdaten
-    var id: UUID = UUID()
-    var name: String = ""
-    var address: String = ""
-    var city: String = ""
-    var state: String = ""
-    var postalCode: String = ""
-    var propertyType: PropertyType = .apartment
-    var acquisitionType: AcquisitionType = .kauf
-    var yearBuilt: Int?
-    var notes: String = ""
+### properties (Haupt-Tabelle)
 
-    // Objektdaten
-    var livingAreaSqm: Double = 0.0
-    var usableAreaSqm: Double?
-    var landAreaSqm: Double?
-    var rooms: Double?
-    var bedrooms: Int?
-    var bathrooms: Int?
-    var floorLevel: Int?
-    var hasBalcony: Bool = false
-    var hasTerrace: Bool = false
-    var hasGarden: Bool = false
-    var hasBasement: Bool = false
-    var basementSizeSqm: Double?
-    var hasFittedKitchen: Bool = false
-    var parkingType: ParkingType?
-    var parkingCount: Int = 0
-    var heatingType: HeatingType?
-    var energyEfficiencyClass: EnergyClass?
-    var condition: PropertyCondition?
-    var lastRenovationYear: Int?
+```sql
+-- Hinweis: Alle nicht-optionalen Felder haben Default-Werte, damit
+-- künftige Migrationen bestehende Zeilen nicht brechen.
+create type property_type as enum ('apartment', 'einfamilienhaus', 'mehrfamilienhaus', 'gewerbe', 'grundstuck', 'sonstiges');
+create type acquisition_type as enum ('kauf', 'erbschaft', 'schenkung');
+create type parking_type as enum ('nicht_vorhanden', 'tiefgarage', 'aussenstellplatz', 'garage');
+create type heating_type as enum ('fernwarme', 'gas', 'ol', 'warmepumpe', 'pellet', 'elektro', 'sonstiges');
+create type energy_class as enum ('a_plus_plus', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h');
+create type property_condition as enum ('neubau', 'erstbezug', 'gepflegt', 'renovierungsbedurftig', 'sanierungsbedurftig');
 
-    // Kauf
-    var purchaseDate: Date = Date()
-    var economicTransferDate: Date = Date()   // Wirtschaftlicher Übergang — steuert AfA-Beginn
-    var purchasePriceUnit: Double = 0.0
-    var purchasePriceParking: Double = 0.0
-    var landTransferTax: Double = 0.0
-    var notaryCosts: Double = 0.0
-    var landRegistryCosts: Double = 0.0
-    var agentFee: Double = 0.0
-    var appraisalCosts: Double = 0.0
-    var renovationModernizationCosts: Double = 0.0
-    var renovationAfaEligible: Double = 0.0   // Aktivierungspflichtig
+create table properties (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
 
-    // Einnahmen (Prognose)
-    var coldRentMonthly: Double = 0.0
-    var parkingRentMonthly: Double = 0.0
-    var otherIncomeMonthly: Double = 0.0
-    var serviceChargeRecoverableMonthly: Double = 0.0
-    var vacancyRateAssumption: Double = 0.03
-    var rentMarketSqm: Double?
+  -- Stammdaten
+  name text not null default '',
+  address text not null default '',
+  city text not null default '',
+  state text not null default '',
+  postal_code text not null default '',
+  property_type property_type not null default 'apartment',
+  acquisition_type acquisition_type not null default 'kauf',
+  year_built int,
+  notes text not null default '',
 
-    // Kosten
-    var hoaFeeTotalMonthly: Double = 0.0      // Hausgeld gesamt
-    var hoaFeeRecoverableMonthly: Double = 0.0 // davon umlagefähig
-    var propertyTaxAnnual: Double = 0.0
-    var propertyManagementAnnual: Double = 0.0
-    var maintenanceReserveMonthly: Double = 0.0
-    var propertyInsuranceAnnual: Double = 0.0
-    var otherCostsMonthly: Double = 0.0
+  -- Objektdaten
+  living_area_sqm double precision not null default 0,
+  usable_area_sqm double precision,
+  land_area_sqm double precision,
+  rooms double precision,
+  bedrooms int,
+  bathrooms int,
+  floor_level int,
+  has_balcony boolean not null default false,
+  has_terrace boolean not null default false,
+  has_garden boolean not null default false,
+  has_basement boolean not null default false,
+  basement_size_sqm double precision,
+  has_fitted_kitchen boolean not null default false,
+  parking_type parking_type not null default 'nicht_vorhanden',  -- Stellplatz-Felder nur relevant wenn != 'nicht_vorhanden'
+  parking_count int not null default 0,
+  heating_type heating_type,
+  energy_efficiency_class energy_class,
+  condition property_condition,
+  last_renovation_year int,
 
-    // Finanzierung
-    var loanAmount: Double = 0.0
-    var interestRate: Double = 0.0
-    var amortizationRate: Double = 0.0
-    var fixedInterestPeriodYears: Int = 10
-    var loanStartDate: Date = Date()
-    var monthlyMortgageActual: Double?        // Override falls Bank abweicht
-    var remainingDebtCurrent: Double?         // Abgleich laut Kontoauszug
+  -- Kauf & Nebenkosten
+  purchase_date date not null default now(),           -- Label je acquisition_type (Kaufdatum / Erbschaft / Schenkung)
+  economic_transfer_date date not null default now(),  -- AfA-Startpunkt
+  purchase_price_unit double precision not null default 0,
+  purchase_price_parking double precision not null default 0,   -- nur wenn parking_type != 'nicht_vorhanden'
+  land_transfer_tax double precision not null default 0,
+  notary_costs double precision not null default 0,
+  land_registry_costs double precision not null default 0,
+  agent_fee double precision not null default 0,
+  appraisal_costs double precision not null default 0,
+  renovation_modernization_costs double precision not null default 0,
+  renovation_afa_eligible double precision not null default 0,  -- aktivierungspflichtiger Anteil, erhöht AfA-Basis
 
-    // AfA & Steuer
-    var landValue: Double = 0.0               // Aus Regierungs-Excel
-    var buildingValue: Double = 0.0           // Aus Regierungs-Excel
-    var depreciationRate: Double = 0.02       // 0.02 / 0.025 / individuell
-    var marginalTaxRate: Double = 0.0         // Grenzsteuersatz
-    var landGuidelineValueSqm: Double?        // Bodenrichtwert €/m² — informativ, kein Berechnungsfeld
+  -- Einnahmen
+  cold_rent_monthly double precision not null default 0,        -- Nettomiete, UI-Label "Nettomiete"
+  warmmiete_monthly double precision,                            -- rein informativ
+  parking_rent_monthly double precision not null default 0,     -- nur wenn parking_type != 'nicht_vorhanden'
+  other_income_monthly double precision not null default 0,
 
-    // Mietgarantie (optional)
-    var rentGuarantee: RentGuarantee?
+  -- Annahmen
+  vacancy_rate_assumption double precision not null default 0.03,
+  market_rent_per_sqm double precision,   -- Marktmiete/m², informativ
+  current_market_value double precision,  -- aktueller Marktwert, manuell geschätzt
 
-    // Relationen
-    var statusHistory: [StatusEntry] = []     // Sortiert nach date aufsteigend
-    var extraordinaryCosts: [ExtraordinaryCost] = []
+  -- Kosten — Wohnung
+  hoa_fee_total_monthly double precision not null default 0,
+  is_hoa_unit_split boolean not null default false,
+  hoa_fee_recoverable_monthly double precision not null default 0,          -- nur wenn is_hoa_unit_split
+  hoa_fee_maintenance_reserve_monthly double precision not null default 0,  -- nur wenn is_hoa_unit_split
+  property_tax_annual double precision not null default 0,
+  property_management_annual double precision not null default 0,
+  property_insurance_annual double precision not null default 0,
+  other_costs_monthly double precision not null default 0,
 
-    var createdAt: Date = Date()
-    var updatedAt: Date = Date()
-}
+  -- Kosten — Stellplatz (nur wenn parking_type != 'nicht_vorhanden')
+  hoa_fee_parking_total_monthly double precision not null default 0,
+  is_hoa_parking_split boolean not null default false,
+  hoa_fee_parking_recoverable_monthly double precision not null default 0,          -- nur wenn is_hoa_parking_split
+  hoa_fee_parking_maintenance_reserve_monthly double precision not null default 0,  -- nur wenn is_hoa_parking_split
+  property_tax_parking_annual double precision not null default 0,
+
+  -- Finanzierung
+  loan_amount double precision not null default 0,
+  interest_rate double precision not null default 0,
+  amortization_rate double precision not null default 0,
+  fixed_interest_period_years int not null default 10,
+  loan_start_date date not null default now(),
+  monthly_mortgage double precision not null default 0,          -- direkt gespeichert, im Wizard vorausgefüllt & editierbar
+  equity_contributed double precision not null default 0,        -- selbst eingebrachtes Eigenkapital
+  broker_commission_agreement double precision not null default 0,  -- Anteil aus Eigenprovisions-Vereinbarung
+
+  -- AfA & Steuer
+  land_value double precision not null default 0,
+  building_value double precision not null default 0,
+  depreciation_rate double precision not null default 0.02,
+  marginal_tax_rate double precision not null default 0,
+
+  sort_order int not null default 0,   -- manuelle Reihenfolge im Portfolio-Grid
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+alter table properties enable row level security;
+create policy "properties_owner" on properties for all using (user_id = auth.uid());
 ```
 
-### StatusEntry
+### status_entries
 
-```swift
-@Model
-class StatusEntry {
-    var id: UUID = UUID()
-    var property: Property?
-    var statusFrom: Date = Date()
-    var status: PropertyStatus = .vermietet  // Enum
-    var incomeActualMonthly: Double = 0.0    // Tatsächliche Einnahmen in diesem Zeitraum
-    var notes: String?
-}
+```sql
+-- 3 Werte, nicht 5 — leerstandMietgarantie/eigennutzung/renovierung aus der
+-- alten v1-Spec existieren im tatsächlichen PropertyStatus-Enum nicht mehr.
+create type property_status as enum ('vermietet', 'leerstand', 'mietgarantie');
 
-enum PropertyStatus: String, Codable, CaseIterable {
-    case vermietet = "Vermietet"
-    case leerstandMietgarantie = "Leerstand + Mietgarantie"
-    case leerstand = "Leerstand"
-    case eigennutzung = "Eigennutzung"
-    case renovierung = "Renovierung"
-}
+create table status_entries (
+  id uuid primary key default gen_random_uuid(),
+  property_id uuid not null references properties(id) on delete cascade,
+  date date not null default now(),         -- Startdatum dieses Status
+  status property_status not null default 'vermietet',
+  income_actual_monthly double precision,   -- nullable — nur für 'mietgarantie' befüllt
+  notes text not null default '',
+  created_at timestamptz not null default now()   -- Tie-Breaker-Sortierung bei gleichem `date`
+);
+
+alter table status_entries enable row level security;
+create policy "status_entries_owner" on status_entries for all using (
+  property_id in (select id from properties where user_id = auth.uid())
+);
 ```
 
-### ExtraordinaryCost
+### extraordinary_costs
 
-```swift
-@Model
-class ExtraordinaryCost {
-    var id: UUID = UUID()
-    var property: Property?
-    var costMonth: Date = Date()            // Auf ersten Tag des Monats normalisieren
-    var amount: Double = 0.0
-    var category: ExtraordinaryCostCategory = .sonstiges // Enum
-    var descriptionText: String?
-}
+```sql
+-- Behält die Kategorie-Enum + monatsnormalisiertes Datum bei — der
+-- tatsächliche Code (ExtraordinaryCost.swift) nutzt weiterhin category
+-- + costMonth, nicht das Freitext-Modell aus spec-data-model.md.
+create type extraordinary_cost_category as enum ('sonderumlage', 'reparatur', 'gutachter', 'rechtskosten', 'sonstiges');
 
-enum ExtraordinaryCostCategory: String, Codable, CaseIterable {
-    case sonderumlage = "Sonderumlage"
-    case reparatur = "Reparatur"
-    case gutachter = "Gutachter"
-    case rechtskosten = "Rechtskosten"
-    case sonstiges = "Sonstiges"
-}
+create table extraordinary_costs (
+  id uuid primary key default gen_random_uuid(),
+  property_id uuid not null references properties(id) on delete cascade,
+  cost_month date not null default now(),   -- auf ersten Tag des Monats normalisiert (App-seitig)
+  amount double precision not null default 0,
+  category extraordinary_cost_category not null default 'sonstiges',
+  description_text text,
+  is_deductible boolean not null default true   -- §9 EStG Werbungskosten; Sonderumlage z.B. nicht immer
+);
+
+alter table extraordinary_costs enable row level security;
+create policy "extraordinary_costs_owner" on extraordinary_costs for all using (
+  property_id in (select id from properties where user_id = auth.uid())
+);
 ```
 
-### RentGuarantee
+### property_photos
 
-```swift
-@Model
-class RentGuarantee {
-    var id: UUID = UUID()
-    var property: Property?
-    var guaranteeProvider: String = ""
-    var guaranteeAmountMonthly: Double = 0.0
-    var guaranteeStartDate: Date = Date()
-    var guaranteeEndDate: Date = Date()
-    var guaranteeNotes: String = ""
-}
+```sql
+create table property_photos (
+  id uuid primary key default gen_random_uuid(),
+  property_id uuid not null references properties(id) on delete cascade,
+  file_path text not null,                    -- Pfad im Supabase Storage Bucket
+  is_cover_photo boolean not null default false,  -- max. 1 pro Immobilie (App-seitig durchgesetzt)
+  sort_order int not null default 0,
+  created_at timestamptz not null default now()
+);
+
+alter table property_photos enable row level security;
+create policy "property_photos_owner" on property_photos for all using (
+  property_id in (select id from properties where user_id = auth.uid())
+);
+```
+
+**Kein `rent_guarantees`:** Die alte v1-Spec hatte eine eigene `RentGuarantee`-Tabelle (Anbieter, Start-/Enddatum). Im aktuellen Modell läuft eine Mietgarantie über `status_entries` mit `status = 'mietgarantie'` und `income_actual_monthly` — keine separate Tabelle nötig.
+
+TypeScript-Typen für alle Tabellen werden generiert (nicht manuell gepflegt):
+
+```bash
+supabase gen types typescript --project-id <project-id> > web/lib/supabase/types.ts
 ```
 
 ---
@@ -267,88 +295,84 @@ class RentGuarantee {
 
 ### AfA-Basis
 
-```swift
-// building_value und land_value kommen direkt aus Regierungs-Excel
-// building_share_ratio wird daraus abgeleitet, NICHT umgekehrt
+```typescript
+// buildingValue und landValue kommen direkt aus Regierungs-Excel
+// buildingShareRatio wird daraus abgeleitet, NICHT umgekehrt
 
-let buildingShareRatio = buildingValue / purchasePrice
-let afaBasis = buildingValue + (closingCostsTotal * buildingShareRatio) + renovationAfaEligible
-let depreciationYearly = afaBasis * depreciationRate
+const buildingShareRatio = buildingValue / purchasePrice;
+const afaBasis = buildingValue + (closingCostsTotal * buildingShareRatio) + renovationAfaEligible;
+const depreciationYearly = afaBasis * depreciationRate;
 ```
 
 ### Bruttorendite
 
-```swift
-// Kaltmiete + Parkingmiete — NICHT gross_income (enthält sonstige Einnahmen)
-let grossYield = (coldRentYearly + parkingRentYearly) / purchasePrice
+```typescript
+// Kaltmiete + Parkingmiete — NICHT grossIncome (enthält sonstige Einnahmen)
+const grossYield = (coldRentYearly + parkingRentYearly) / purchasePrice;
 ```
 
 ### Zinsen/Tilgung
 
-```swift
-// Berechnet — überschreibbar durch monthlyMortgageActual
-let interestMonthlyCalc = loanAmount * (interestRate / 12)
-let principalMonthlyCalc = loanAmount * (amortizationRate / 12)
-let monthlyMortgage = monthlyMortgageActual ?? (interestMonthlyCalc + principalMonthlyCalc)
+```typescript
+// monthlyMortgage ist direkt gespeichert (properties.monthly_mortgage) und im Wizard
+// mit diesem Wert vorausgefüllt — Nutzer kann ihn danach frei überschreiben
+// (z.B. Sondertilgung, abweichende Bankrate). Kein separates "Actual"-Feld.
+const monthlyMortgagePrefill = loanAmount * ((interestRate + amortizationRate) / 12);
 ```
 
 ### Dynamische Restschuld
 
-```swift
-func remainingDebt(atMonth t: Int) -> Double {
-    let r = interestRate / 12
-    return loanAmount * pow(1 + r, Double(t))
-        - monthlyMortgage * (pow(1 + r, Double(t)) - 1) / r
+```typescript
+function remainingDebt(loanAmount: number, interestRate: number, monthlyMortgage: number, t: number): number {
+  const r = interestRate / 12;
+  return loanAmount * Math.pow(1 + r, t) - monthlyMortgage * (Math.pow(1 + r, t) - 1) / r;
 }
 ```
 
 ### Cashflow pro Monat (Realität)
 
-```swift
-func cashflowActual(for month: Date) -> (beforeTax: Double, afterTax: Double) {
-    let status = activeStatus(for: month)
-    let income = status.incomeActualMonthly
+```typescript
+function cashflowActual(month: Date, property: Property, statusHistory: StatusEntry[], extraordinaryCosts: ExtraordinaryCost[]) {
+  const status = activeStatus(month, statusHistory);
+  const income = status.incomeActualMonthly;
 
-    let fixedCosts = monthlyMortgage
-        + operatingCostsNonRecoverableMonthly
+  const fixedCosts = property.monthlyMortgage + property.operatingCostsNonRecoverableMonthly;
 
-    // Umlagefähige Kosten + Grundsteuer nur bei Leerstand vom Eigentümer zu tragen
-    let ownerBorneRecoverableCosts: Double
-    switch status.status {
-    case .vermietet:
-        ownerBorneRecoverableCosts = 0
-    case .leerstandMietgarantie, .leerstand, .eigennutzung, .renovierung:
-        ownerBorneRecoverableCosts = hoaFeeRecoverableMonthly + propertyTaxMonthly + propertyInsuranceMonthly
-    }
+  // Umlagefähige Kosten + Grundsteuer nur bei Leerstand vom Eigentümer zu tragen
+  let ownerBorneRecoverableCosts = 0;
+  if (status.status !== 'vermietet') {
+    ownerBorneRecoverableCosts =
+      property.hoaFeeRecoverableMonthly + property.propertyTaxMonthly + property.propertyInsuranceMonthly;
+  }
 
-    let extraordinary = extraordinaryCosts(for: month).reduce(0) { $0 + $1.amount }
+  const extraordinary = extraordinaryCostsFor(month, extraordinaryCosts).reduce((sum, c) => sum + c.amount, 0);
 
-    let cashflowBeforeTax = income - fixedCosts - ownerBorneRecoverableCosts - extraordinary
-    let cashflowAfterTax = cashflowBeforeTax + taxEffectMonthly
+  const cashflowBeforeTax = income - fixedCosts - ownerBorneRecoverableCosts - extraordinary;
+  const cashflowAfterTax = cashflowBeforeTax + taxEffectMonthly(month);
 
-    return (cashflowBeforeTax, cashflowAfterTax)
+  return { cashflowBeforeTax, cashflowAfterTax };
 }
 ```
 
 ### Steuereffekt
 
-```swift
+```typescript
 // Vereinfacht: V+V-Ergebnis × Grenzsteuersatz
 // Negatives Ergebnis = Verlust = Steuererstattung (positiver Cashflow-Effekt)
-let taxableIncomeVV = effectiveGrossIncomeYearly
-    - operatingCostsNonRecoverableYearly
-    - interestAnnual
-    - depreciationYearly
+const taxableIncomeVV = effectiveGrossIncomeYearly
+  - operatingCostsNonRecoverableYearly
+  - interestAnnual
+  - depreciationYearly;
 
-let taxEffectYearly = taxableIncomeVV * marginalTaxRate * -1
-let taxEffectMonthly = taxEffectYearly / 12
+const taxEffectYearly = taxableIncomeVV * marginalTaxRate * -1;
+const taxEffectMonthly = taxEffectYearly / 12;
 ```
 
 ---
 
 ## Navigationsstruktur
 
-Schmale Sidebar links für Hauptnavigation, breiter Content-Bereich rechts.
+Schmale Sidebar links für Hauptnavigation, breiter Content-Bereich rechts (Next.js Layout, kein natives Sidebar-Widget).
 
 ```
 ┌─────────┬──────────────────────────────────────────┐
@@ -366,12 +390,12 @@ Schmale Sidebar links für Hauptnavigation, breiter Content-Bereich rechts.
 
 **Sidebar-Einträge:** Portfolio · Investment-Rechner · Einstellungen
 
-**Portfolio-Sektion (Startseite):**
+**Portfolio-Sektion (Startseite, `app/(app)/page.tsx`):**
 - Oben: Aggregierte Portfolio-KPIs (Gesamt-LTV, Portfolio-Rendite, Gesamt-Cashflow)
 - Darunter: Alle Immobilien als Karten-Grid
-- Klick auf Karte → Immobilien-Detailansicht (voller Content-Bereich)
+- Klick auf Karte → Route `properties/[id]/overview` (voller Content-Bereich)
 
-**Immobilien-Detailansicht (TabView):**
+**Immobilien-Detailansicht (Tab-Navigation via Next.js Layout):**
 ```
 Übersicht | Cashflow | Steuer | Finanzierung | Einstellungen
 ```
@@ -394,34 +418,33 @@ Beispiel DSCR: Wert 0.77 → "Unter 1.0 — bei aktuellen Zinsen strukturell nor
 ## Konventionen
 
 ### Benennung
-- Swift-Felder: `camelCase` (z.B. `coldRentMonthly`)
-- SwiftData Models: Klassen mit `@Model`, keine Structs
-- ViewModels: `@Observable` (Swift 5.9+), kein `ObservableObject`
-- Views: Suffix `View` oder `Tab` (z.B. `CashflowTab`)
-- Enums: `PascalCase`, raw value = deutscher Anzeigestring
+- TS-Felder (Client): `camelCase` (z.B. `coldRentMonthly`)
+- Postgres-Spalten (DB): `snake_case` (z.B. `cold_rent_monthly`) — Mapping übernimmt der generierte Supabase-Typ
+- React-Komponenten: `PascalCase.tsx`, Suffix `Tab` nur für tatsächliche Tab-Komponenten (z.B. `CashflowTab.tsx`)
+- Enums/Union-Types: `PascalCase` Typname, Werte als deutscher Anzeigestring über eine separate Label-Map, nicht im Wert selbst kodiert
 
 ### Währung & Zahlen
-- Interne Berechnung immer in `Double`
-- Anzeige immer über `Formatters.currency` (€, 2 Dezimalstellen, Locale DE)
-- Prozente intern als Dezimal (0.042 = 4,2%), Anzeige via `Formatters.percent`
-- Niemals direkt `.formatted()` im View — immer über Formatters-Singleton
+- Interne Berechnung immer in `number`
+- Anzeige immer über `lib/formatters.ts` (`formatCurrency`, `formatPercent`) — Wrapper um `Intl.NumberFormat('de-DE', ...)`
+- Prozente intern als Dezimal (0.042 = 4,2%)
+- Niemals `.toFixed()`/manuelle String-Konkatenation im Component — immer über Formatters
 
 ### Datum
-- Intern immer `Date`
-- Monats-Normalisierung: erster Tag des Monats (00:00:00 UTC)
+- Intern immer `Date` (client) / `date`/`timestamptz` (Postgres)
+- Monats-Normalisierung: erster Tag des Monats
 - `economicTransferDate` ist der Stichtag für AfA-Beginn und alle Realität-Berechnungen
-- Kein `purchase_date` für Steuerberechnungen verwenden
+- Kein `purchaseDate` für Steuerberechnungen verwenden
 
 ### Fehlerbehandlung
-- Division durch 0: immer explizit prüfen, `nil` oder `0` zurückgeben je nach KPI
+- Division durch 0: immer explizit prüfen, `null` oder `0` zurückgeben je nach KPI
 - Fehlende optionale Felder: in Berechnungen als `0` behandeln, in UI als "–" anzeigen
-- Kein `try!` oder `force unwrap` in Berechnungsschicht
+- Keine unbehandelten Promise-Rejections in Server Actions / Route Handlers
 
 ### Trennung von Concerns
-- **Models:** Nur Datenhaltung, keine Logik
-- **Calculations/:** Pure Swift-Funktionen, kein SwiftUI, kein SwiftData — unit-testbar
-- **ViewModels:** Bindeglied zwischen Calculations und Views
-- **Views:** Nur Darstellung, keine Berechnungen
+- **`lib/supabase/types.ts`:** Nur Datenhaltung (generiert), keine Logik
+- **`lib/calculations/`:** Reine TS-Funktionen, kein React, kein Supabase-Import — unit-testbar
+- **`app/**/page.tsx`:** Datenladen (Server Components) + Komposition
+- **`components/`:** Nur Darstellung + lokale Interaktion, keine Berechnungen
 
 ---
 
@@ -429,71 +452,15 @@ Beispiel DSCR: Wert 0.77 → "Unter 1.0 — bei aktuellen Zinsen strukturell nor
 
 ### Speicherort
 
-SwiftData speichert automatisch als SQLite-Datenbank im App Support Verzeichnis:
+Supabase verwaltet Postgres als Managed-Service. Kein lokaler Dateipfad, kein manuelles Backup-Handling nötig — Supabase übernimmt Backups.
 
-```
-~/Library/Application Support/
-  com.deinname.ImmobilienPortfolio/
-    default.store          ← SQLite-Hauptdatei
-    default.store-shm      ← Shared Memory (WAL-Modus)
-    default.store-wal      ← Write-Ahead Log
-```
-
-- Kein manuelles Speichern nötig — SwiftData persistiert bei jeder Änderung automatisch
-- Daten bleiben bei App-Deinstallation erhalten (Library-Ordner bleibt)
-- Automatisch in Time Machine-Backup enthalten
-- Nutzer sieht diesen Pfad nie direkt — kein sichtbares Dokument
+- Kein manuelles Speichern nötig — Schreiboperationen über `supabase-js` committen sofort
+- Zugriff ausschließlich über `user_id = auth.uid()` (Row-Level-Security), siehe Datenmodell oben
+- Automatisch über mehrere Geräte hinweg synchron (Cloud-DB) — kein separater Sync-Mechanismus nötig
 
 ### Speicherkapazität
 
-Schätzung pro Immobilie:
-
-```
-Stamm- & Objektdaten:              ~2 KB
-Kauf / Finanzierung / AfA:         ~1 KB
-Einnahmen & Kosten:                ~1 KB
-Statushistorie (50 Einträge):      ~5 KB
-Außerordentliche Kosten (20/Jahr): ~2 KB
-─────────────────────────────────────────
-Pro Immobilie gesamt:              ~10–15 KB
-```
-
-Hochrechnung:
-
-| Objekte | Speicherbedarf |
-|---|---|
-| 10 Immobilien | ~150 KB |
-| 50 Immobilien | ~750 KB |
-| 100 Immobilien | ~1,5 MB |
-| 500 Immobilien | ~7,5 MB |
-
-SQLite hat für diesen Use Case kein praktisches Limit. Selbst mit 500 Objekten und 20 Jahren Historiedaten bleibt die Datenbank unter 10 MB. Speicher ist für diese App kein Thema.
-
----
-
-## iCloud (spätere Erweiterung)
-
-SwiftData ist von Beginn an iCloud-ready. Für Sync später genügt eine Änderung im `ModelContainer` — keine Architektur-Änderung notwendig:
-
-```swift
-// Aktuell (lokal):
-let container = ModelContainer(for: Property.self)
-
-// Später (mit iCloud Sync):
-let container = ModelContainer(
-    for: Property.self,
-    configurations: ModelConfiguration(cloudKitDatabase: .automatic)
-)
-```
-
-Voraussetzungen wenn iCloud aktiviert wird:
-- iCloud-Entitlement im Xcode-Projekt aktivieren (`Signing & Capabilities → iCloud → CloudKit`)
-- CloudKit Container anlegen (`iCloud.com.deinname.ImmobilienPortfolio`)
-- Alle `@Model`-Felder müssen optional oder mit Default-Wert sein (CloudKit-Anforderung)
-- Kein `unique`-Constraint auf Feldern (CloudKit unterstützt das nicht nativ)
-
-Sync-Verhalten: Änderungen auf Gerät A erscheinen nach wenigen Sekunden auf Gerät B.
-Konfliktauflösung: SwiftData / CloudKit löst Konflikte automatisch via Last-Write-Wins.
+Wie zuvor: Postgres hat für diesen Use Case (Einzelnutzer, einige hundert Immobilien, Jahrzehnte an Historiendaten) kein praktisches Limit. Supabase Free-Tier (500 MB) reicht um Größenordnungen aus.
 
 ---
 
@@ -502,68 +469,68 @@ Konfliktauflösung: SwiftData / CloudKit löst Konflikte automatisch via Last-Wr
 ### Pyramide
 
 ```
-            UI-Tests          ← 0 initial (bewusste Entscheidung)
-        ViewModel-Tests       ← Wenige, nur für Integrationspfade
-    Unit Tests (Calculations) ← Hauptfokus
+            E2E-Tests           ← 0 initial (bewusste Entscheidung)
+        Component-Tests         ← Wenige, nur für Integrationspfade
+    Unit Tests (calculations/)  ← Hauptfokus
 ```
 
-### Priorität 1 — Unit Tests: `Calculations/` (Ziel: 90%+)
+### Priorität 1 — Unit Tests: `lib/calculations/` (Ziel: 90%+)
 
-Alle Formeln sind pure functions ohne Side Effects — exakt das, was unit-testbar ist.
+Alle Formeln sind pure functions ohne Side Effects — exakt das, was unit-testbar ist (Vitest).
 
 | Datei | Was testen |
 |---|---|
-| `KPICalculator` | `grossYield`, `netYield`, `capRate`, `cashOnCash`, `dscr`, `mietmultiplikator`, `breakEvenRent` |
-| `CashflowCalculator` | Cashflow je Status (vermietet / leerstand / mietgarantie), außerordentliche Kosten, Steuereffekt |
-| `DepreciationCalculator` | AfA-Basis-Formel, anteilige AfA im Erwerbsjahr, verschiedene `depreciationRate`-Szenarien |
-| `AmortizationCalculator` | `remainingDebt(atMonth:)`, Tilgungsplan-Korrektheit, `monthlyMortgageActual`-Override |
-| `TaxCalculator` | `taxableIncomeVV`, `taxEffectYearly`, negativer Steuereffekt = Erstattung |
+| `kpiCalculator.ts` | `grossYield`, `netYield`, `capRate`, `cashOnCash`, `dscr`, `mietmultiplikator`, `breakEvenRent` |
+| `cashflowCalculator.ts` | Cashflow je Status (vermietet / leerstand / mietgarantie), außerordentliche Kosten, Steuereffekt |
+| `depreciationCalculator.ts` | AfA-Basis-Formel, anteilige AfA im Erwerbsjahr, verschiedene `depreciationRate`-Szenarien |
+| `amortizationCalculator.ts` | `remainingDebt(atMonth)`, Tilgungsplan-Korrektheit, `monthlyMortgage`-Wizard-Vorbefüllung vs. manueller Überschreibung |
+| `taxCalculator.ts` | `taxableIncomeVV`, `taxEffectYearly`, negativer Steuereffekt = Erstattung |
 
 **Kritische Edge Cases:**
 - Division durch 0: kein Kaufpreis, kein Eigenkapital, kein Schuldenservice
-- `monthlyMortgageActual = nil` → Fallback auf berechneten Wert
+- `monthlyMortgage` manuell überschrieben (z.B. Sondertilgung) vs. Wizard-Vorbefüllung `loanAmount × (interestRate + amortizationRate) / 12`
 - AfA-Beginn genau an `economicTransferDate` (erster voller Monat)
-- Cashflow bei `leerstandMietgarantie` vs. `leerstand` (umlagefähige Kosten-Logik)
-- `effective_gross_income_yearly` bei 0% Leerstand vs. 100% Leerstand
+- Cashflow bei `mietgarantie` vs. `leerstand` (umlagefähige Kosten-Logik)
+- `effectiveGrossIncomeYearly` bei 0% Leerstand vs. 100% Leerstand
 
-**Fixture:** Dresdner ETW mit allen bekannten Werten als gemeinsames `TestFixtures.swift` — einmal definiert, in allen Calculator-Tests genutzt. Jede KPI wird gegen den händisch verifizierten Sollwert geprüft (Golden-Master-Ansatz).
+**Fixture:** Dresdner ETW mit allen bekannten Werten als gemeinsames `tests/fixtures/dresdnerEtw.ts` — einmal definiert, in allen Calculator-Tests genutzt. Jede KPI wird gegen den händisch verifizierten Sollwert geprüft (Golden-Master-Ansatz).
 
-### Priorität 2 — ViewModel-Tests (Ziel: 70%)
+### Priorität 2 — Component-Tests (Ziel: 70% wo nicht-trivial)
 
-Nur für nicht-triviale Aggregations- und Statuslogik-Pfade:
+Nur für nicht-triviale Aggregations- und Statuslogik-Pfade (Vitest + React Testing Library):
 
-| ViewModel | Was testen |
+| Bereich | Was testen |
 |---|---|
-| `PropertyViewModel` | `activeStatus(for: month)` — korrekte Statusauswahl aus Statushistorie |
-| `PropertyViewModel` | Cashflow-YTD-Aggregation über mehrere Monate mit Statuswechsel |
-| `PortfolioViewModel` | Portfolio-KPIs korrekt über 2+ Immobilien aggregiert |
-| `InvestmentCalculatorViewModel` | KPI-Freischaltlogik (Stufen 1–4), Sensitivitäts-Berechnung |
+| Property-Detail-Datenladen | `activeStatus(month)` — korrekte Statusauswahl aus Statushistorie |
+| Cashflow-Aggregation | Cashflow-YTD-Aggregation über mehrere Monate mit Statuswechsel |
+| Portfolio-Übersicht | Portfolio-KPIs korrekt über 2+ Immobilien aggregiert |
+| Investment-Rechner | KPI-Freischaltlogik (Stufen 1–4), Sensitivitäts-Berechnung |
 
-Kein SwiftData in ViewModel-Tests — In-Memory-`ModelContainer` oder Property als Teststub.
+Kein echter Supabase-Call in Component-Tests — Mock-Client oder Property-Objekt als Teststub.
 
 ### Priorität 3 — Datenintegrität
 
 Gezielte Tests für Invarianten, die die App voraussetzt:
 
-- Erster `StatusEntry` muss `status_from == economicTransferDate` sein
-- `cost_month` in `ExtraordinaryCost` ist immer auf ersten Tag des Monats normalisiert
+- Erster `status_entries`-Eintrag muss `date == economic_transfer_date` sein
+- `status_entries.income_actual_monthly` ist nur bei `status = 'mietgarantie'` gesetzt, sonst `null`
 - `building_share_ratio + land_share_ratio ≈ 1.0` (aus Regierungs-Excel-Werten)
-- Promote-Flow: `InvestmentCalculation` → `Property` kopiert alle Felder korrekt
+- Promote-Flow: `investment_calculations` → `properties` kopiert alle Felder korrekt
 
 ### Bewusst ausgelassen
 
 | Bereich | Begründung |
 |---|---|
-| UI-Tests | Kleines Einzel-Nutzer-Tool, Wartungskosten zu hoch initial |
-| SwiftData CRUD | Framework-Code — Apple testet das selbst |
-| Formatters/Extensions | Triviale Wrapper ohne eigene Logik |
-| iCloud Sync | Nicht aktiv, kein Backend |
+| E2E-Tests | Kleines Einzel-Nutzer-Tool, Wartungskosten zu hoch initial |
+| Supabase-CRUD selbst | Managed Service — Supabase testet das selbst |
+| Formatters | Triviale Wrapper ohne eigene Logik |
 
 ---
 
 ## MVP-Scope (v1)
 
 **v1 — muss funktionieren:**
+- Login (Magic Link)
 - Immobilie anlegen (Wizard)
 - Prognose-KPIs (Übersicht, Cashflow Soll, AfA, Tilgungsplan)
 - Statushistorie + Ist-Cashflow
@@ -571,9 +538,9 @@ Gezielte Tests für Invarianten, die die App voraussetzt:
 - Investment-Rechner inkl. Sensitivitätsanalyse und Promote-Flow
 
 **v2 — bewusst rausgelassen:**
-- iCloud Sync
 - Export / Backup
 - Mehrsprachigkeit
+- Multi-User (RLS ist vorbereitet, aber kein Einladungs-/Freigabe-Flow)
 
 ---
 
@@ -586,88 +553,71 @@ Zwei Ebenen:
 - `economicTransferDate` in der Vergangenheit ohne ersten Statuseintrag
 
 **Warning — Speichern möglich, Hinweis wird angezeigt:**
-- `land_value + building_value` weicht um mehr als 5% von `purchase_price` ab
+- `landValue + buildingValue` weicht um mehr als 5% von `purchasePrice` ab
 - `depreciationRate` außerhalb der Normwerte (< 2% oder > 4%)
 - `loanAmount` > `purchasePrice` (Vollfinanzierung inkl. Nebenkosten — ungewöhnlich)
 
+Beide Ebenen werden als Zod-Schema modelliert: Blocking-Regeln als `.refine()` mit Fehler, Warning-Regeln als separate Prüfung, die eine Warnung neben dem Feld rendert statt das Submit zu blockieren.
+
 **Systemfehler:**
-- `ModelContainer` schlägt beim Start fehl → Fehlerdialog mit Pfad zur SQLite-Datei, kein Crash
-- SwiftData-Operation schlägt fehl → In-App-Benachrichtigung, kein Silent Fail
+- Supabase-Verbindung schlägt fehl → Fehler-UI mit Retry, kein stiller Fail
+- Schreiboperation schlägt fehl (RLS-Verstoß, Constraint-Fehler) → Toast/Inline-Fehlermeldung, kein Silent Fail
 
 ---
 
-## SwiftData-Migrationen
+## Postgres-Migrationen
 
-Jede Schema-Änderung erfordert eine neue `VersionedSchema` und eine `MigrationPlan`-Stage. Niemals ein Feld umbenennen oder löschen ohne Migration — das führt zu einem Crash beim Start.
+Jede Schema-Änderung ist eine versionierte SQL-Migration unter Supabase-CLI-Verwaltung (`supabase migration new <name>`), nicht direkt im Dashboard. Niemals eine Spalte umbenennen oder löschen ohne Migration mit Backfill — das bricht bestehende Zeilen.
 
-```swift
-enum SchemaV1: VersionedSchema {
-    static var models: [any PersistentModel.Type] { [Property.self, StatusEntry.self, ExtraordinaryCost.self, RentGuarantee.self, InvestmentCalculation.self] }
-    static var versionIdentifier = Schema.Version(1, 0, 0)
-}
+```bash
+supabase migration new add_rent_market_sqm
+# schreibt supabase/migrations/<timestamp>_add_rent_market_sqm.sql
+supabase db push
 ```
 
-Aktuelle Version: **v1.0.0**
+Aktuelle Version: **v1.0.0** (initiales Schema, siehe Datenmodell-Abschnitt oben)
 
 ---
 
 ## Debug-Seeding
 
-Im `DEBUG`-Build wird beim leeren Datenbestand automatisch die Dresdner ETW als Testimmobilie eingefügt:
+Im lokalen Dev-Modus (`pnpm dev` gegen lokale Supabase-Instanz via `supabase start`) wird bei leerem Datenbestand die Dresdner ETW als Testimmobilie eingefügt:
 
-```swift
-#if DEBUG
-if modelContext.isEmpty {
-    SeedData.insertDresdnerETW(into: modelContext)
+```typescript
+// scripts/seed.ts — nur gegen lokale/Dev-Supabase-Instanz ausführen, nie gegen Prod
+if (process.env.NODE_ENV !== 'production') {
+  await seedDresdnerEtw(supabaseAdminClient);
 }
-#endif
 ```
 
-`SeedData.swift` liegt in `Utilities/` und ist vom Release-Build ausgeschlossen.
+`scripts/seed.ts` wird nicht im Vercel-Build ausgeführt.
 
 ---
 
 ## Crash Reporting
 
-Native MetricKit — kein externes SDK, kein Datenschutzproblem.
+Kein natives Crash-Reporting mehr nötig (kein App-Absturz-Konzept im Browser). Stattdessen:
 
-```swift
-import MetricKit
-
-class AppDelegate: NSObject, NSApplicationDelegate, MXMetricManagerSubscriber {
-    func applicationDidFinishLaunching(_ notification: Notification) {
-        MXMetricManager.shared.add(self)
-    }
-
-    func didReceive(_ payloads: [MXDiagnosticPayload]) {
-        // Payload als JSON in ~/Library/Logs/ImmobilienPortfolio/ schreiben
-        // Nutzer kann bei Bedarf manuell einsenden
-    }
-}
-```
-
-Logs landen lokal, kein automatischer Upload. Bei gemeldeten Abstürzen schickt der Nutzer die Log-Datei manuell.
+- Vercel Analytics (Page-Errors, Performance) — bereits in Vercel-Hosting enthalten
+- Optional: Sentry für unbehandelte Client-Fehler, falls sich das als nötig erweist — bewusst nicht von Anfang an eingebunden (kein Overhead für Einzelnutzer-Tool)
 
 ---
 
 ## Logging
 
-`os.log` für Berechnungsfehler und unerwartete Zustände. Nicht User-Facing, aber im Feld debuggbar via Console.app.
+`console.error`/`console.warn` für Berechnungsfehler und unerwartete Zustände in Server Components/Route Handlers — landet in Vercel-Logs, dort einsehbar und durchsuchbar.
 
-```swift
-import OSLog
-let logger = Logger(subsystem: "com.deinname.ImmobilienPortfolio", category: "calculations")
-// Verwendung z.B.:
-logger.error("remainingDebt: division by zero, loanAmount=\(loanAmount)")
+```typescript
+console.error('remainingDebt: division by zero', { loanAmount });
 ```
 
-Kategorien: `calculations`, `persistence`, `migration`
+Kategorien weiterhin: `calculations`, `persistence` (Supabase-Fehler), `migration` — als strukturiertes Log-Präfix statt `os.log`-Kategorie.
 
 ---
 
 ## Onboarding / Leerer Startzustand
 
-Erster App-Start ohne Immobilien zeigt einen Empty-State in der Detail-Spalte:
+Erster App-Start ohne Immobilien zeigt einen Empty-State im Content-Bereich:
 
 ```
 [Icon: Gebäude]
@@ -680,7 +630,7 @@ im Blick zu behalten.
 [Button: Erste Immobilie hinzufügen]
 ```
 
-Der Button öffnet direkt den `AddPropertyWizard`.
+Der Button navigiert zur Route `properties/new`.
 
 ---
 
@@ -688,8 +638,8 @@ Der Button öffnet direkt den `AddPropertyWizard`.
 
 | Thema | Entscheidung | Begründung |
 |---|---|---|
-| Backend | Kein Backend initial | Single-User, lokale App — kein Overhead |
-| Externe Dependencies | Keine | Wartbarkeit, keine Breaking Changes |
-| CoreData | SwiftData stattdessen | Moderner, weniger Boilerplate, iCloud-ready |
-| Combine | Kein Combine | @Observable reicht, weniger Komplexität |
-| MVVM strikt | Pragmatisch | Kleine App — kein Over-Engineering |
+| Backend | Supabase (Postgres + Auth) | Web-App braucht Cloud-Zugriff von jedem Gerät — kein Overhead-Verzicht mehr möglich wie bei der nativen Single-Device-App |
+| ORM | Keins, `supabase-js` direkt + generierte Typen | Wartbarkeit, kein zusätzlicher Abstraktionslayer |
+| Globales State-Management (Redux etc.) | Keins | React State + Server Components reichen für diese App-Größe |
+| Multi-User über RLS hinaus | Nicht implementiert | Single-User-Tool, RLS ist vorbereitet falls sich das später ändert |
+| MVVM strikt | Pragmatisch (Server Components + `lib/calculations/`) | Kleine App — kein Over-Engineering |
