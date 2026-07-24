@@ -591,7 +591,7 @@ Eigenständige Entität für Kaufkandidaten vor dem Erwerb. Enthält alle Felder
 
 ### KPIs & Pflichtfelder
 
-KPIs schalten sich still frei sobald genügend Daten vorhanden sind. Kein Bestätigen-Button — Live-Berechnung via `@Observable`.
+KPIs schalten sich still frei sobald genügend Daten vorhanden sind. Kein Bestätigen-Button — Live-Berechnung via React State (`useState`/`useMemo`, kein Server-Roundtrip nötig).
 
 | Stufe | Felder | Freischaltet |
 |---|---|---|
@@ -676,7 +676,7 @@ Sortierung: zuletzt bearbeitet zuerst. `—` wenn Finanzierung fehlt. Badge `✓
 ```
 [Button: "Als Immobilie übernehmen"]
          ↓
-Confirmation Sheet:
+Confirmation Dialog:
 "Kaufkandidat wird als neue Immobilie ins Portfolio aufgenommen.
  Dieser Eintrag bleibt als Referenz erhalten."
          ↓
@@ -696,19 +696,21 @@ Der Eintrag wird **nicht gelöscht** — bleibt als Prognose-Referenz für spät
 ### Dateistruktur
 
 ```
-Models/
-  InvestmentCalculation.swift          # SwiftData Model
+Postgres:
+  investment_calculations              # Tabelle, siehe CLAUDEvolta.md
 
-ViewModels/
-  InvestmentCalculatorViewModel.swift  # @Observable, KPI-Berechnungen, Sensitivität
+web/lib/calculations/:
+  investmentCalculator.ts              # KPI-Berechnungen, Sensitivität (reine Funktionen)
 
-Views/InvestmentCalculator/
-  InvestmentCalculatorListView.swift   # Sidebar-Liste aller Kaufkandidaten
-  InvestmentCalculatorDetailView.swift # Fixierter KPI-Panel + scrollbare Eingabe
-  InvestmentKPIPanel.swift             # Fixierter KPI-Bereich
-  InvestmentInputSections.swift        # Scrollbare Eingabefelder
-  InvestmentSensitivityView.swift      # Slider-Bereich
-  InvestmentPromoteSheet.swift         # Confirmation Sheet für Promote
+web/app/(app)/investment-calculator/:
+  page.tsx                             # Sidebar-Liste aller Kaufkandidaten
+  [id]/page.tsx                        # Fixierter KPI-Panel + scrollbare Eingabe
+
+web/components/investment-calculator/:
+  InvestmentKpiPanel.tsx               # Fixierter KPI-Bereich
+  InputSections.tsx                    # Scrollbare Eingabefelder
+  SensitivityView.tsx                  # Slider-Bereich
+  PromoteDialog.tsx                    # Confirmation Dialog für Promote
 ```
 
 ---
