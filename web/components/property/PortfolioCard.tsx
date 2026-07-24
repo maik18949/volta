@@ -25,7 +25,9 @@ export function PortfolioCard({ totals }: { totals: PortfolioTotals }) {
         </div>
         <div>
           <p className="text-[11px] text-text-secondary">Restschuld</p>
-          <p className="text-[18px] font-extrabold text-text-primary">{formatCurrency(totals.remainingDebt)}</p>
+          <p className="text-[18px] font-extrabold text-text-primary">
+            {totals.remainingDebt !== 0 ? formatCurrency(totals.remainingDebt) : '–'}
+          </p>
         </div>
       </div>
     </GlassCard>
