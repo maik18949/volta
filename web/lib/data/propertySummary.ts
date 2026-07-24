@@ -69,21 +69,12 @@ export function computePropertySummary(
   const currentMonth = firstDayOfMonth(today);
   const currentYear = currentMonth.getUTCFullYear();
 
-  // NOTE: unlike the parking case below, this must NOT also subtract
-  // hoa_fee_maintenance_reserve_monthly. The reserve is added back as its own
-  // addend both here (operatingCostsNonRecoverableMonthly) and in the tax
-  // composition (hoaUnitNonRecoverableMonthly), so subtracting it here would
-  // cancel it out of both totals — confirmed against the already-tested,
-  // frozen fixtures.ts (operatingCostsNonRecoverableMonthly: 192.76 = 125 +
-  // 34.76 + 33) and taxCalculator.test.ts's baseInput
-  // (hoaUnitNonRecoverableMonthly: 125.0), both of which use total -
-  // recoverable only (125), not total - recoverable - reserve (90.24).
-  const hoaFeeNonRecoverableMonthly = property.hoa_fee_total_monthly - property.hoa_fee_recoverable_monthly;
-  // Parking DOES subtract its reserve here, because cashflowBeforeTax takes
-  // hoaFeeParkingRecoverableMonthly and hoaFeeParkingMaintenanceReserveMonthly
-  // as their own separate, independently-subtracted parameters (unlike the
-  // unit case, which folds everything into one combined
-  // operatingCostsNonRecoverableMonthly figure before calling cashflowBeforeTax).
+  // per spec-data-model.md: recoverable and reserve are both carved out of
+  // the total ("davon") — reserve is added back separately below for
+  // cashflow (real cash outflow) but stays excluded here for tax (not
+  // deductible)
+  const hoaFeeNonRecoverableMonthly =
+    property.hoa_fee_total_monthly - property.hoa_fee_recoverable_monthly - property.hoa_fee_maintenance_reserve_monthly;
   const hoaFeeParkingNonRecoverableMonthly =
     property.hoa_fee_parking_total_monthly -
     property.hoa_fee_parking_recoverable_monthly -

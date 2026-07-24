@@ -144,3 +144,90 @@ describe('computePropertySummary', () => {
     expect(Number.isFinite(result.cashflowAfterTaxMonthly)).toBe(true);
   });
 });
+
+describe('computePropertySummary — hoaFeeNonRecoverableMonthly "davon" derivation', () => {
+  // Regression test: hoa_fee_recoverable_monthly and hoa_fee_maintenance_reserve_monthly
+  // are both "davon" (of which) subsets of hoa_fee_total_monthly per spec-data-model.md,
+  // so hoaFeeNonRecoverableMonthly = total - recoverable - reserve. The reserve is then
+  // added back separately for operatingCostsNonRecoverableMonthly (it's a real cash
+  // outflow, just not tax-deductible) — so it must NOT also be excluded from the
+  // "recoverable" subtraction, or it gets double-counted (once via the reserve-inclusive
+  // subtraction, once via being added back).
+  //
+  // Two properties share the same hoa_fee_total_monthly (400/month) and rent
+  // (1000/month cold rent, fully vermietet all year). No loan (loanAmount=0 ->
+  // interestYear=0), no AfA (building_value=0 -> afaBasis=0), marginal_tax_rate=0
+  // (isolates the assertion from tax-effect math, which is already covered above and
+  // in taxCalculator.test.ts) and acquisition well before the test year (no proration):
+  //
+  //  - noSplit: recoverable=0, reserve=0
+  //      hoaFeeNonRecoverableMonthly = 400 - 0 - 0 = 400
+  //      operatingCostsNonRecoverableMonthly = 400 + 0 (reserve) = 400
+  //      cashflowBeforeTax = 1000 - 0 (mortgage) - 400 - 0 (ownerBorneRecoverableWE, always
+  //        0 while vermietet) = 600 = cashflowAfterTaxMonthly (tax rate 0)
+  //
+  //  - split: recoverable=100, reserve=50
+  //      hoaFeeNonRecoverableMonthly = 400 - 100 - 50 = 250
+  //      operatingCostsNonRecoverableMonthly = 250 + 50 (reserve) = 300
+  //      cashflowBeforeTax = 1000 - 0 - 300 - 0 = 700 = cashflowAfterTaxMonthly
+  //
+  // Splitting the SAME total into recoverable+reserve+remainder must shift
+  // cashflowAfterTaxMonthly by exactly the recoverable amount (100) — because while
+  // vermietet, only the recoverable portion is assumed tenant-covered via Nebenkosten,
+  // and the reserve remains an owner-borne cash cost either way (folded into "400"
+  // when unsplit, carved out but added straight back in when split). If the reserve
+  // were double-counted (the bug this guards against — subtracting only `recoverable`,
+  // not `recoverable + reserve`), operatingCostsNonRecoverableMonthly for `split` would
+  // be 350 instead of 300, cashflowAfterTaxMonthly would be 650 instead of 700, and the
+  // diff below would be 50 instead of 100.
+  const sharedOverrides: Partial<PropertyRow> = {
+    loan_amount: 0,
+    monthly_mortgage: 0,
+    building_value: 0,
+    renovation_afa_eligible: 0,
+    land_transfer_tax: 0,
+    notary_costs: 0,
+    land_registry_costs: 0,
+    agent_fee: 0,
+    appraisal_costs: 0,
+    renovation_modernization_costs: 0,
+    cold_rent_monthly: 1000,
+    parking_rent_monthly: 0,
+    hoa_fee_total_monthly: 400,
+    property_tax_annual: 0,
+    property_management_annual: 0,
+    property_insurance_annual: 0,
+    other_costs_monthly: 0,
+    hoa_fee_parking_total_monthly: 0,
+    hoa_fee_parking_recoverable_monthly: 0,
+    hoa_fee_parking_maintenance_reserve_monthly: 0,
+    property_tax_parking_annual: 0,
+    marginal_tax_rate: 0,
+    economic_transfer_date: '2020-01-01',
+    loan_start_date: '2020-01-01',
+  };
+  const statusHistory = [makeStatusEntry({ date: '2020-01-01' })];
+  const today = makeDate(2026, 6, 15);
+
+  it('splitting the same hoa_fee_total_monthly into recoverable+reserve shifts cashflow by the recoverable amount only, not recoverable+reserve', () => {
+    const noSplit = makeProperty({
+      ...sharedOverrides,
+      is_hoa_unit_split: false,
+      hoa_fee_recoverable_monthly: 0,
+      hoa_fee_maintenance_reserve_monthly: 0,
+    });
+    const split = makeProperty({
+      ...sharedOverrides,
+      is_hoa_unit_split: true,
+      hoa_fee_recoverable_monthly: 100,
+      hoa_fee_maintenance_reserve_monthly: 50,
+    });
+
+    const noSplitResult = computePropertySummary(noSplit, statusHistory, today);
+    const splitResult = computePropertySummary(split, statusHistory, today);
+
+    expect(noSplitResult.cashflowAfterTaxMonthly).toBeCloseTo(600, 2);
+    expect(splitResult.cashflowAfterTaxMonthly).toBeCloseTo(700, 2);
+    expect(splitResult.cashflowAfterTaxMonthly - noSplitResult.cashflowAfterTaxMonthly).toBeCloseTo(100, 2);
+  });
+});
