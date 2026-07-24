@@ -2,7 +2,7 @@
 
 **Schritt-Anzahl:** 7 Schritte (+ optionaler Schritt 8 wenn Besitzübergang in der Vergangenheit liegt)
 
-**Darstellung:** Eigene Seite (NavigationStack), kein Modal. Der Setup-Flow ist zu umfangreich für ein Sheet — 7–8 Schritte mit Seitennavigation brauchen den vollen Bildschirm.
+**Darstellung:** Eigene Route, kein Modal. Der Setup-Flow ist zu umfangreich für einen Dialog — 7–8 Schritte mit Seitennavigation brauchen den vollen Bildschirm.
 
 ---
 
@@ -243,9 +243,9 @@ Notizen:        [Textfeld]
 
 ---
 
-## Property Setup Container (`PropertySetupView.swift`)
+## Property Setup Container (`web/app/(app)/properties/new/page.tsx`)
 
-**Layout (eigene Seite, NavigationStack):**
+**Layout (eigene Route):**
 ```
 ┌─────────────────┬──────────────────────────────┐
 │  1  Stammdaten  │                              │
@@ -259,7 +259,7 @@ Notizen:        [Textfeld]
 └─────────────────┴──────────────────────────────┘
 ```
 
-Aufruf: Vom Hauptscreen über einen "+" Button → pusht `PropertySetupView` auf den NavigationStack. Kein `.sheet` / kein `.fullScreenCover`.
+Aufruf: Vom Hauptscreen über einen "+" Button → navigiert zur Route `properties/new`. Kein Modal/Dialog.
 
 **Linke Navigation:**
 - Alle Schritte sind direkt anklickbar
@@ -274,15 +274,15 @@ Aufruf: Vom Hauptscreen über einen "+" Button → pusht `PropertySetupView` auf
 - "Fertigstellen" nur im letzten Schritt, aktiviert wenn `state.canFinish = true`
 
 **`canFinish` Bedingungen:**
-```swift
-!name.isEmpty && !address.isEmpty && !city.isEmpty
-&& purchasePriceUnit > 0 && economicTransferDate != nil
-&& coldRentMonthly > 0
-&& loanAmount > 0 && interestRate > 0 && amortizationRate > 0
-&& buildingValue > 0 && landValue > 0
+```typescript
+name.length > 0 && address.length > 0 && city.length > 0
+  && purchasePriceUnit > 0 && economicTransferDate != null
+  && coldRentMonthly > 0
+  && loanAmount > 0 && interestRate > 0 && amortizationRate > 0
+  && buildingValue > 0 && landValue > 0
 ```
 
-**`saveProperty()`** — Mapping `PropertySetupState` → `Property`:
+**Submit-Handler** — Mapping React-Hook-Form-State → `properties`-Zeile:
 - Alle Felder direkt übernehmen
 - `monthlyMortgage` direkt speichern (vorausgefüllter oder manuell eingegebener Wert)
 - Wenn `firstStatus` gesetzt: StatusEntry mit `firstStatusDate` anlegen
