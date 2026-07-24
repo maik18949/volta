@@ -5,6 +5,11 @@ import type { StatusEntry } from './statusPeriodCalculator';
  * Recoverable Wohnung (unit) costs the owner bears for a given month, day-prorated:
  * 0 on days the property is vermietet (tenant pays via Nebenkostenabrechnung),
  * full hoaFeeRecoverable + propertyTax/12 on days it is leerstand/mietgarantie.
+ *
+ * NOTE: takes propertyTaxAnnual here (divided internally by 12). In contrast,
+ * taxCalculator.ts's equivalent field (propertyTaxUnitMonthly) expects the value
+ * pre-divided to monthly instead — don't mix these up when wiring a single
+ * properties row into both calculators.
  */
 export function ownerBorneRecoverableWEForMonth(
   month: Date,
