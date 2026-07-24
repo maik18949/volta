@@ -27,6 +27,7 @@ export function daysInMonth(date: Date): number {
   return new Date(Date.UTC(yearOf(date), monthOf(date), 0)).getUTCDate();
 }
 
+/** Returns the first day of the month that is `months` after `date`'s month (day component is not preserved). */
 export function addMonths(date: Date, months: number): Date {
   const totalMonths = (yearOf(date) - 1) * 12 + (monthOf(date) - 1) + months;
   const year = Math.floor(totalMonths / 12) + 1;
