@@ -17,6 +17,7 @@ export interface PropertySummary {
   purchasePricePerSqm: number;
   remainingDebtNow: number;
   netYield: number | null;
+  netOperatingIncomeYearly: number;
   currentStatus: PropertyStatus;
   cashflowAfterTaxMonthly: number;
 }
@@ -83,8 +84,8 @@ export function computePropertySummary(
   const operatingCostsNonRecoverableMonthly =
     hoaFeeNonRecoverableMonthly +
     property.hoa_fee_maintenance_reserve_monthly +
-    property.property_management_annual / 12 +
-    property.property_insurance_annual / 12 +
+    property.property_management_annual / 12 + // annual → monthly
+    property.property_insurance_annual / 12 + // annual → monthly
     property.other_costs_monthly;
 
   const ownerBorneRecoverableWEMonthly = ownerBorneRecoverableWEForMonth(
@@ -111,11 +112,11 @@ export function computePropertySummary(
     hoaUnitRecoverableMonthly: property.hoa_fee_recoverable_monthly,
     hoaParkingNonRecoverableMonthly: hoaFeeParkingNonRecoverableMonthly,
     hoaParkingRecoverableMonthly: property.hoa_fee_parking_recoverable_monthly,
-    propertyTaxUnitMonthly: property.property_tax_annual / 12,
-    propertyTaxParkingMonthly: property.property_tax_parking_annual / 12,
-    propertyManagementMonthly: property.property_management_annual / 12,
+    propertyTaxUnitMonthly: property.property_tax_annual / 12, // annual → monthly
+    propertyTaxParkingMonthly: property.property_tax_parking_annual / 12, // annual → monthly
+    propertyManagementMonthly: property.property_management_annual / 12, // annual → monthly
     otherCostsMonthly: property.other_costs_monthly,
-    propertyInsuranceMonthly: property.property_insurance_annual / 12,
+    propertyInsuranceMonthly: property.property_insurance_annual / 12, // annual → monthly
     coldRentMonthly: property.cold_rent_monthly,
     parkingRentMonthly: property.parking_rent_monthly,
     today,
@@ -137,7 +138,7 @@ export function computePropertySummary(
     hoaFeeParkingNonRecoverableMonthly,
     hoaFeeParkingMaintenanceReserveMonthly: property.hoa_fee_parking_maintenance_reserve_monthly,
     hoaFeeParkingRecoverableMonthly: property.hoa_fee_parking_recoverable_monthly,
-    propertyTaxParkingMonthly: property.property_tax_parking_annual / 12,
+    propertyTaxParkingMonthly: property.property_tax_parking_annual / 12, // annual → monthly
     extraordinaryCostsThisMonth: 0,
   });
   const cashflowAfterTaxMonthly = cashflowAfterTax(cashflowBeforeTaxThisMonth, taxEffectThisMonth);
@@ -148,8 +149,12 @@ export function computePropertySummary(
   const netOperatingIncomeYearly = effectiveGrossIncomeYearly - operatingCostsNonRecoverableYearly;
   const netYield = computeNetYield(netOperatingIncomeYearly, totalInvestment);
 
+  // Don't trust caller order (statusEntryRows may not arrive ascending-by-date) —
+  // statusPeriodCalculator.ts sorts internally before doing this same reverse-find,
+  // so this must too, for consistency.
+  const sortedStatusHistory = [...statusHistory].sort((a, b) => a.date.getTime() - b.date.getTime());
   const currentStatus: PropertyStatus =
-    [...statusHistory].reverse().find((e) => e.date.getTime() <= today.getTime())?.status ?? 'leerstand';
+    [...sortedStatusHistory].reverse().find((e) => e.date.getTime() <= today.getTime())?.status ?? 'leerstand';
 
   return {
     totalInvestment,
@@ -157,6 +162,7 @@ export function computePropertySummary(
     purchasePricePerSqm,
     remainingDebtNow,
     netYield,
+    netOperatingIncomeYearly,
     currentStatus,
     cashflowAfterTaxMonthly,
   };

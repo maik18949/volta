@@ -134,8 +134,37 @@ describe('computePropertySummary', () => {
     expect(Number.isFinite(result.netYield)).toBe(true);
   });
 
+  it('netOperatingIncomeYearly is present, finite, and matches the hand-computed value for the base fixture', () => {
+    // effectiveGrossIncomeYearly = (950 + 48) * 12 * (1 - 0.03) = 11616.72
+    // operatingCostsNonRecoverableMonthly = hoaFeeNonRecoverableMonthly(90.24) + reserve(34.76)
+    //   + propertyManagement/12(33) + propertyInsurance/12(0) + other(0) = 158.0
+    //   where hoaFeeNonRecoverableMonthly = 417 - 292 - 34.76 = 90.24
+    // operatingCostsNonRecoverableYearly = 158.0 * 12 = 1896
+    // netOperatingIncomeYearly = 11616.72 - 1896 = 9720.72
+    const result = computePropertySummary(property, statusHistory, today);
+    expect(Number.isFinite(result.netOperatingIncomeYearly)).toBe(true);
+    expect(result.netOperatingIncomeYearly).toBeCloseTo(9720.72, 2);
+    // netYield must be exactly netOperatingIncomeYearly / totalInvestment (the ratio the
+    // Portfolio-Karte's weighted Ø Nettorendite is built from — Σ NOI / Σ totalInvestment).
+    expect(result.netYield).toBeCloseTo(result.netOperatingIncomeYearly / result.totalInvestment, 6);
+  });
+
   it('status reflects the most recent StatusEntry at/before today', () => {
     const result = computePropertySummary(property, statusHistory, today);
+    expect(result.currentStatus).toBe('vermietet');
+  });
+
+  it('currentStatus is resolved correctly even if statusEntryRows arrive out of date order', () => {
+    // leerstand from 2026-01-01, then vermietet from 2026-03-01; today = 2026-06-15, so the
+    // correct current status is 'vermietet'. Passing them in DESCENDING order (later row first)
+    // would make a naive (unsorted) .reverse().find(...) return the WRONG one ('leerstand'),
+    // since reversing an already-descending array yields ascending order and `find` returns the
+    // first (oldest) match <= today.
+    const outOfOrderHistory = [
+      makeStatusEntry({ id: 'status-2', date: '2026-03-01', status: 'vermietet' }),
+      makeStatusEntry({ id: 'status-1', date: '2026-01-01', status: 'leerstand' }),
+    ];
+    const result = computePropertySummary(property, outOfOrderHistory, today);
     expect(result.currentStatus).toBe('vermietet');
   });
 
