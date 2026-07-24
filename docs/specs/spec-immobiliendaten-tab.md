@@ -11,7 +11,7 @@ Alle bearbeitbaren Felder einer Immobilie. Gleiche Felder, Validierung und UI-St
 
 ---
 
-## Layout (`ImmobiliendatenView.swift`)
+## Layout (`web/app/(app)/properties/[id]/settings/page.tsx`)
 
 ```
 ┌──────────────────┬──────────────────────────────┐
