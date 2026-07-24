@@ -198,7 +198,7 @@ return anteil
 
 ## Abgeleitete Feldwerte
 
-```swift
+```typescript
 closingCostsTotal =
     landTransferTax + notaryCosts + landRegistryCosts
     + agentFee + appraisalCosts + brokerCommissionAgreement
@@ -253,7 +253,7 @@ Nutzer kann es überschreiben (z.B. bei Sondertilgungen oder Bankabweichung).
 
 ## Rendite-KPIs
 
-```swift
+```typescript
 totalColdRentMonthly  = coldRentMonthly + parkingRentMonthly + otherIncomeMonthly
 
 effectiveGrossIncomeYearly = totalColdRentMonthly × 12 × (1 − vacancyRateAssumption)
