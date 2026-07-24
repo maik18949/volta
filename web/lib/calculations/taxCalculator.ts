@@ -63,6 +63,17 @@ export function annualTaxableIncome(input: AnnualTaxableIncomeInput): number {
     ownershipMonthEquivalent += ownerFraction;
 
     const leerstandFraction = leerstandDayFraction(month, input.statusHistory, input.today);
+    // KNOWN LIMITATION: for a mid-month economicTransferDate, this multiplication
+    // is not exact — leerstandFraction is a whole-month fraction from
+    // statusPeriodCalculator, which defaults days with no StatusEntry (including
+    // pre-ownership days in the acquisition month) to 'leerstand'. This can
+    // produce a small spurious leerstand-deduction for an acquisition month that
+    // was actually fully rented from day one of ownership. Confirmed reachable
+    // (e.g. economicTransferDate = day 15, StatusEntry='vermietet' from day 15
+    // onward still yields a nonzero leerstand contribution for that month).
+    // Fixing this properly requires ownership-window-aware day segmentation in
+    // statusPeriodCalculator, not just here — tracked as a follow-up, not fixed
+    // in this task.
     leerstandEquivalentMonths += ownerFraction * leerstandFraction;
 
     totalIncome +=
