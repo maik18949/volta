@@ -23,7 +23,7 @@ border-radius:  18px
 box-shadow:     0 4px 16px rgba(0,0,0,0.06)
 ```
 
-SwiftUI: `.background(.ultraThinMaterial)` + `.clipShape(RoundedRectangle(cornerRadius: 18))`
+Tailwind: `bg-white/80 backdrop-blur-2xl rounded-[18px] border border-white/95 shadow-[0_4px_16px_rgba(0,0,0,0.06)]` — als `.glass-card` Utility-Klasse definieren
 
 ## Section-Labels (Abschnittstitel innerhalb Karten)
 
@@ -90,7 +90,7 @@ Neutral: #0f172a
 
 ## Typografie
 
-SF Pro (System). Zahlen: SF Mono (tabular-nums).
+SF Pro (System). Zahlen: Tailwind `font-mono` (tabular-nums).
 
 | Rolle | Größe | Gewicht | Verwendung |
 |---|---|---|---|
@@ -117,7 +117,7 @@ Tab-Leiste: Übersicht | Cashflow | Steuer | Verlauf | Finanzierung | Immobilien
 ## Tabellen
 
 - Keine Zebra-Stripes
-- Zahlenkolumnen rechtsbündig, SF Mono
+- Zahlenkolumnen rechtsbündig, Tailwind `font-mono`
 - Keine Sonder-Hintergründe je Zeile (nur Wert-Farbe signalisiert Bedeutung)
 - Trennlinien: 1px `rgba(0,0,0,0.05)`
 
@@ -125,18 +125,18 @@ Tab-Leiste: Übersicht | Cashflow | Steuer | Verlauf | Finanzierung | Immobilien
 
 Kleiner farbiger Punkt ● rechts neben dem KPI-Wert. Farbe je nach Benchmark:
 
-| Farbe | Bedeutung | SwiftUI |
+| Farbe | Bedeutung | Tailwind |
 |-------|-----------|---------|
-| Grün | Gut | `Color.green` / `#16a34a` |
-| Orange | Ok | `Color.orange` / `#d97706` |
-| Rot | Schlecht | `Color.red` / `#dc2626` |
+| Grün | Gut | `text-green-600` / `#16a34a` |
+| Orange | Ok | `text-amber-600` / `#d97706` |
+| Rot | Schlecht | `text-red-600` / `#dc2626` |
 
 ```
 Bruttorendite   4,2%  ●   ⓘ
 ```
 
 - Chip-Größe: 8pt Durchmesser
-- ⓘ-Icon: SF Symbol `info.circle`, 14pt, Farbe `#94a3b8`
+- ⓘ-Icon: lucide-react `Info`-Icon, 14px, Farbe `#94a3b8`
 - Tippen auf ⓘ → Bottom Sheet mit KPI-Erklärung
 
 ## ⓘ Info Bottom Sheet
@@ -182,7 +182,7 @@ Bruttorendite   4,2%  ●   ⓘ
 - Thumbnail-Größe: (Bildschirmbreite − Padding) / 3, quadratisch
 - Gap zwischen Thumbnails: 2pt
 - Titelbild-Badge: ⭐ Icon oben links, `rgba(0,0,0,0.5)` Hintergrund
-- Hinzufügen-Button: gestrichelter Rahmen, `+` SF Symbol zentriert
+- Hinzufügen-Button: gestrichelter Rahmen, `+` lucide-react `Plus`-Icon zentriert
 - Tippen auf Foto: Action Sheet "Titelbild setzen" / "Löschen"
 - Max. 15 Fotos — Hinzufügen-Button verschwindet wenn Limit erreicht
 
@@ -217,7 +217,7 @@ Titelbild:      Höhe 160pt, contentMode .fill
 Body-Padding:   12px horizontal, 10px vertikal
 Kennzahlen-Grid: 2×2, Label 11px #475569, Wert 15px 700
 Trennlinie:     1px rgba(0,0,0,0.06)
-Fußzeile:       12px #94a3b8, SF Mono für Zahlen
+Fußzeile:       12px #94a3b8, Tailwind `font-mono` für Zahlen
 ```
 
 ## Portfolio-Karte (Hauptscreen)
@@ -232,7 +232,7 @@ Cashflow:    farbig (grün/rot wie Ergebnis-Zahlen)
 
 ## Icons
 
-SF Symbols — keine eigenen Icons.
+lucide-react Icons — keine eigenen Icons.
 
 ## Animationen
 
