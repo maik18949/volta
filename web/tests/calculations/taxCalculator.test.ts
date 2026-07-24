@@ -20,6 +20,7 @@ const baseInput = {
   propertyTaxUnitMonthly: f.propertyTaxMonthly,
   propertyTaxParkingMonthly: 0,
   propertyManagementMonthly: f.propertyManagementMonthly,
+  propertyInsuranceMonthly: 0,
   otherCostsMonthly: 0,
   coldRentMonthly: f.coldRentMonthly,
   parkingRentMonthly: f.parkingRentMonthly,
@@ -35,6 +36,26 @@ describe('taxCalculator.annualTaxableIncome', () => {
       today: makeDate(2026, 12, 31),
     });
     expect(result).toBeCloseTo(-9100.44, 0);
+  });
+
+  it('propertyInsuranceMonthly is deducted (regression: was silently missing)', () => {
+    const history: StatusEntry[] = [{ date: f.economicTransferDate, status: 'vermietet', incomeActualMonthly: null }];
+    const withoutInsurance = annualTaxableIncome({
+      ...baseInput,
+      year: 2026,
+      statusHistory: history,
+      today: makeDate(2026, 12, 31),
+      propertyInsuranceMonthly: 0,
+    });
+    const withInsurance = annualTaxableIncome({
+      ...baseInput,
+      year: 2026,
+      statusHistory: history,
+      today: makeDate(2026, 12, 31),
+      propertyInsuranceMonthly: 20,
+    });
+    // 11 ownership months (Feb-Dec 2026) × -20/month insurance deduction.
+    expect(withInsurance - withoutInsurance).toBeCloseTo(-20 * 11, 2);
   });
 
   it('all leerstand, acquisition year (2026)', () => {

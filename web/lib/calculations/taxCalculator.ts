@@ -20,6 +20,7 @@ export interface AnnualTaxableIncomeInput {
   propertyTaxUnitMonthly: number;
   propertyTaxParkingMonthly: number; // Stellplatz Grundsteuer — always owner-borne
   propertyManagementMonthly: number;
+  propertyInsuranceMonthly: number; // nur wenn > 0
   otherCostsMonthly: number;
   coldRentMonthly: number;
   parkingRentMonthly: number;
@@ -87,6 +88,7 @@ export function annualTaxableIncome(input: AnnualTaxableIncomeInput): number {
       input.hoaParkingRecoverableMonthly +
       input.propertyTaxParkingMonthly +
       input.propertyManagementMonthly +
+      input.propertyInsuranceMonthly +
       input.otherCostsMonthly) *
     ownershipMonthEquivalent;
 
