@@ -20,7 +20,7 @@ export async function createClient() {
             );
           } catch {
             // setAll called from a Server Component; ignored because
-            // middleware refreshes sessions on every request instead.
+            // proxy refreshes sessions on every request instead.
           }
         },
       },
