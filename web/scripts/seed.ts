@@ -1,5 +1,8 @@
 // web/scripts/seed.ts — dev-only. Never run against production.
-// Requires SUPABASE_SERVICE_ROLE_KEY and SEED_USER_EMAIL in web/.env.local (not committed).
+// Requires SUPABASE_SERVICE_ROLE_KEY and SEED_USER_EMAIL in web/.env.local — local-only,
+// never commit these, never run with NODE_ENV=production.
+// Not idempotent — running this twice fails on insert rather than creating a duplicate
+// property. That's fine for a one-off dev seed.
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '../lib/supabase/types';
 
