@@ -20,7 +20,7 @@ Jede Datei ist in sich vollständig und beschreibt ein Feature oder Tab.
 
 - **Light Mode only** — kein Dark Mode
 - **parkingType != .nichtVorhanden** = Bedingung für alle Stellplatz-Felder (kein hasParking-Feld)
-- **Property Setup** = eigene Seite (NavigationStack), kein Modal
+- **Property Setup** = eigene Route (`properties/new`), kein Modal
 - **Hausgeld-Split** = optionaler Toggle in Property Setup UND Einstellungen (identisch)
 - **Instandhaltungsrücklage** = Cashflow-Abfluss, aber NICHT steuerlich absetzbar
 - **Tilgung** = Cashflow-Abfluss, aber NICHT steuerlich absetzbar

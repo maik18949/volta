@@ -126,7 +126,7 @@ Picker neben der Liste (Segmented Control oder Dropdown):
 ## Aktionen
 
 **NavigationBar rechts:**
-- **[+]** → öffnet `PropertySetupView` (NavigationStack push)
+- **[+]** → navigiert zu `properties/new`
 - **[⋮]** → Optionsmenü (z.B. Sortierung, später erweiterbar)
 
 **Swipe-Aktionen auf Property Card:**
@@ -166,6 +166,6 @@ Property Detail
 
 Hauptscreen
     ↓ [+] Button
-PropertySetupView (NavigationStack)
+properties/new (eigene Route)
     └── Nach Fertigstellen: zurück zu Hauptscreen, neue Card erscheint
 ```

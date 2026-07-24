@@ -134,20 +134,22 @@ Notizen:                  [Textfeld, optional]
 
 ## Datenmodelle
 
-```swift
-@Model class StatusEntry {
-    var date: Date                    // Startdatum dieses Status
-    var status: PropertyStatus
-    var incomeActualMonthly: Double?  // nur für .mietgarantie
-    var notes: String
+```typescript
+// Postgres table: status_entries
+interface StatusEntry {
+  date: string;                       // Startdatum dieses Status
+  status: PropertyStatus;
+  incomeActualMonthly: number | null; // nur für 'mietgarantie'
+  notes: string;
 }
 
-@Model class ExtraordinaryCost {
-    var date: Date
-    var description: String
-    var amount: Double
-    var isDeductible: Bool            // steuerlich absetzbar (§9 EStG)?
-    var notes: String?
+// Postgres table: extraordinary_costs
+interface ExtraordinaryCost {
+  date: string;
+  description: string;
+  amount: number;
+  isDeductible: boolean;              // steuerlich absetzbar (§9 EStG)?
+  notes: string | null;
 }
 ```
 

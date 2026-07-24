@@ -105,7 +105,7 @@ Beide Spalten: leicht blaues Hintergrund-Tinting (`rgba(239,246,255,0.5)`).
 
 - Einnahmen: grün
 - Ausgaben: rot (als negativer Wert: −XXX €)
-- Zahlen: SF Mono, rechtsbündig
+- Zahlen: Tailwind `font-mono`, rechtsbündig
 
 ---
 
