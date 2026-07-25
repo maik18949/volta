@@ -3,7 +3,7 @@
 import { useFormContext, useWatch } from 'react-hook-form';
 import { CurrencyField } from '@/components/ui/CurrencyField';
 import { PercentField } from '@/components/ui/PercentField';
-import { afaBasis, depreciationYearly, depreciationMonthly } from '@/lib/calculations/depreciationCalculator';
+import { afaBasis, depreciationYearly, depreciationMonthly, valuationDeviation } from '@/lib/calculations/depreciationCalculator';
 import { closingCostsTotal } from '@/lib/calculations/kpiCalculator';
 import { formatCurrency } from '@/lib/formatters';
 import type { WizardFormValues } from '@/lib/wizard/wizardLogic';
@@ -33,7 +33,7 @@ export function StepAfaSteuer() {
   const yearly = depreciationYearly(basis, depreciationRate);
   const monthly = depreciationMonthly(basis, depreciationRate);
 
-  const sumDeviation = purchasePrice > 0 ? Math.abs(buildingValue + landValue - purchasePrice) / purchasePrice : 0;
+  const sumDeviation = valuationDeviation(buildingValue, landValue, purchasePrice);
 
   return (
     <div className="space-y-4">
@@ -45,7 +45,7 @@ export function StepAfaSteuer() {
       <CurrencyField label="Gebäudewert (aus Regierungs-Excel)" name="buildingValue" register={register} required />
       <CurrencyField label="Grundstückswert (aus Regierungs-Excel)" name="landValue" register={register} required />
 
-      {sumDeviation > 0.05 && purchasePrice > 0 && (
+      {sumDeviation > 0.05 && (
         <p className="text-sm text-warning">
           ⚠ Gebäude + Grundstück ({formatCurrency(buildingValue + landValue)}) weicht {(sumDeviation * 100).toFixed(1)}% vom Kaufpreis
           ab — Werte aus dem Regierungs-Excel prüfen.

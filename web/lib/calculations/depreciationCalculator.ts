@@ -24,6 +24,12 @@ export function depreciationMonthly(basis: number, rate: number): number {
   return depreciationYearly(basis, rate) / 12;
 }
 
+/** Fractional deviation of (buildingValue + landValue) from purchasePrice; 0 when purchasePrice or both values are 0. */
+export function valuationDeviation(buildingValue: number, landValue: number, purchasePrice: number): number {
+  if (purchasePrice <= 0 || (buildingValue <= 0 && landValue <= 0)) return 0;
+  return Math.abs(buildingValue + landValue - purchasePrice) / purchasePrice;
+}
+
 /**
  * AfA in the acquisition year: prorated from the first full month after
  * economicTransferDate (the month of transfer itself counts in full, per §7 EStG).
