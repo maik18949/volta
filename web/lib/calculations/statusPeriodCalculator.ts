@@ -1,4 +1,4 @@
-import { firstDayOfMonth, daysInMonth, dayOfMonth, yearOf, monthOf, makeDate } from './dateHelpers';
+import { firstDayOfMonth, daysInMonth, dayOfMonth, yearOf, monthOf, makeDate, addMonths } from './dateHelpers';
 
 export type PropertyStatus = 'vermietet' | 'leerstand' | 'mietgarantie';
 
@@ -113,4 +113,38 @@ export function ownershipDayFraction(month: Date, economicTransferDate: Date): n
   const transferDay = dayOfMonth(economicTransferDate);
   const ownedDays = totalDays - transferDay + 1;
   return ownedDays / totalDays;
+}
+
+export interface OwnershipVacancyDays {
+  ownershipDays: number;
+  leerstandDays: number;
+}
+
+/**
+ * Cumulative ownership days and (ownership-weighted) leerstand days from
+ * economicTransferDate's month through today's month — feeds
+ * kpiCalculator.actualVacancyRate. Uses the same ownerFraction-weighting as
+ * taxCalculator.annualTaxableIncome so a mid-month acquisition month doesn't
+ * overcount leerstand for days before the transfer.
+ */
+export function ownershipAndVacancyDaysSinceTransfer(
+  statusHistory: StatusEntry[],
+  economicTransferDate: Date,
+  today: Date
+): OwnershipVacancyDays {
+  let ownershipDays = 0;
+  let leerstandDays = 0;
+  let month = firstDayOfMonth(economicTransferDate);
+  const lastMonth = firstDayOfMonth(today);
+
+  while (month.getTime() <= lastMonth.getTime()) {
+    const totalDays = daysInMonth(month);
+    const ownerFraction = ownershipDayFraction(month, economicTransferDate);
+    const vacancyFraction = leerstandDayFraction(month, statusHistory, today);
+    ownershipDays += ownerFraction * totalDays;
+    leerstandDays += ownerFraction * vacancyFraction * totalDays;
+    month = addMonths(month, 1);
+  }
+
+  return { ownershipDays: Math.round(ownershipDays), leerstandDays: Math.round(leerstandDays) };
 }

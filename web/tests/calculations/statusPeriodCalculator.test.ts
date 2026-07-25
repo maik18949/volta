@@ -5,6 +5,7 @@ import {
   incomeForMonth,
   leerstandDayFraction,
   ownershipDayFraction,
+  ownershipAndVacancyDaysSinceTransfer,
 } from '@/lib/calculations/statusPeriodCalculator';
 
 function entry(status: StatusEntry['status'], y: number, m: number, d = 1, income: number | null = null): StatusEntry {
@@ -71,5 +72,28 @@ describe('statusPeriodCalculator', () => {
   it('ownershipDayFraction: month before acquisition is zero', () => {
     const result = ownershipDayFraction(makeDate(2026, 1, 1), makeDate(2026, 2, 1));
     expect(result).toBeCloseTo(0, 4);
+  });
+});
+
+describe('ownershipAndVacancyDaysSinceTransfer', () => {
+  it('sums ownership and leerstand days across multiple full months', () => {
+    // Jan: vermietet (31 days). Feb: leerstand (28 days, 2026 not a leap year).
+    // Mar: vermietet again. today = Mar 31 -> lastMonth = Mar 1, so Jan/Feb/Mar all included.
+    const history = [
+      entry('vermietet', 2026, 1, 1),
+      entry('leerstand', 2026, 2, 1),
+      entry('vermietet', 2026, 3, 1),
+    ];
+    const result = ownershipAndVacancyDaysSinceTransfer(history, makeDate(2026, 1, 1), makeDate(2026, 3, 31));
+    expect(result.ownershipDays).toBe(31 + 28 + 31);
+    expect(result.leerstandDays).toBe(28);
+  });
+
+  it('a mid-month acquisition only counts owned days in that first month', () => {
+    // Acquisition Feb 15 (28-day month) -> 14 owned days in Feb, all leerstand.
+    const history = [entry('leerstand', 2026, 2, 15)];
+    const result = ownershipAndVacancyDaysSinceTransfer(history, makeDate(2026, 2, 15), makeDate(2026, 2, 28));
+    expect(result.ownershipDays).toBe(14);
+    expect(result.leerstandDays).toBe(14);
   });
 });
