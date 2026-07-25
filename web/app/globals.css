@@ -1,26 +1,44 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --color-app-bg-from: #dce8f8;
+  --color-app-bg-to: #e8f0fb;
+  --color-accent: #3b82f6;
+  --color-section-label: #1d4ed8;
+  --color-positive-strong: #15803d;
+  --color-positive: #059669;
+  --color-negative: #dc2626;
+  --color-text-primary: #0f172a;
+  --color-text-secondary: #475569;
+  --color-text-dim: #94a3b8;
+  --color-warning: #d97706;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-accent: var(--color-accent);
+  --color-section-label: var(--color-section-label);
+  --color-positive-strong: var(--color-positive-strong);
+  --color-positive: var(--color-positive);
+  --color-negative: var(--color-negative);
+  --color-text-primary: var(--color-text-primary);
+  --color-text-secondary: var(--color-text-secondary);
+  --color-text-dim: var(--color-text-dim);
+  --color-warning: var(--color-warning);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+body {
+  min-height: 100%;
+  background: linear-gradient(145deg, var(--color-app-bg-from) 0%, var(--color-app-bg-to) 100%);
+  background-attachment: fixed;
+  color: var(--color-text-primary);
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+.glass-card {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.95);
+  border-radius: 18px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
 }
