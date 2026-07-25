@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { useFormContext, useWatch } from 'react-hook-form';
 import { CurrencyField } from '@/components/ui/CurrencyField';
 import { PercentField } from '@/components/ui/PercentField';
@@ -15,7 +15,7 @@ function safeNum(value: number | undefined): number {
 }
 
 export function StepFinanzierung() {
-  const { register, control, setValue, getValues } = useFormContext<WizardFormValues>();
+  const { register, control, setValue, getFieldState } = useFormContext<WizardFormValues>();
   const values = useWatch({ control });
 
   const loanAmount = safeNum(values.loanAmount);
@@ -23,19 +23,15 @@ export function StepFinanzierung() {
   const amortizationRate = safeNum(values.amortizationRate);
   const calculatedMortgage = monthlyMortgageCalc(loanAmount, interestRate, amortizationRate);
 
-  // Tracks the last value this effect itself wrote into `monthlyMortgage`, so we can
-  // distinguish "still holds what we auto-filled" from "user explicitly edited it"
-  // (including typing an explicit 0), without relying on RHF's isDirty-vs-default check.
-  const lastAutoFilledRef = useRef<number | null>(null);
-
+  // Auto-fill `monthlyMortgage` from the calculated value until the user has actually
+  // touched (blurred) the field themselves. `isTouched` is set on blur regardless of the
+  // value typed (including an explicit 0), and is NOT set by this effect's own
+  // programmatic setValue() calls, so it can't be fooled by value coincidences.
   useEffect(() => {
-    const rounded = Math.round(calculatedMortgage * 100) / 100;
-    const currentValue = getValues('monthlyMortgage');
-    if (lastAutoFilledRef.current === null || currentValue === lastAutoFilledRef.current) {
-      setValue('monthlyMortgage', rounded);
-      lastAutoFilledRef.current = rounded;
+    if (!getFieldState('monthlyMortgage').isTouched) {
+      setValue('monthlyMortgage', Math.round(calculatedMortgage * 100) / 100);
     }
-  }, [calculatedMortgage, getValues, setValue]);
+  }, [calculatedMortgage, getFieldState, setValue]);
 
   const parkingType = values.parkingType ?? 'nicht_vorhanden';
   const purchasePrice = safeNum(values.purchasePriceUnit) + (parkingType !== 'nicht_vorhanden' ? safeNum(values.purchasePriceParking) : 0);
