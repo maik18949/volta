@@ -112,4 +112,31 @@ describe('kpiCalculator', () => {
   it('benchmarkColor: null value returns null (no chip)', () => {
     expect(benchmarkColor('netYield', null)).toBeNull();
   });
+
+  it('benchmarkColor: ltv exact boundaries', () => {
+    expect(benchmarkColor('ltv', 0.7)).toBe('green');
+    expect(benchmarkColor('ltv', 0.8)).toBe('orange');
+  });
+
+  it('benchmarkColor: dscr exact boundaries', () => {
+    expect(benchmarkColor('dscr', 1.25)).toBe('green');
+    expect(benchmarkColor('dscr', 1.0)).toBe('orange');
+  });
+
+  it('benchmarkColor: kaufpreisfaktor exact boundaries', () => {
+    expect(benchmarkColor('kaufpreisfaktor', 20)).toBe('green');
+    expect(benchmarkColor('kaufpreisfaktor', 25)).toBe('orange');
+  });
+
+  it('benchmarkColor: cashOnCash thresholds', () => {
+    expect(benchmarkColor('cashOnCash', 0.07)).toBe('green');
+    expect(benchmarkColor('cashOnCash', 0.04)).toBe('orange');
+    expect(benchmarkColor('cashOnCash', 0.01)).toBe('red');
+  });
+
+  it('benchmarkColor: actualVacancyRate thresholds', () => {
+    expect(benchmarkColor('actualVacancyRate', 0.02)).toBe('green');
+    expect(benchmarkColor('actualVacancyRate', 0.05)).toBe('orange');
+    expect(benchmarkColor('actualVacancyRate', 0.1)).toBe('red');
+  });
 });
