@@ -6,17 +6,24 @@ import { grossYield } from '@/lib/calculations/kpiCalculator';
 import { formatCurrency, formatPercent } from '@/lib/formatters';
 import type { WizardFormValues } from '@/lib/wizard/wizardLogic';
 
+function safeNum(value: number | undefined): number {
+  return typeof value === 'number' && !Number.isNaN(value) ? value : 0;
+}
+
 export function StepEinnahmen() {
   const { register, control } = useFormContext<WizardFormValues>();
   const parkingType = useWatch({ control, name: 'parkingType' });
   const values = useWatch({ control });
 
-  const coldRentMonthly = values.coldRentMonthly ?? 0;
-  const parkingRentMonthly = parkingType !== 'nicht_vorhanden' ? (values.parkingRentMonthly ?? 0) : 0;
+  const coldRentMonthly = safeNum(values.coldRentMonthly);
+  const parkingRentMonthly = parkingType !== 'nicht_vorhanden' ? safeNum(values.parkingRentMonthly) : 0;
   const purchasePrice =
-    (values.purchasePriceUnit ?? 0) + (parkingType !== 'nicht_vorhanden' ? (values.purchasePriceParking ?? 0) : 0);
+    safeNum(values.purchasePriceUnit) + (parkingType !== 'nicht_vorhanden' ? safeNum(values.purchasePriceParking) : 0);
   const coldRentYearly = coldRentMonthly * 12;
-  const warmmieteYearly = values.warmmieteMonthly ? values.warmmieteMonthly * 12 : null;
+  const warmmieteYearly =
+    typeof values.warmmieteMonthly === 'number' && !Number.isNaN(values.warmmieteMonthly)
+      ? values.warmmieteMonthly * 12
+      : null;
   const yieldValue = grossYield(coldRentYearly, parkingRentMonthly * 12, purchasePrice);
 
   return (

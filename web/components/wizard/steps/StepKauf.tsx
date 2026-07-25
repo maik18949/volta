@@ -7,22 +7,26 @@ import { closingCostsTotal, totalInvestment as computeTotalInvestment } from '@/
 import { formatCurrency } from '@/lib/formatters';
 import type { WizardFormValues } from '@/lib/wizard/wizardLogic';
 
+function safeNum(value: number | undefined): number {
+  return typeof value === 'number' && !Number.isNaN(value) ? value : 0;
+}
+
 export function StepKauf() {
   const { register, control } = useFormContext<WizardFormValues>();
   const parkingType = useWatch({ control, name: 'parkingType' });
   const values = useWatch({ control });
 
-  const purchasePriceUnit = values.purchasePriceUnit ?? 0;
-  const purchasePriceParking = parkingType !== 'nicht_vorhanden' ? (values.purchasePriceParking ?? 0) : 0;
+  const purchasePriceUnit = safeNum(values.purchasePriceUnit);
+  const purchasePriceParking = parkingType !== 'nicht_vorhanden' ? safeNum(values.purchasePriceParking) : 0;
   const purchasePrice = purchasePriceUnit + purchasePriceParking;
   const closingCosts = closingCostsTotal(
-    values.landTransferTax ?? 0,
-    values.notaryCosts ?? 0,
-    values.landRegistryCosts ?? 0,
-    values.agentFee ?? 0,
-    values.appraisalCosts ?? 0
+    safeNum(values.landTransferTax),
+    safeNum(values.notaryCosts),
+    safeNum(values.landRegistryCosts),
+    safeNum(values.agentFee),
+    safeNum(values.appraisalCosts)
   );
-  const renovation = values.renovationModernizationCosts ?? 0;
+  const renovation = safeNum(values.renovationModernizationCosts);
   const total = computeTotalInvestment(purchasePrice, closingCosts, renovation);
 
   return (
