@@ -18,8 +18,14 @@ export function CurrentStatusCard({
   hasStatusHistory: boolean;
   latestStatusDate: Date | null;
 }) {
-  // cashflowBeforeTax = income - mortgage - runningCosts, so this is the exact inverse —
-  // no new intermediate needs exposing on PropertySummary for it.
+  // cashflowBeforeTax = income - mortgage - runningCosts, so this is the exact algebraic
+  // inverse — no new intermediate needs exposing on PropertySummary for it.
+  // NOTE: this only reads correctly as "Laufende Kosten" because computePropertySummary
+  // (propertySummary.ts) hardcodes extraordinaryCostsThisMonth: 0 for the current month's
+  // cashflowBeforeTax call — cashflowBeforeTax() itself sums 7 cost terms, including
+  // extraordinaryCostsThisMonth. If that upstream assumption ever changes (e.g. a real
+  // current-month extraordinary cost gets threaded in), this derived value will silently
+  // absorb one-time costs into the "running costs" label.
   const runningCostsMonthly = summary.incomeActualMonthly - monthlyMortgage - summary.cashflowBeforeTaxMonthly;
   const cashflowAfterColor = summary.cashflowAfterTaxMonthly >= 0 ? 'text-positive' : 'text-negative';
 
