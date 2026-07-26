@@ -5,6 +5,7 @@ import { interestForCalendarYear } from '@/lib/calculations/amortizationCalculat
 import type { StatusEntry } from '@/lib/calculations/statusPeriodCalculator';
 import { annualTaxableIncome, taxEffectYearly, taxEffectMonthly } from '@/lib/calculations/taxCalculator';
 import { annualTaxableIncomeBreakdown } from '@/lib/calculations/taxCalculator';
+import { taxLineItemsForScenario, type TaxScenarioInput } from '@/lib/calculations/taxCalculator';
 
 const baseInput = {
   economicTransferDate: f.economicTransferDate,
@@ -190,5 +191,53 @@ describe('taxCalculator.annualTaxableIncomeBreakdown', () => {
     expect(breakdown.taxableIncome).toBe(0);
     expect(breakdown.income).toBe(0);
     expect(breakdown.extraordinaryCostsDeductible).toBe(0);
+  });
+});
+
+describe('taxCalculator.taxLineItemsForScenario', () => {
+  const scenarioBaseInput: Omit<TaxScenarioInput, 'scenario' | 'year'> = {
+    coldRentMonthly: f.coldRentMonthly,
+    parkingRentMonthly: f.parkingRentMonthly,
+    loanStartDate: f.loanStartDate,
+    loanAmount: f.loanAmount,
+    interestRate: f.interestRate,
+    monthlyMortgage: f.monthlyMortgage,
+    afaBasis: f.afaBasis,
+    depreciationRate: f.depreciationRate,
+    hoaUnitNonRecoverableMonthly: 125.0,
+    hoaUnitRecoverableMonthly: f.hoaFeeRecoverableMonthly,
+    hoaParkingNonRecoverableMonthly: 0,
+    hoaParkingRecoverableMonthly: 0,
+    propertyTaxUnitMonthly: f.propertyTaxMonthly,
+    propertyTaxParkingMonthly: 0,
+    propertyManagementMonthly: f.propertyManagementMonthly,
+    propertyInsuranceMonthly: 0,
+    otherCostsMonthly: 0,
+  };
+
+  it('vollvermietung scenario for 2027 matches the full-year annualTaxableIncomeBreakdown (all vermietet)', () => {
+    const scenarioResult = taxLineItemsForScenario({ ...scenarioBaseInput, scenario: 'vollvermietung', year: 2027 });
+    const breakdownResult = annualTaxableIncomeBreakdown({
+      ...baseInput,
+      year: 2027,
+      statusHistory: [{ date: makeDate(2027, 1, 1), status: 'vermietet', incomeActualMonthly: null }],
+      today: makeDate(2027, 12, 31),
+      extraordinaryCostsDeductibleYearly: 0,
+    });
+    expect(scenarioResult.taxableIncome).toBeCloseTo(breakdownResult.taxableIncome, 0);
+    expect(scenarioResult.hoaRecoverableWE).toBe(0);
+    expect(scenarioResult.propertyTaxWE).toBe(0);
+  });
+
+  it('leerstand scenario: zero income, full owner-borne recoverable WE costs for all 12 months', () => {
+    const result = taxLineItemsForScenario({ ...scenarioBaseInput, scenario: 'leerstand', year: 2027 });
+    expect(result.income).toBe(0);
+    expect(result.hoaRecoverableWE).toBeCloseTo(f.hoaFeeRecoverableMonthly * 12, 2);
+    expect(result.propertyTaxWE).toBeCloseTo(f.propertyTaxMonthly * 12, 2);
+  });
+
+  it('AfA is never prorated (no acquisition-year discount in a scenario forecast)', () => {
+    const result = taxLineItemsForScenario({ ...scenarioBaseInput, scenario: 'vollvermietung', year: 2030 });
+    expect(result.depreciation).toBeCloseTo(f.afaBasis * f.depreciationRate, 2);
   });
 });

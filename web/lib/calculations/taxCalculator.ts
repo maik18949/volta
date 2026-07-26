@@ -2,6 +2,7 @@ import { makeDate } from './dateHelpers';
 import { interestForCalendarYear } from './amortizationCalculator';
 import { ownershipDayFraction, leerstandDayFraction, incomeForMonth } from './statusPeriodCalculator';
 import type { StatusEntry } from './statusPeriodCalculator';
+import { depreciationYearly } from './depreciationCalculator';
 
 export interface AnnualTaxableIncomeInput {
   year: number;
@@ -187,4 +188,79 @@ export function taxEffectYearly(taxableIncomeVV: number, marginalTaxRate: number
 export function taxEffectMonthly(taxEffectYearlyValue: number, ownershipMonths: number): number {
   if (ownershipMonths <= 0) return 0;
   return taxEffectYearlyValue / ownershipMonths;
+}
+
+export interface TaxScenarioInput {
+  scenario: 'vollvermietung' | 'leerstand';
+  year: number;
+  coldRentMonthly: number;
+  parkingRentMonthly: number;
+  loanStartDate: Date;
+  loanAmount: number;
+  interestRate: number;
+  monthlyMortgage: number;
+  afaBasis: number;
+  depreciationRate: number;
+  hoaUnitNonRecoverableMonthly: number;
+  hoaUnitRecoverableMonthly: number;
+  hoaParkingNonRecoverableMonthly: number;
+  hoaParkingRecoverableMonthly: number;
+  propertyTaxUnitMonthly: number;
+  propertyTaxParkingMonthly: number;
+  propertyManagementMonthly: number;
+  propertyInsuranceMonthly: number;
+  otherCostsMonthly: number;
+}
+
+/**
+ * Steuer tab Section 2 ("Prognose") basis — a full calendar year, no
+ * acquisition-year proration (this isn't necessarily the acquisition year),
+ * no status history (a scenario toggle stands in for it).
+ */
+export function taxLineItemsForScenario(input: TaxScenarioInput): TaxLineItems {
+  const income = input.scenario === 'vollvermietung' ? (input.coldRentMonthly + input.parkingRentMonthly) * 12 : 0;
+  const interest = interestForCalendarYear(input.year, input.loanStartDate, input.loanAmount, input.interestRate, input.monthlyMortgage);
+  const depreciation = depreciationYearly(input.afaBasis, input.depreciationRate);
+
+  const hoaRecoverableWE = input.scenario === 'leerstand' ? input.hoaUnitRecoverableMonthly * 12 : 0;
+  const propertyTaxWE = input.scenario === 'leerstand' ? input.propertyTaxUnitMonthly * 12 : 0;
+
+  const hoaNonRecoverableWE = input.hoaUnitNonRecoverableMonthly * 12;
+  const insuranceWE = input.propertyInsuranceMonthly * 12;
+  const managementWE = input.propertyManagementMonthly * 12;
+  const otherCostsWE = input.otherCostsMonthly * 12;
+  const hoaNonRecoverableTE = input.hoaParkingNonRecoverableMonthly * 12;
+  const hoaRecoverableTE = input.hoaParkingRecoverableMonthly * 12;
+  const propertyTaxTE = input.propertyTaxParkingMonthly * 12;
+
+  const taxableIncome =
+    income -
+    interest -
+    depreciation -
+    hoaNonRecoverableWE -
+    insuranceWE -
+    managementWE -
+    otherCostsWE -
+    hoaNonRecoverableTE -
+    hoaRecoverableTE -
+    propertyTaxTE -
+    hoaRecoverableWE -
+    propertyTaxWE;
+
+  return {
+    income,
+    interest,
+    depreciation,
+    hoaNonRecoverableWE,
+    insuranceWE,
+    managementWE,
+    otherCostsWE,
+    hoaRecoverableWE,
+    propertyTaxWE,
+    hoaNonRecoverableTE,
+    hoaRecoverableTE,
+    propertyTaxTE,
+    extraordinaryCostsDeductible: 0,
+    taxableIncome,
+  };
 }
