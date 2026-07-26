@@ -2,7 +2,7 @@ import { GlassCard } from '@/components/ui/GlassCard';
 import { SectionLabel } from '@/components/ui/SectionLabel';
 import { KpiChip } from '@/components/property/KpiChip';
 import { KpiInfoButton } from '@/components/property/KpiInfoButton';
-import { formatCurrency, formatPercent } from '@/lib/formatters';
+import { formatCurrency, formatNumber, formatPercent } from '@/lib/formatters';
 import { benchmarkColor, type BenchmarkKpi } from '@/lib/calculations/kpiCalculator';
 import type { OverviewMetrics } from '@/lib/data/propertyOverview';
 import type { PropertySummary } from '@/lib/data/propertySummary';
@@ -57,13 +57,13 @@ export function ReturnsCard({ summary, overview }: { summary: PropertySummary; o
         kpi="kaufpreisfaktor"
         label="Kaufpreisfaktor"
         rawValue={overview.kaufpreisfaktor}
-        formattedValue={overview.kaufpreisfaktor !== null ? `${overview.kaufpreisfaktor.toFixed(1)}×` : '–'}
+        formattedValue={overview.kaufpreisfaktor !== null ? `${formatNumber(overview.kaufpreisfaktor, 1)}×` : '–'}
       />
       <KpiRow
         kpi="dscr"
         label="DSCR (NOI)"
         rawValue={overview.dscr}
-        formattedValue={overview.dscr !== null ? overview.dscr.toFixed(2) : '–'}
+        formattedValue={overview.dscr !== null ? formatNumber(overview.dscr, 2) : '–'}
       />
       <KpiRow kpi="ltv" label="LTV" rawValue={overview.ltv} formattedValue={overview.ltv !== null ? formatPercent(overview.ltv) : '–'} />
       <KpiRow
