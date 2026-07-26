@@ -10,6 +10,8 @@ import {
   annualCashflowBeforeTax,
   cashflowLineItemsForScenario,
   type CashflowScenarioInput,
+  cashflowLineItemsForActualMonth,
+  type CashflowActualMonthInput,
 } from '@/lib/calculations/cashflowCalculator';
 
 function statusEntry(status: StatusEntry['status'], y: number, m: number, d = 1): StatusEntry {
@@ -257,5 +259,88 @@ describe('cashflowLineItemsForScenario', () => {
     const without = cashflowLineItemsForScenario(baseInput);
     const withCost = cashflowLineItemsForScenario({ ...baseInput, extraordinaryCostsThisMonth: 500 });
     expect(without.cashflowBeforeTax - withCost.cashflowBeforeTax).toBeCloseTo(500, 2);
+  });
+});
+
+describe('cashflowLineItemsForActualMonth', () => {
+  const baseInput: Omit<CashflowActualMonthInput, 'month' | 'statusHistory' | 'today'> = {
+    coldRentMonthly: f.coldRentMonthly,
+    parkingRentMonthly: f.parkingRentMonthly,
+    monthlyMortgage: f.monthlyMortgage,
+    hoaFeeNonRecoverableMonthly: f.hoaFeeNonRecoverableMonthly,
+    hoaFeeMaintenanceReserveMonthly: f.maintenanceReserveMonthly,
+    hoaFeeRecoverableMonthly: f.hoaFeeRecoverableMonthly,
+    propertyTaxAnnual: f.propertyTaxAnnual,
+    propertyInsuranceAnnual: 0,
+    propertyManagementAnnual: f.propertyManagementAnnual,
+    otherCostsMonthly: 0,
+    hoaFeeParkingNonRecoverableMonthly: 0,
+    hoaFeeParkingMaintenanceReserveMonthly: 0,
+    hoaFeeParkingRecoverableMonthly: 0,
+    propertyTaxParkingAnnual: 0,
+    extraordinaryCostsThisMonth: 0,
+  };
+  const today = makeDate(2026, 12, 31);
+
+  it('fully vermietet since before this month matches the vollvermietung scenario result', () => {
+    const history: StatusEntry[] = [{ date: makeDate(2026, 2, 1), status: 'vermietet', incomeActualMonthly: null }];
+    const result = cashflowLineItemsForActualMonth({ ...baseInput, month: makeDate(2026, 6, 1), statusHistory: history, today });
+    expect(result.income).toBeCloseTo(998, 2);
+    expect(result.hoaRecoverableWE).toBe(0);
+    expect(result.cashflowBeforeTax).toBeCloseTo(-437.61, 1);
+  });
+
+  it('fully leerstand since before this month matches the leerstand scenario result', () => {
+    const history: StatusEntry[] = [{ date: makeDate(2026, 2, 1), status: 'leerstand', incomeActualMonthly: null }];
+    const result = cashflowLineItemsForActualMonth({ ...baseInput, month: makeDate(2026, 6, 1), statusHistory: history, today });
+    expect(result.income).toBe(0);
+    expect(result.hoaRecoverableWE).toBeCloseTo(f.hoaFeeRecoverableMonthly, 2);
+    expect(result.cashflowBeforeTax).toBeCloseTo(-1744.69, 1);
+  });
+
+  it('mid-month transition day-fraction-weights both income and recoverable WE costs', () => {
+    // 30-day June: leerstand days 1-15, vermietet days 16-30 (15/30 each).
+    const history: StatusEntry[] = [
+      { date: makeDate(2026, 2, 1), status: 'leerstand', incomeActualMonthly: null },
+      { date: makeDate(2026, 6, 16), status: 'vermietet', incomeActualMonthly: null },
+    ];
+    const result = cashflowLineItemsForActualMonth({ ...baseInput, month: makeDate(2026, 6, 1), statusHistory: history, today });
+    expect(result.income).toBeCloseTo(998 * 0.5, 2);
+    expect(result.hoaRecoverableWE).toBeCloseTo(f.hoaFeeRecoverableMonthly * 0.5, 2);
+    expect(result.propertyTaxWE).toBeCloseTo(f.propertyTaxMonthly * 0.5, 2);
+  });
+
+  it('passes extraordinaryCostsThisMonth through to the line item and the total', () => {
+    const history: StatusEntry[] = [{ date: makeDate(2026, 2, 1), status: 'vermietet', incomeActualMonthly: null }];
+    const result = cashflowLineItemsForActualMonth({
+      ...baseInput,
+      month: makeDate(2026, 6, 1),
+      statusHistory: history,
+      today,
+      extraordinaryCostsThisMonth: 500,
+    });
+    expect(result.extraordinaryCosts).toBe(500);
+    expect(result.cashflowBeforeTax).toBeCloseTo(-437.61 - 500, 1);
+  });
+
+  it('parking (TE) costs pass through individually with distinct nonzero values', () => {
+    const history: StatusEntry[] = [{ date: makeDate(2026, 2, 1), status: 'vermietet', incomeActualMonthly: null }];
+    const result = cashflowLineItemsForActualMonth({
+      ...baseInput,
+      month: makeDate(2026, 6, 1),
+      statusHistory: history,
+      today,
+      hoaFeeParkingNonRecoverableMonthly: 20,
+      hoaFeeParkingMaintenanceReserveMonthly: 5,
+      hoaFeeParkingRecoverableMonthly: 10,
+      propertyTaxParkingAnnual: 36, // /12 = 3
+    });
+    expect(result.hoaNonRecoverableTE).toBe(20);
+    expect(result.maintenanceReserveTE).toBe(5);
+    expect(result.hoaRecoverableTE).toBe(10);
+    expect(result.propertyTaxTE).toBeCloseTo(3, 2);
+    expect(result.mortgage).toBe(f.monthlyMortgage);
+    expect(result.hoaNonRecoverableWE).toBe(f.hoaFeeNonRecoverableMonthly);
+    expect(result.maintenanceReserveWE).toBe(f.maintenanceReserveMonthly);
   });
 });

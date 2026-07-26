@@ -244,3 +244,61 @@ export function cashflowLineItemsForScenario(input: CashflowScenarioInput): Cash
 
   return { ...items, cashflowBeforeTax: cashflowBeforeTaxFromLineItems(items) };
 }
+
+export interface CashflowActualMonthInput {
+  month: Date;
+  statusHistory: StatusEntry[];
+  today: Date;
+  coldRentMonthly: number;
+  parkingRentMonthly: number;
+  monthlyMortgage: number;
+  hoaFeeNonRecoverableMonthly: number;
+  hoaFeeMaintenanceReserveMonthly: number;
+  hoaFeeRecoverableMonthly: number;
+  propertyTaxAnnual: number;
+  propertyInsuranceAnnual: number;
+  propertyManagementAnnual: number;
+  otherCostsMonthly: number;
+  hoaFeeParkingNonRecoverableMonthly: number;
+  hoaFeeParkingMaintenanceReserveMonthly: number;
+  hoaFeeParkingRecoverableMonthly: number;
+  propertyTaxParkingAnnual: number;
+  extraordinaryCostsThisMonth: number;
+}
+
+/**
+ * Card 2 (year table) basis — a real calendar month, day-fraction-weighted
+ * by the actual status history (via incomeForMonth / ownerBorneRecoverableWEBreakdown).
+ * Past months are Ist, the in-progress month is Ist-to-date + projection,
+ * future months project the last known status — all handled by those two
+ * functions already.
+ */
+export function cashflowLineItemsForActualMonth(input: CashflowActualMonthInput): CashflowLineItems {
+  const income = incomeForMonth(input.month, input.statusHistory, input.today, input.coldRentMonthly, input.parkingRentMonthly);
+  const { hoaRecoverable: hoaRecoverableWE, propertyTax: propertyTaxWE } = ownerBorneRecoverableWEBreakdown(
+    input.month,
+    input.statusHistory,
+    input.today,
+    input.hoaFeeRecoverableMonthly,
+    input.propertyTaxAnnual
+  );
+
+  const items: Omit<CashflowLineItems, 'cashflowBeforeTax'> = {
+    income,
+    mortgage: input.monthlyMortgage,
+    hoaNonRecoverableWE: input.hoaFeeNonRecoverableMonthly,
+    maintenanceReserveWE: input.hoaFeeMaintenanceReserveMonthly,
+    insuranceWE: input.propertyInsuranceAnnual / 12,
+    managementWE: input.propertyManagementAnnual / 12,
+    otherCostsWE: input.otherCostsMonthly,
+    hoaRecoverableWE,
+    propertyTaxWE,
+    hoaNonRecoverableTE: input.hoaFeeParkingNonRecoverableMonthly,
+    maintenanceReserveTE: input.hoaFeeParkingMaintenanceReserveMonthly,
+    hoaRecoverableTE: input.hoaFeeParkingRecoverableMonthly,
+    propertyTaxTE: input.propertyTaxParkingAnnual / 12,
+    extraordinaryCosts: input.extraordinaryCostsThisMonth,
+  };
+
+  return { ...items, cashflowBeforeTax: cashflowBeforeTaxFromLineItems(items) };
+}
