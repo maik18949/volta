@@ -149,3 +149,98 @@ export function annualCashflowBeforeTax(input: AnnualCashflowBeforeTaxInput): nu
 
   return total;
 }
+
+export interface CashflowLineItems {
+  income: number;
+  mortgage: number;
+  hoaNonRecoverableWE: number;
+  maintenanceReserveWE: number;
+  insuranceWE: number;
+  managementWE: number;
+  otherCostsWE: number;
+  hoaRecoverableWE: number;
+  propertyTaxWE: number;
+  hoaNonRecoverableTE: number;
+  maintenanceReserveTE: number;
+  hoaRecoverableTE: number;
+  propertyTaxTE: number;
+  extraordinaryCosts: number;
+  cashflowBeforeTax: number;
+}
+
+function cashflowBeforeTaxFromLineItems(items: Omit<CashflowLineItems, 'cashflowBeforeTax'>): number {
+  return (
+    items.income -
+    items.mortgage -
+    items.hoaNonRecoverableWE -
+    items.maintenanceReserveWE -
+    items.insuranceWE -
+    items.managementWE -
+    items.otherCostsWE -
+    items.hoaRecoverableWE -
+    items.propertyTaxWE -
+    items.hoaNonRecoverableTE -
+    items.maintenanceReserveTE -
+    items.hoaRecoverableTE -
+    items.propertyTaxTE -
+    items.extraordinaryCosts
+  );
+}
+
+/**
+ * NOTE: unlike CashflowBeforeTaxInput.propertyTaxParkingMonthly (already
+ * pre-divided), propertyTaxParkingAnnual here (and propertyTaxAnnual) are
+ * annual and divided by 12 internally — don't mix the two input shapes up.
+ */
+export interface CashflowScenarioInput {
+  scenario: 'vollvermietung' | 'leerstand';
+  coldRentMonthly: number;
+  parkingRentMonthly: number;
+  otherIncomeMonthly: number;
+  monthlyMortgage: number;
+  hoaFeeNonRecoverableMonthly: number;
+  hoaFeeMaintenanceReserveMonthly: number;
+  hoaFeeRecoverableMonthly: number;
+  propertyTaxAnnual: number;
+  propertyInsuranceAnnual: number;
+  propertyManagementAnnual: number;
+  otherCostsMonthly: number;
+  hoaFeeParkingNonRecoverableMonthly: number;
+  hoaFeeParkingMaintenanceReserveMonthly: number;
+  hoaFeeParkingRecoverableMonthly: number;
+  propertyTaxParkingAnnual: number;
+  extraordinaryCostsThisMonth: number;
+}
+
+/**
+ * Card 1 ("Prognose / Monat") basis — a full settings-only month for a chosen
+ * scenario, no status history. Vollvermietung: full income, tenant pays
+ * recoverable WE costs (0 owner-borne). Leerstand: zero income, owner bears
+ * the full recoverable WE costs. Parking (TE) costs are always owner-borne
+ * in both scenarios, per spec-cashflow-tab.md.
+ */
+export function cashflowLineItemsForScenario(input: CashflowScenarioInput): CashflowLineItems {
+  const income =
+    input.scenario === 'vollvermietung' ? input.coldRentMonthly + input.parkingRentMonthly + input.otherIncomeMonthly : 0;
+  const hoaRecoverableWE = input.scenario === 'leerstand' ? input.hoaFeeRecoverableMonthly : 0;
+  const propertyTaxWE = input.scenario === 'leerstand' ? input.propertyTaxAnnual / 12 : 0;
+
+  const items: Omit<CashflowLineItems, 'cashflowBeforeTax'> = {
+    income,
+    mortgage: input.monthlyMortgage,
+    hoaNonRecoverableWE: input.hoaFeeNonRecoverableMonthly,
+    maintenanceReserveWE: input.hoaFeeMaintenanceReserveMonthly,
+    insuranceWE: input.propertyInsuranceAnnual / 12,
+    managementWE: input.propertyManagementAnnual / 12,
+    otherCostsWE: input.otherCostsMonthly,
+    hoaRecoverableWE,
+    propertyTaxWE,
+    hoaNonRecoverableTE: input.hoaFeeParkingNonRecoverableMonthly,
+    maintenanceReserveTE: input.hoaFeeParkingMaintenanceReserveMonthly,
+    hoaRecoverableTE: input.hoaFeeParkingRecoverableMonthly,
+    propertyTaxTE: input.propertyTaxParkingAnnual / 12,
+    extraordinaryCosts: input.extraordinaryCostsThisMonth,
+  };
+
+  return { ...items, cashflowBeforeTax: cashflowBeforeTaxFromLineItems(items) };
+}

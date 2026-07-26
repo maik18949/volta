@@ -8,6 +8,8 @@ import {
   cashflowBeforeTax,
   cashflowAfterTax,
   annualCashflowBeforeTax,
+  cashflowLineItemsForScenario,
+  type CashflowScenarioInput,
 } from '@/lib/calculations/cashflowCalculator';
 
 function statusEntry(status: StatusEntry['status'], y: number, m: number, d = 1): StatusEntry {
@@ -187,5 +189,73 @@ describe('annualCashflowBeforeTax', () => {
     });
     // Jul-Dec = 6 months at 250 = 1500. Jan-Jun contribute 0 (ownerFraction 0).
     expect(result).toBeCloseTo(1500, 1);
+  });
+});
+
+describe('cashflowLineItemsForScenario', () => {
+  const baseInput: CashflowScenarioInput = {
+    scenario: 'vollvermietung',
+    coldRentMonthly: f.coldRentMonthly,
+    parkingRentMonthly: f.parkingRentMonthly,
+    otherIncomeMonthly: 0,
+    monthlyMortgage: f.monthlyMortgage,
+    hoaFeeNonRecoverableMonthly: f.hoaFeeNonRecoverableMonthly,
+    hoaFeeMaintenanceReserveMonthly: f.maintenanceReserveMonthly,
+    hoaFeeRecoverableMonthly: f.hoaFeeRecoverableMonthly,
+    propertyTaxAnnual: f.propertyTaxAnnual,
+    propertyInsuranceAnnual: 0,
+    propertyManagementAnnual: f.propertyManagementAnnual,
+    otherCostsMonthly: 0,
+    hoaFeeParkingNonRecoverableMonthly: 0,
+    hoaFeeParkingMaintenanceReserveMonthly: 0,
+    hoaFeeParkingRecoverableMonthly: 0,
+    propertyTaxParkingAnnual: 0,
+    extraordinaryCostsThisMonth: 0,
+  };
+
+  it('vollvermietung: full income, no owner-borne recoverable WE costs', () => {
+    const result = cashflowLineItemsForScenario(baseInput);
+    expect(result.income).toBeCloseTo(998, 2); // coldRent 950 + parkingRent 48
+    expect(result.mortgage).toBe(f.monthlyMortgage);
+    expect(result.hoaNonRecoverableWE).toBe(f.hoaFeeNonRecoverableMonthly);
+    expect(result.maintenanceReserveWE).toBe(f.maintenanceReserveMonthly);
+    expect(result.insuranceWE).toBe(0); // propertyInsuranceAnnual is 0 in baseInput
+    expect(result.managementWE).toBeCloseTo(f.propertyManagementAnnual / 12, 2);
+    expect(result.otherCostsWE).toBe(0); // otherCostsMonthly is 0 in baseInput
+    expect(result.hoaRecoverableWE).toBe(0);
+    expect(result.propertyTaxWE).toBe(0);
+    expect(result.cashflowBeforeTax).toBeCloseTo(-437.61, 1);
+  });
+
+  it('leerstand: zero income, full owner-borne recoverable WE costs', () => {
+    const result = cashflowLineItemsForScenario({ ...baseInput, scenario: 'leerstand' });
+    expect(result.income).toBe(0);
+    expect(result.hoaRecoverableWE).toBeCloseTo(f.hoaFeeRecoverableMonthly, 2);
+    expect(result.propertyTaxWE).toBeCloseTo(f.propertyTaxMonthly, 4);
+    expect(result.cashflowBeforeTax).toBeCloseTo(-1744.69, 1);
+  });
+
+  it('parking (TE) costs are always owner-borne regardless of scenario', () => {
+    const withParking: CashflowScenarioInput = {
+      ...baseInput,
+      hoaFeeParkingNonRecoverableMonthly: 20,
+      hoaFeeParkingMaintenanceReserveMonthly: 5,
+      hoaFeeParkingRecoverableMonthly: 10,
+      propertyTaxParkingAnnual: 36, // /12 = 3
+    };
+    const vollvermietung = cashflowLineItemsForScenario(withParking);
+    const leerstand = cashflowLineItemsForScenario({ ...withParking, scenario: 'leerstand' });
+    expect(vollvermietung.hoaNonRecoverableTE).toBe(20);
+    expect(vollvermietung.hoaRecoverableTE).toBe(10);
+    expect(vollvermietung.propertyTaxTE).toBeCloseTo(3, 2);
+    expect(leerstand.hoaNonRecoverableTE).toBe(20);
+    expect(leerstand.hoaRecoverableTE).toBe(10);
+    expect(leerstand.propertyTaxTE).toBeCloseTo(3, 2);
+  });
+
+  it('an extraordinary cost reduces cashflowBeforeTax by exactly its amount', () => {
+    const without = cashflowLineItemsForScenario(baseInput);
+    const withCost = cashflowLineItemsForScenario({ ...baseInput, extraordinaryCostsThisMonth: 500 });
+    expect(without.cashflowBeforeTax - withCost.cashflowBeforeTax).toBeCloseTo(500, 2);
   });
 });
