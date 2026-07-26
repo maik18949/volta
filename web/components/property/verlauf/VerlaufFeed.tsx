@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useTransition } from 'react';
 import { Plus, Trash2, Pencil } from 'lucide-react';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { StatusEntryModal } from './StatusEntryModal';
@@ -52,6 +52,9 @@ export function VerlaufFeed({
 }) {
   const [statusModal, setStatusModal] = useState<{ open: boolean; entry: StatusEntryRow | null }>({ open: false, entry: null });
   const [costModal, setCostModal] = useState<{ open: boolean; entry: ExtraordinaryCostRow | null }>({ open: false, entry: null });
+  const [, startTransition] = useTransition();
+  const [pendingId, setPendingId] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<{ id: string; message: string } | null>(null);
 
   const ascendingStatus = [...statusEntries].sort((a, b) => a.date.localeCompare(b.date));
   function endDateFor(row: StatusEntryRow): string | null {
@@ -64,14 +67,34 @@ export function VerlaufFeed({
     ...extraordinaryCosts.map((row): FeedItem => ({ kind: 'cost', date: row.cost_month, row })),
   ]);
 
-  async function handleDeleteStatus(id: string) {
+  function handleDeleteStatus(id: string) {
     if (!window.confirm('Diesen Statuseintrag löschen?')) return;
-    await deleteStatusEntry(id, propertyId);
+    setDeleteError(null);
+    setPendingId(id);
+    startTransition(async () => {
+      try {
+        await deleteStatusEntry(id, propertyId);
+      } catch {
+        setDeleteError({ id, message: 'Löschen fehlgeschlagen — bitte erneut versuchen.' });
+      } finally {
+        setPendingId(null);
+      }
+    });
   }
 
-  async function handleDeleteCost(id: string) {
+  function handleDeleteCost(id: string) {
     if (!window.confirm('Diesen Kosteneintrag löschen?')) return;
-    await deleteExtraordinaryCost(id, propertyId);
+    setDeleteError(null);
+    setPendingId(id);
+    startTransition(async () => {
+      try {
+        await deleteExtraordinaryCost(id, propertyId);
+      } catch {
+        setDeleteError({ id, message: 'Löschen fehlgeschlagen — bitte erneut versuchen.' });
+      } finally {
+        setPendingId(null);
+      }
+    });
   }
 
   return (
@@ -135,14 +158,22 @@ export function VerlaufFeed({
                   >
                     <Pencil size={14} />
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => handleDeleteStatus(item.row.id)}
-                    aria-label="Löschen"
-                    className="text-text-dim hover:text-negative"
-                  >
-                    <Trash2 size={14} />
-                  </button>
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteStatus(item.row.id)}
+                      disabled={pendingId === item.row.id}
+                      aria-label="Löschen"
+                      className="text-text-dim hover:text-negative disabled:opacity-50"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                    {deleteError?.id === item.row.id && (
+                      <p role="alert" className="absolute right-0 top-full mt-1 whitespace-nowrap text-xs text-negative">
+                        {deleteError.message}
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
             ) : (
@@ -172,14 +203,22 @@ export function VerlaufFeed({
                   >
                     <Pencil size={14} />
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => handleDeleteCost(item.row.id)}
-                    aria-label="Löschen"
-                    className="text-text-dim hover:text-negative"
-                  >
-                    <Trash2 size={14} />
-                  </button>
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteCost(item.row.id)}
+                      disabled={pendingId === item.row.id}
+                      aria-label="Löschen"
+                      className="text-text-dim hover:text-negative disabled:opacity-50"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                    {deleteError?.id === item.row.id && (
+                      <p role="alert" className="absolute right-0 top-full mt-1 whitespace-nowrap text-xs text-negative">
+                        {deleteError.message}
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
             )
