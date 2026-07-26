@@ -42,11 +42,11 @@ export function Modal({
       const active = document.activeElement;
 
       if (e.shiftKey) {
-        if (active === first || !panel.contains(active)) {
+        if (active === first || active === panel || !panel.contains(active)) {
           e.preventDefault();
           last.focus();
         }
-      } else if (active === last || !panel.contains(active)) {
+      } else if (active === last || active === panel || !panel.contains(active)) {
         e.preventDefault();
         first.focus();
       }
