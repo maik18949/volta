@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { fixtures as f } from '../calculations/fixtures';
 import { makeDate } from '@/lib/calculations/dateHelpers';
 import type { Database } from '@/lib/supabase/types';
-import { computeTaxCurrentYear } from '@/lib/data/propertyTax';
+import { computeTaxCurrentYear, computeTaxForecastYear } from '@/lib/data/propertyTax';
 
 type PropertyRow = Database['public']['Tables']['properties']['Row'];
 type StatusEntryRow = Database['public']['Tables']['status_entries']['Row'];
@@ -190,5 +190,33 @@ describe('computeTaxCurrentYear', () => {
     expect(result.lineItems.hoaNonRecoverableTE).toBeCloseTo(15 * 11, 2); // 165
     expect(result.lineItems.hoaRecoverableTE).toBeCloseTo(12 * 11, 2); // 132
     expect(result.lineItems.propertyTaxTE).toBeCloseTo(5 * 11, 2); // 55
+  });
+});
+
+describe('computeTaxForecastYear', () => {
+  const property = makeProperty();
+
+  it('vollvermietung: full annual income, no owner-borne recoverable WE costs', () => {
+    const result = computeTaxForecastYear(property, 2028, 'vollvermietung');
+    expect(result.year).toBe(2028);
+    expect(result.lineItems.income).toBeCloseTo(f.coldRentYearly + f.parkingRentYearly, 2);
+    expect(result.lineItems.hoaRecoverableWE).toBe(0);
+  });
+
+  it('leerstand: zero income, full owner-borne recoverable WE costs', () => {
+    const result = computeTaxForecastYear(property, 2028, 'leerstand');
+    expect(result.lineItems.income).toBe(0);
+    expect(result.lineItems.hoaRecoverableWE).toBeCloseTo(f.hoaFeeRecoverableMonthly * 12, 2);
+  });
+
+  it('depreciation is never acquisition-year-prorated', () => {
+    const result = computeTaxForecastYear(property, 2035, 'vollvermietung');
+    const basis = f.buildingValue + f.closingCostsTotal * (f.buildingValue / f.purchasePrice) + f.renovationAfaEligible;
+    expect(result.lineItems.depreciation).toBeCloseTo(basis * f.depreciationRate, 0);
+  });
+
+  it('taxEffectMonthly divides the yearly effect by 12 (always a full year)', () => {
+    const result = computeTaxForecastYear(property, 2028, 'vollvermietung');
+    expect(result.taxEffectMonthly).toBeCloseTo(result.taxEffectYearly / 12, 4);
   });
 });
