@@ -17,6 +17,10 @@ function makeItem(overrides: Partial<PropertySummary> = {}): PropertyWithSummary
     netOperatingIncomeYearly: 0,
     currentStatus: 'vermietet',
     cashflowAfterTaxMonthly: 0,
+    incomeActualMonthly: 0,
+    cashflowBeforeTaxMonthly: 0,
+    taxEffectMonthly: 0,
+    taxEffectYearly: 0,
     ...overrides,
   };
   return { property: {} as PropertyWithSummary['property'], summary };

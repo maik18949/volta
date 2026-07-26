@@ -260,3 +260,36 @@ describe('computePropertySummary — hoaFeeNonRecoverableMonthly "davon" derivat
     expect(splitResult.cashflowAfterTaxMonthly - noSplitResult.cashflowAfterTaxMonthly).toBeCloseTo(100, 2);
   });
 });
+
+describe('computePropertySummary — Card 1 breakdown fields', () => {
+  const statusHistory = [makeStatusEntry()];
+  const today = makeDate(2026, 6, 15);
+
+  it('exposes incomeActualMonthly, cashflowBeforeTaxMonthly, taxEffectMonthly, taxEffectYearly', () => {
+    // No loan, no AfA (building_value 0 -> afaBasis 0), tax rate 0 -> taxEffect is
+    // deterministically 0 regardless of taxableIncome, isolating the cashflow math.
+    const property = makeProperty({
+      loan_amount: 0,
+      monthly_mortgage: 0,
+      building_value: 0,
+      marginal_tax_rate: 0,
+      cold_rent_monthly: 1000,
+      parking_rent_monthly: 0,
+      hoa_fee_total_monthly: 400,
+      hoa_fee_recoverable_monthly: 0,
+      hoa_fee_maintenance_reserve_monthly: 0,
+      property_management_annual: 0,
+      property_insurance_annual: 0,
+      other_costs_monthly: 0,
+    });
+    const result = computePropertySummary(property, statusHistory, today);
+
+    expect(result.incomeActualMonthly).toBeCloseTo(1000, 2);
+    // operatingCostsNonRecoverableMonthly = hoaFeeNonRecoverable(400) + reserve(0) = 400
+    // cashflowBeforeTax = 1000 - 0 (mortgage) - 400 - 0 (ownerBorneRecoverableWE, vermietet) = 600
+    expect(result.cashflowBeforeTaxMonthly).toBeCloseTo(600, 2);
+    expect(result.taxEffectMonthly).toBeCloseTo(0, 2);
+    expect(result.taxEffectYearly).toBeCloseTo(0, 2);
+    expect(result.cashflowAfterTaxMonthly).toBeCloseTo(600, 2);
+  });
+});

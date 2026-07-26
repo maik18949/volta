@@ -20,9 +20,13 @@ export interface PropertySummary {
   netOperatingIncomeYearly: number;
   currentStatus: PropertyStatus;
   cashflowAfterTaxMonthly: number;
+  incomeActualMonthly: number;
+  cashflowBeforeTaxMonthly: number;
+  taxEffectMonthly: number;
+  taxEffectYearly: number;
 }
 
-function toStatusHistory(rows: StatusEntryRow[]): StatusEntry[] {
+export function toStatusHistory(rows: StatusEntryRow[]): StatusEntry[] {
   return rows.map((row) => ({
     date: new Date(row.date + 'T00:00:00Z'),
     status: row.status as PropertyStatus,
@@ -165,5 +169,9 @@ export function computePropertySummary(
     netOperatingIncomeYearly,
     currentStatus,
     cashflowAfterTaxMonthly,
+    incomeActualMonthly: incomeThisMonth,
+    cashflowBeforeTaxMonthly: cashflowBeforeTaxThisMonth,
+    taxEffectMonthly: taxEffectThisMonth,
+    taxEffectYearly: taxEffectYear,
   };
 }

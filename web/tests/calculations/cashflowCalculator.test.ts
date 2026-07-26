@@ -6,7 +6,12 @@ import {
   ownerBorneRecoverableWEForMonth,
   cashflowBeforeTax,
   cashflowAfterTax,
+  annualCashflowBeforeTax,
 } from '@/lib/calculations/cashflowCalculator';
+
+function statusEntry(status: StatusEntry['status'], y: number, m: number, d = 1): StatusEntry {
+  return { date: makeDate(y, m, d), status, incomeActualMonthly: null };
+}
 
 describe('cashflowCalculator', () => {
   const today = makeDate(2026, 12, 1);
@@ -95,5 +100,57 @@ describe('cashflowCalculator', () => {
   it('cashflowAfterTax adds the monthly tax effect', () => {
     const result = cashflowAfterTax(-485.61, f.taxEffectMonthly);
     expect(result).toBeCloseTo(-136.51, 1);
+  });
+});
+
+describe('annualCashflowBeforeTax', () => {
+  it('sums cashflowBeforeTax across every ownership month of the year, including a mid-year extraordinary cost', () => {
+    // Owned since 2025-01-01 -> fully owned all of 2026. Vermietet the whole time, no status
+    // changes. Rent 1000/month, mortgage 600/month, running costs 150/month -> 250/month
+    // before extraordinary costs. A single 500 repair lands in June.
+    const extraordinaryCostsByMonth = new Map<string, number>([['2026-06', 500]]);
+
+    const result = annualCashflowBeforeTax({
+      year: 2026,
+      statusHistory: [statusEntry('vermietet', 2025, 1, 1)],
+      economicTransferDate: makeDate(2025, 1, 1),
+      today: makeDate(2026, 12, 31),
+      coldRentMonthly: 1000,
+      parkingRentMonthly: 0,
+      monthlyMortgage: 600,
+      operatingCostsNonRecoverableMonthly: 150,
+      hoaFeeRecoverableMonthly: 0,
+      propertyTaxAnnual: 0,
+      hoaFeeParkingNonRecoverableMonthly: 0,
+      hoaFeeParkingMaintenanceReserveMonthly: 0,
+      hoaFeeParkingRecoverableMonthly: 0,
+      propertyTaxParkingMonthly: 0,
+      extraordinaryCostsByMonth,
+    });
+
+    // 11 normal months at 250 + 1 month (June) at 250 - 500 = -250 -> 2750 - 250 = 2500
+    expect(result).toBeCloseTo(2500, 1);
+  });
+
+  it('a mid-year acquisition only counts months from the transfer date onward', () => {
+    const result = annualCashflowBeforeTax({
+      year: 2026,
+      statusHistory: [statusEntry('vermietet', 2026, 7, 1)],
+      economicTransferDate: makeDate(2026, 7, 1),
+      today: makeDate(2026, 12, 31),
+      coldRentMonthly: 1000,
+      parkingRentMonthly: 0,
+      monthlyMortgage: 600,
+      operatingCostsNonRecoverableMonthly: 150,
+      hoaFeeRecoverableMonthly: 0,
+      propertyTaxAnnual: 0,
+      hoaFeeParkingNonRecoverableMonthly: 0,
+      hoaFeeParkingMaintenanceReserveMonthly: 0,
+      hoaFeeParkingRecoverableMonthly: 0,
+      propertyTaxParkingMonthly: 0,
+      extraordinaryCostsByMonth: new Map(),
+    });
+    // Jul-Dec = 6 months at 250 = 1500. Jan-Jun contribute 0 (ownerFraction 0).
+    expect(result).toBeCloseTo(1500, 1);
   });
 });

@@ -87,3 +87,45 @@ export function closingCostsTotal(
 ): number {
   return landTransferTax + notaryCosts + landRegistryCosts + agentFee + appraisalCosts;
 }
+
+/** Tatsächliche Leerstandsquote = Leerstandstage / Eigentumstage seit Erwerb. */
+export function actualVacancyRate(leerstandDays: number, ownershipDays: number): number | null {
+  if (ownershipDays <= 0) return null;
+  return leerstandDays / ownershipDays;
+}
+
+export type BenchmarkKpi = 'grossYield' | 'netYield' | 'cashOnCash' | 'kaufpreisfaktor' | 'dscr' | 'ltv' | 'actualVacancyRate';
+export type BenchmarkColor = 'green' | 'orange' | 'red';
+
+interface BenchmarkThreshold {
+  direction: 'higherIsBetter' | 'lowerIsBetter';
+  green: number;
+  orange: number;
+}
+
+// Per spec-overview-tab.md's 3-tier chip table (grün/orange/rot) — the richer
+// 4-tier "Kontext" copy in docs/superpowers/specs/2026-06-14-kpi-benchmarks.md
+// feeds the KPI info sheet's text, not this coloring.
+const BENCHMARK_THRESHOLDS: Record<BenchmarkKpi, BenchmarkThreshold> = {
+  grossYield: { direction: 'higherIsBetter', green: 0.05, orange: 0.03 },
+  netYield: { direction: 'higherIsBetter', green: 0.04, orange: 0.02 },
+  cashOnCash: { direction: 'higherIsBetter', green: 0.06, orange: 0.03 },
+  kaufpreisfaktor: { direction: 'lowerIsBetter', green: 20, orange: 25 },
+  dscr: { direction: 'higherIsBetter', green: 1.25, orange: 1.0 },
+  ltv: { direction: 'lowerIsBetter', green: 0.7, orange: 0.8 },
+  actualVacancyRate: { direction: 'lowerIsBetter', green: 0.03, orange: 0.08 },
+};
+
+/** Chip color for a KPI value. null value (no data yet) -> null (no chip rendered). */
+export function benchmarkColor(kpi: BenchmarkKpi, value: number | null): BenchmarkColor | null {
+  if (value === null) return null;
+  const t = BENCHMARK_THRESHOLDS[kpi];
+  if (t.direction === 'higherIsBetter') {
+    if (value >= t.green) return 'green';
+    if (value >= t.orange) return 'orange';
+    return 'red';
+  }
+  if (value <= t.green) return 'green';
+  if (value <= t.orange) return 'orange';
+  return 'red';
+}

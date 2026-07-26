@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatCurrency, formatPercent, formatDate } from '@/lib/formatters';
+import { formatCurrency, formatPercent, formatDate, formatNumber } from '@/lib/formatters';
 
 describe('formatters', () => {
   it('formatCurrency formats EUR with de-DE grouping', () => {
@@ -16,5 +16,13 @@ describe('formatters', () => {
 
   it('formatDate formats as de-DE short date', () => {
     expect(formatDate(new Date(Date.UTC(2026, 1, 1)))).toBe('01.02.2026');
+  });
+
+  it('formatNumber formats with a comma decimal separator', () => {
+    expect(formatNumber(22.5, 1)).toBe('22,5');
+  });
+
+  it('formatNumber respects the requested fraction digits', () => {
+    expect(formatNumber(1.25, 2)).toBe('1,25');
   });
 });

@@ -30,3 +30,11 @@ export function formatPercent(value: number): string {
 export function formatDate(date: Date): string {
   return dateFormatter.format(date);
 }
+
+/** Plain de-DE number formatting (comma decimal separator, no currency/percent symbol). */
+export function formatNumber(value: number, fractionDigits: number): string {
+  return new Intl.NumberFormat('de-DE', {
+    minimumFractionDigits: fractionDigits,
+    maximumFractionDigits: fractionDigits,
+  }).format(value);
+}
