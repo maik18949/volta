@@ -1,5 +1,6 @@
 import { GlassCard } from '@/components/ui/GlassCard';
 import { SectionLabel } from '@/components/ui/SectionLabel';
+import { addMonths, monthsBetween } from '@/lib/calculations/dateHelpers';
 import { formatCurrency, formatPercent } from '@/lib/formatters';
 import type { Database } from '@/lib/supabase/types';
 
@@ -24,8 +25,11 @@ export function FinancingCard({
   }
 
   const loanStart = new Date(property.loan_start_date + 'T00:00:00Z');
-  const fixedUntil = new Date(Date.UTC(loanStart.getUTCFullYear() + property.fixed_interest_period_years, loanStart.getUTCMonth(), 1));
-  const yearsRemaining = Math.max(0, fixedUntil.getUTCFullYear() - today.getUTCFullYear());
+  const fixedUntil = addMonths(loanStart, property.fixed_interest_period_years * 12);
+  // monthsBetween counts calendar months inclusively (e.g. Dec->Jan = 2), so
+  // subtract 1 to get the actual elapsed-month duration between today and fixedUntil.
+  const monthsRemaining = monthsBetween(today, fixedUntil) - 1;
+  const yearsRemaining = Math.max(0, Math.floor(monthsRemaining / 12));
   const fixedUntilLabel = `${String(fixedUntil.getUTCMonth() + 1).padStart(2, '0')}/${fixedUntil.getUTCFullYear()}`;
 
   return (
