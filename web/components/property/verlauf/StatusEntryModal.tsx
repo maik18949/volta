@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 import { useForm } from 'react-hook-form';
 import { Modal } from '@/components/ui/Modal';
 import { TextField } from '@/components/ui/TextField';
@@ -37,6 +37,23 @@ export function StatusEntryModal({
 }) {
   const [isPending, startTransition] = useTransition();
   const [submitError, setSubmitError] = useState<string | null>(null);
+
+  // StatusEntryModal stays mounted while the caller merely toggles `open`
+  // (Modal itself returns null when closed), so this state survives across
+  // close/reopen cycles. Clear stale errors whenever the modal (re)opens
+  // rather than only on submit/close, since Modal can also be dismissed via
+  // the backdrop, Escape, or its own close button, not just "Abbrechen".
+  useEffect(() => {
+    if (open) {
+      setSubmitError(null);
+    }
+  }, [open]);
+
+  // NOTE: `values` here only resets correctly on reopen because the caller
+  // (VerlaufFeed, Task 20) is expected to null out `entry` in its onClose
+  // handler, not just flip `open` to false. If a future caller closes the
+  // modal without clearing `entry`, stale unsaved edits from the previous
+  // session could resurface the next time it opens.
   const { register, handleSubmit, watch } = useForm<FormValues>({
     values: {
       date: entry?.date ?? new Date().toISOString().slice(0, 10),
