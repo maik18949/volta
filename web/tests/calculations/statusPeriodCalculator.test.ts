@@ -6,6 +6,7 @@ import {
   leerstandDayFraction,
   ownershipDayFraction,
   ownershipAndVacancyDaysSinceTransfer,
+  dominantStatusForMonth,
 } from '@/lib/calculations/statusPeriodCalculator';
 
 function entry(status: StatusEntry['status'], y: number, m: number, d = 1, income: number | null = null): StatusEntry {
@@ -95,5 +96,40 @@ describe('ownershipAndVacancyDaysSinceTransfer', () => {
     const result = ownershipAndVacancyDaysSinceTransfer(history, makeDate(2026, 2, 15), makeDate(2026, 2, 28));
     expect(result.ownershipDays).toBe(14);
     expect(result.leerstandDays).toBe(14);
+  });
+});
+
+describe('dominantStatusForMonth', () => {
+  const today = makeDate(2026, 12, 31);
+
+  it('returns the status covering the most days in the month', () => {
+    // Jun 1-9 leerstand (9 days), Jun 10-30 vermietet (21 days) -> vermietet wins.
+    const history = [entry('leerstand', 2026, 1, 1), entry('vermietet', 2026, 6, 10)];
+    const result = dominantStatusForMonth(makeDate(2026, 6, 1), history, today);
+    expect(result).toBe('vermietet');
+  });
+
+  it('a fully vermietet month returns vermietet', () => {
+    const history = [entry('vermietet', 2026, 2, 1)];
+    const result = dominantStatusForMonth(makeDate(2026, 6, 1), history, today);
+    expect(result).toBe('vermietet');
+  });
+
+  it('no status history at all defaults to leerstand (single full-month segment)', () => {
+    const result = dominantStatusForMonth(makeDate(2026, 6, 1), [], today);
+    expect(result).toBe('leerstand');
+  });
+
+  it('sums day-fractions across non-adjacent segments of the same status (not just the largest single segment)', () => {
+    // 30-day June: vermietet days 1-5 (5), leerstand days 6-19 (14), vermietet days 20-30 (11).
+    // vermietet totals 16 days vs leerstand's 14 -> vermietet wins, even though no single
+    // vermietet segment individually exceeds the 14-day leerstand block.
+    const history = [
+      entry('vermietet', 2026, 6, 1),
+      entry('leerstand', 2026, 6, 6),
+      entry('vermietet', 2026, 6, 20),
+    ];
+    const result = dominantStatusForMonth(makeDate(2026, 6, 1), history, today);
+    expect(result).toBe('vermietet');
   });
 });
