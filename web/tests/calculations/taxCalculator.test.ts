@@ -4,6 +4,7 @@ import { makeDate } from '@/lib/calculations/dateHelpers';
 import { interestForCalendarYear } from '@/lib/calculations/amortizationCalculator';
 import type { StatusEntry } from '@/lib/calculations/statusPeriodCalculator';
 import { annualTaxableIncome, taxEffectYearly, taxEffectMonthly } from '@/lib/calculations/taxCalculator';
+import { annualTaxableIncomeBreakdown } from '@/lib/calculations/taxCalculator';
 
 const baseInput = {
   economicTransferDate: f.economicTransferDate,
@@ -112,5 +113,82 @@ describe('taxCalculator.taxEffectYearly / taxEffectMonthly', () => {
   it('taxEffectMonthly divides by ownership months, not always 12', () => {
     const yearly = taxEffectYearly(-9100.44, 0.42);
     expect(taxEffectMonthly(yearly, 11)).toBeCloseTo(yearly / 11, 2);
+  });
+});
+
+describe('taxCalculator.annualTaxableIncomeBreakdown', () => {
+  it('taxableIncome matches annualTaxableIncome for the same input when extraordinaryCostsDeductibleYearly is 0', () => {
+    const history: StatusEntry[] = [{ date: f.economicTransferDate, status: 'vermietet', incomeActualMonthly: null }];
+    const breakdown = annualTaxableIncomeBreakdown({
+      ...baseInput,
+      year: 2026,
+      statusHistory: history,
+      today: makeDate(2026, 12, 31),
+      extraordinaryCostsDeductibleYearly: 0,
+    });
+    expect(breakdown.taxableIncome).toBeCloseTo(-9100.44, 0);
+  });
+
+  it('a deductible extraordinary cost reduces taxableIncome by exactly its amount', () => {
+    const history: StatusEntry[] = [{ date: f.economicTransferDate, status: 'vermietet', incomeActualMonthly: null }];
+    const without = annualTaxableIncomeBreakdown({
+      ...baseInput,
+      year: 2026,
+      statusHistory: history,
+      today: makeDate(2026, 12, 31),
+      extraordinaryCostsDeductibleYearly: 0,
+    });
+    const withCost = annualTaxableIncomeBreakdown({
+      ...baseInput,
+      year: 2026,
+      statusHistory: history,
+      today: makeDate(2026, 12, 31),
+      extraordinaryCostsDeductibleYearly: 800,
+    });
+    expect(without.taxableIncome - withCost.taxableIncome).toBeCloseTo(800, 2);
+    expect(withCost.extraordinaryCostsDeductible).toBe(800);
+  });
+
+  it('line items sum to taxableIncome (mixed leerstand/vermietet year)', () => {
+    const history: StatusEntry[] = [
+      { date: f.economicTransferDate, status: 'leerstand', incomeActualMonthly: null },
+      { date: makeDate(2026, 3, 1), status: 'vermietet', incomeActualMonthly: null },
+    ];
+    const breakdown = annualTaxableIncomeBreakdown({
+      ...baseInput,
+      year: 2026,
+      statusHistory: history,
+      today: makeDate(2026, 12, 31),
+      extraordinaryCostsDeductibleYearly: 0,
+    });
+    const recomputed =
+      breakdown.income -
+      breakdown.interest -
+      breakdown.depreciation -
+      breakdown.hoaNonRecoverableWE -
+      breakdown.insuranceWE -
+      breakdown.managementWE -
+      breakdown.otherCostsWE -
+      breakdown.hoaRecoverableWE -
+      breakdown.propertyTaxWE -
+      breakdown.hoaNonRecoverableTE -
+      breakdown.hoaRecoverableTE -
+      breakdown.propertyTaxTE -
+      breakdown.extraordinaryCostsDeductible;
+    expect(recomputed).toBeCloseTo(breakdown.taxableIncome, 6);
+    expect(breakdown.taxableIncome).toBeCloseTo(-10407.52, 0);
+  });
+
+  it('a year entirely before ownership returns all-zero line items', () => {
+    const breakdown = annualTaxableIncomeBreakdown({
+      ...baseInput,
+      year: 2024,
+      statusHistory: [],
+      today: makeDate(2024, 12, 31),
+      extraordinaryCostsDeductibleYearly: 500,
+    });
+    expect(breakdown.taxableIncome).toBe(0);
+    expect(breakdown.income).toBe(0);
+    expect(breakdown.extraordinaryCostsDeductible).toBe(0);
   });
 });
