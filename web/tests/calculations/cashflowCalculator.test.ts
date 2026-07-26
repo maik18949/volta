@@ -4,6 +4,7 @@ import { makeDate } from '@/lib/calculations/dateHelpers';
 import type { StatusEntry } from '@/lib/calculations/statusPeriodCalculator';
 import {
   ownerBorneRecoverableWEForMonth,
+  ownerBorneRecoverableWEBreakdown,
   cashflowBeforeTax,
   cashflowAfterTax,
   annualCashflowBeforeTax,
@@ -32,6 +33,40 @@ describe('cashflowCalculator', () => {
     const history: StatusEntry[] = [{ date: makeDate(2026, 2, 1), status: 'mietgarantie', incomeActualMonthly: 999 }];
     const result = ownerBorneRecoverableWEForMonth(makeDate(2026, 6, 1), history, today, f.hoaFeeRecoverableMonthly, f.propertyTaxAnnual);
     expect(result).toBeCloseTo(f.operatingCostsRecoverableMonthly, 1);
+  });
+
+  it('ownerBorneRecoverableWEBreakdown: splits into hoaRecoverable + propertyTax, summing to the combined function', () => {
+    const history: StatusEntry[] = [{ date: makeDate(2026, 2, 1), status: 'leerstand', incomeActualMonthly: null }];
+    const breakdown = ownerBorneRecoverableWEBreakdown(
+      makeDate(2026, 6, 1),
+      history,
+      today,
+      f.hoaFeeRecoverableMonthly,
+      f.propertyTaxAnnual
+    );
+    const combined = ownerBorneRecoverableWEForMonth(
+      makeDate(2026, 6, 1),
+      history,
+      today,
+      f.hoaFeeRecoverableMonthly,
+      f.propertyTaxAnnual
+    );
+    expect(breakdown.hoaRecoverable + breakdown.propertyTax).toBeCloseTo(combined, 6);
+    expect(breakdown.hoaRecoverable).toBeCloseTo(f.hoaFeeRecoverableMonthly, 2);
+    expect(breakdown.propertyTax).toBeCloseTo(f.propertyTaxAnnual / 12, 4);
+  });
+
+  it('ownerBorneRecoverableWEBreakdown: vermietet all month is zero for both fields', () => {
+    const history: StatusEntry[] = [{ date: makeDate(2026, 2, 1), status: 'vermietet', incomeActualMonthly: null }];
+    const breakdown = ownerBorneRecoverableWEBreakdown(
+      makeDate(2026, 6, 1),
+      history,
+      today,
+      f.hoaFeeRecoverableMonthly,
+      f.propertyTaxAnnual
+    );
+    expect(breakdown.hoaRecoverable).toBeCloseTo(0, 4);
+    expect(breakdown.propertyTax).toBeCloseTo(0, 4);
   });
 
   it('cashflowBeforeTax: vermietet, no parking', () => {

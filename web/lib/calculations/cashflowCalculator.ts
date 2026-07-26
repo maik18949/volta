@@ -2,6 +2,30 @@ import { makeDate } from './dateHelpers';
 import { leerstandDayFraction, incomeForMonth, ownershipDayFraction } from './statusPeriodCalculator';
 import type { StatusEntry } from './statusPeriodCalculator';
 
+export interface OwnerBorneRecoverableWEBreakdown {
+  hoaRecoverable: number;
+  propertyTax: number;
+}
+
+/**
+ * Splits ownerBorneRecoverableWEForMonth's combined value into its two line
+ * items — the Cashflow tab shows "Umlagef. Kosten WE" and "Grundsteuer WE" as
+ * separate rows, both day-fraction-weighted the same way.
+ */
+export function ownerBorneRecoverableWEBreakdown(
+  month: Date,
+  statusHistory: StatusEntry[],
+  today: Date,
+  hoaFeeRecoverableMonthly: number,
+  propertyTaxAnnual: number
+): OwnerBorneRecoverableWEBreakdown {
+  const fraction = leerstandDayFraction(month, statusHistory, today);
+  return {
+    hoaRecoverable: hoaFeeRecoverableMonthly * fraction,
+    propertyTax: (propertyTaxAnnual / 12) * fraction,
+  };
+}
+
 /**
  * Recoverable Wohnung (unit) costs the owner bears for a given month, day-prorated:
  * 0 on days the property is vermietet (tenant pays via Nebenkostenabrechnung),
@@ -19,8 +43,14 @@ export function ownerBorneRecoverableWEForMonth(
   hoaFeeRecoverableMonthly: number,
   propertyTaxAnnual: number
 ): number {
-  const fraction = leerstandDayFraction(month, statusHistory, today);
-  return (hoaFeeRecoverableMonthly + propertyTaxAnnual / 12) * fraction;
+  const { hoaRecoverable, propertyTax } = ownerBorneRecoverableWEBreakdown(
+    month,
+    statusHistory,
+    today,
+    hoaFeeRecoverableMonthly,
+    propertyTaxAnnual
+  );
+  return hoaRecoverable + propertyTax;
 }
 
 export interface CashflowBeforeTaxInput {
