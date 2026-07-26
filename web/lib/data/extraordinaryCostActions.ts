@@ -12,6 +12,7 @@ export async function createExtraordinaryCost(
   const { error } = await supabase.from('extraordinary_costs').insert({ ...input, property_id: propertyId });
   if (error) throw error;
   revalidatePath(`/properties/${propertyId}`);
+  revalidatePath(`/properties/${propertyId}/verlauf`);
 }
 
 export async function updateExtraordinaryCost(
@@ -23,6 +24,7 @@ export async function updateExtraordinaryCost(
   const { error } = await supabase.from('extraordinary_costs').update(patch).eq('id', id);
   if (error) throw error;
   revalidatePath(`/properties/${propertyId}`);
+  revalidatePath(`/properties/${propertyId}/verlauf`);
 }
 
 export async function deleteExtraordinaryCost(id: string, propertyId: string): Promise<void> {
@@ -30,4 +32,5 @@ export async function deleteExtraordinaryCost(id: string, propertyId: string): P
   const { error } = await supabase.from('extraordinary_costs').delete().eq('id', id);
   if (error) throw error;
   revalidatePath(`/properties/${propertyId}`);
+  revalidatePath(`/properties/${propertyId}/verlauf`);
 }

@@ -45,6 +45,7 @@ export async function createStatusEntry(
   const { error } = await supabase.from('status_entries').insert({ ...input, property_id: propertyId });
   if (error) throw error;
   revalidatePath(`/properties/${propertyId}`);
+  revalidatePath(`/properties/${propertyId}/verlauf`);
 }
 
 export async function updateStatusEntry(
@@ -62,6 +63,7 @@ export async function updateStatusEntry(
   const { error } = await supabase.from('status_entries').update(patch).eq('id', id);
   if (error) throw error;
   revalidatePath(`/properties/${propertyId}`);
+  revalidatePath(`/properties/${propertyId}/verlauf`);
 }
 
 export async function deleteStatusEntry(id: string, propertyId: string): Promise<void> {
@@ -69,4 +71,5 @@ export async function deleteStatusEntry(id: string, propertyId: string): Promise
   const { error } = await supabase.from('status_entries').delete().eq('id', id);
   if (error) throw error;
   revalidatePath(`/properties/${propertyId}`);
+  revalidatePath(`/properties/${propertyId}/verlauf`);
 }
