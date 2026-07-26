@@ -41,6 +41,12 @@ function daysBetween(startIso: string, endIso: string): number {
   return Math.round((end - start) / 86_400_000);
 }
 
+function withoutKey<T>(record: Record<string, T>, key: string): Record<string, T> {
+  const next = { ...record };
+  delete next[key];
+  return next;
+}
+
 export function VerlaufFeed({
   propertyId,
   statusEntries,
@@ -53,8 +59,8 @@ export function VerlaufFeed({
   const [statusModal, setStatusModal] = useState<{ open: boolean; entry: StatusEntryRow | null }>({ open: false, entry: null });
   const [costModal, setCostModal] = useState<{ open: boolean; entry: ExtraordinaryCostRow | null }>({ open: false, entry: null });
   const [, startTransition] = useTransition();
-  const [pendingId, setPendingId] = useState<string | null>(null);
-  const [deleteError, setDeleteError] = useState<{ id: string; message: string } | null>(null);
+  const [pendingIds, setPendingIds] = useState<Record<string, boolean>>({});
+  const [deleteErrors, setDeleteErrors] = useState<Record<string, string>>({});
 
   const ascendingStatus = [...statusEntries].sort((a, b) => a.date.localeCompare(b.date));
   function endDateFor(row: StatusEntryRow): string | null {
@@ -69,30 +75,30 @@ export function VerlaufFeed({
 
   function handleDeleteStatus(id: string) {
     if (!window.confirm('Diesen Statuseintrag löschen?')) return;
-    setDeleteError(null);
-    setPendingId(id);
+    setDeleteErrors((prev) => withoutKey(prev, id));
+    setPendingIds((prev) => ({ ...prev, [id]: true }));
     startTransition(async () => {
       try {
         await deleteStatusEntry(id, propertyId);
       } catch {
-        setDeleteError({ id, message: 'Löschen fehlgeschlagen — bitte erneut versuchen.' });
+        setDeleteErrors((prev) => ({ ...prev, [id]: 'Löschen fehlgeschlagen — bitte erneut versuchen.' }));
       } finally {
-        setPendingId(null);
+        setPendingIds((prev) => withoutKey(prev, id));
       }
     });
   }
 
   function handleDeleteCost(id: string) {
     if (!window.confirm('Diesen Kosteneintrag löschen?')) return;
-    setDeleteError(null);
-    setPendingId(id);
+    setDeleteErrors((prev) => withoutKey(prev, id));
+    setPendingIds((prev) => ({ ...prev, [id]: true }));
     startTransition(async () => {
       try {
         await deleteExtraordinaryCost(id, propertyId);
       } catch {
-        setDeleteError({ id, message: 'Löschen fehlgeschlagen — bitte erneut versuchen.' });
+        setDeleteErrors((prev) => ({ ...prev, [id]: 'Löschen fehlgeschlagen — bitte erneut versuchen.' }));
       } finally {
-        setPendingId(null);
+        setPendingIds((prev) => withoutKey(prev, id));
       }
     });
   }
@@ -162,15 +168,15 @@ export function VerlaufFeed({
                     <button
                       type="button"
                       onClick={() => handleDeleteStatus(item.row.id)}
-                      disabled={pendingId === item.row.id}
+                      disabled={!!pendingIds[item.row.id]}
                       aria-label="Löschen"
                       className="text-text-dim hover:text-negative disabled:opacity-50"
                     >
                       <Trash2 size={14} />
                     </button>
-                    {deleteError?.id === item.row.id && (
+                    {deleteErrors[item.row.id] && (
                       <p role="alert" className="absolute right-0 top-full mt-1 whitespace-nowrap text-xs text-negative">
-                        {deleteError.message}
+                        {deleteErrors[item.row.id]}
                       </p>
                     )}
                   </div>
@@ -207,15 +213,15 @@ export function VerlaufFeed({
                     <button
                       type="button"
                       onClick={() => handleDeleteCost(item.row.id)}
-                      disabled={pendingId === item.row.id}
+                      disabled={!!pendingIds[item.row.id]}
                       aria-label="Löschen"
                       className="text-text-dim hover:text-negative disabled:opacity-50"
                     >
                       <Trash2 size={14} />
                     </button>
-                    {deleteError?.id === item.row.id && (
+                    {deleteErrors[item.row.id] && (
                       <p role="alert" className="absolute right-0 top-full mt-1 whitespace-nowrap text-xs text-negative">
-                        {deleteError.message}
+                        {deleteErrors[item.row.id]}
                       </p>
                     )}
                   </div>
