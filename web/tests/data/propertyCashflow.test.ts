@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { fixtures as f } from '../calculations/fixtures';
 import { makeDate } from '@/lib/calculations/dateHelpers';
 import type { Database } from '@/lib/supabase/types';
-import { computeCashflowForecastMonth } from '@/lib/data/propertyCashflow';
+import { computeCashflowForecastMonth, computeCashflowYearTable } from '@/lib/data/propertyCashflow';
 import { computeTaxCurrentYear } from '@/lib/data/propertyTax';
 
 type PropertyRow = Database['public']['Tables']['properties']['Row'];
@@ -184,5 +184,111 @@ describe('computeCashflowForecastMonth', () => {
     expect(result.lineItems.propertyTaxTE).toBeCloseTo(5, 2);
     expect(result.lineItems.propertyTaxWE).toBe(0);
     expect(result.lineItems.hoaRecoverableWE).toBe(0);
+  });
+});
+
+describe('computeCashflowYearTable', () => {
+  const property = makeProperty();
+  const statusEntries = [makeStatusEntry()]; // vermietet from 2026-02-01
+  const today = makeDate(2026, 6, 15);
+
+  it('returns 12 month columns', () => {
+    const result = computeCashflowYearTable(property, statusEntries, [], 2026, today);
+    expect(result.months).toHaveLength(12);
+  });
+
+  it('months before economic_transfer_date are unowned (isOwned false, zeroed line items)', () => {
+    const result = computeCashflowYearTable(property, statusEntries, [], 2026, today);
+    const january = result.months.find((m) => m.month === 1)!;
+    expect(january.isOwned).toBe(false);
+    expect(january.lineItems.income).toBe(0);
+    expect(january.statusLabel).toBeNull();
+  });
+
+  it('owned months carry a status label and correct income', () => {
+    const result = computeCashflowYearTable(property, statusEntries, [], 2026, today);
+    const june = result.months.find((m) => m.month === 6)!;
+    expect(june.isOwned).toBe(true);
+    expect(june.statusLabel).toBe('vermietet');
+    expect(june.lineItems.income).toBeCloseTo(f.coldRentMonthly + f.parkingRentMonthly, 2);
+  });
+
+  it('ownershipMonthCount sums to 11 for a Feb 1 acquisition (Feb-Dec)', () => {
+    const result = computeCashflowYearTable(property, statusEntries, [], 2026, today);
+    expect(result.ownershipMonthCount).toBeCloseTo(11, 4);
+  });
+
+  it('totalColumn sums cashflowBeforeTax across owned months; avgColumn divides by ownershipMonthCount', () => {
+    const result = computeCashflowYearTable(property, statusEntries, [], 2026, today);
+    expect(result.totalColumn).not.toBeNull();
+    expect(result.avgColumn).not.toBeNull();
+    expect(result.avgColumn!.cashflowBeforeTax).toBeCloseTo(result.totalColumn!.cashflowBeforeTax / result.ownershipMonthCount, 4);
+  });
+
+  it('an extraordinary cost appears in its month, contributes to the year total, and is excluded from Ø when there is only 1 entry', () => {
+    const cost = makeExtraordinaryCost({ id: 'c1', cost_month: '2026-06-01', amount: 500 });
+    const result = computeCashflowYearTable(property, statusEntries, [cost], 2026, today);
+    const june = result.months.find((m) => m.month === 6)!;
+    expect(june.extraordinaryCostRows).toHaveLength(1);
+    expect(june.lineItems.extraordinaryCosts).toBe(500);
+    expect(result.extraordinaryCostsTotalForYear).toBe(500);
+    expect(result.extraordinaryCostsEntryCountForYear).toBe(1);
+    expect(result.extraordinaryCostsAvgForYear).toBeNull(); // spec: only shown when >= 2 entries
+  });
+
+  it('extraordinaryCostsAvgForYear is populated once there are >= 2 entries in the year', () => {
+    const cost1 = makeExtraordinaryCost({ id: 'c1', cost_month: '2026-03-01', amount: 300 });
+    const cost2 = makeExtraordinaryCost({ id: 'c2', cost_month: '2026-06-01', amount: 700 });
+    const result = computeCashflowYearTable(property, statusEntries, [cost1, cost2], 2026, today);
+    expect(result.extraordinaryCostsTotalForYear).toBe(1000);
+    expect(result.extraordinaryCostsAvgForYear).toBeCloseTo(500, 2);
+  });
+
+  it('no StatusEntry at all falls back to the vollvermietung scenario for every owned month, all marked as projection', () => {
+    const result = computeCashflowYearTable(property, [], [], 2026, today);
+    const june = result.months.find((m) => m.month === 6)!;
+    expect(june.isOwned).toBe(true);
+    expect(june.statusLabel).toBeNull();
+    expect(june.isProjection).toBe(true);
+    expect(june.lineItems.income).toBeCloseTo(f.coldRentMonthly + f.parkingRentMonthly, 2);
+    expect(june.lineItems.hoaRecoverableWE).toBe(0);
+  });
+
+  it('a future year (beyond the current year) blanks taxEffectMonthly and every month\'s cashflowAfterTax', () => {
+    const result = computeCashflowYearTable(property, statusEntries, [], 2027, today);
+    expect(result.isFutureYear).toBe(true);
+    expect(result.taxEffectMonthly).toBeNull();
+    const june = result.months.find((m) => m.month === 6)!;
+    expect(june.cashflowAfterTax).toBeNull();
+  });
+
+  it('the current year does not blank taxEffectMonthly, and it matches computeTaxCurrentYear', () => {
+    const result = computeCashflowYearTable(property, statusEntries, [], 2026, today);
+    expect(result.isFutureYear).toBe(false);
+    const taxResult = computeTaxCurrentYear(property, statusEntries, [], today);
+    expect(result.taxEffectMonthly).toBe(taxResult.taxEffectMonthly);
+  });
+
+  it('hoaUnitSplitWarning mirrors is_hoa_unit_split', () => {
+    const notSplit = makeProperty({ is_hoa_unit_split: false });
+    const result = computeCashflowYearTable(notSplit, statusEntries, [], 2026, today);
+    expect(result.hoaUnitSplitWarning).toBe(true);
+  });
+
+  it('a mid-month acquisition prorates the acquisition month\'s line items by ownerFraction', () => {
+    // June has 30 days; a transfer on day 15 owns days 15-30 inclusive = 16 days.
+    const ownerFraction = (30 - 15 + 1) / 30;
+    const midMonthProperty = makeProperty({ economic_transfer_date: '2026-06-15' });
+    const fullMonthProperty = makeProperty({ economic_transfer_date: '2026-06-01' });
+    const midMonthStatus = [makeStatusEntry({ date: '2026-06-15' })];
+    const fullMonthStatus = [makeStatusEntry({ date: '2026-06-01' })];
+
+    const midResult = computeCashflowYearTable(midMonthProperty, midMonthStatus, [], 2026, today);
+    const fullResult = computeCashflowYearTable(fullMonthProperty, fullMonthStatus, [], 2026, today);
+
+    const midJune = midResult.months.find((m) => m.month === 6)!;
+    const fullJune = fullResult.months.find((m) => m.month === 6)!;
+
+    expect(midJune.lineItems.mortgage).toBeCloseTo(fullJune.lineItems.mortgage * ownerFraction, 4);
   });
 });
