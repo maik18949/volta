@@ -7,6 +7,7 @@ import {
   amortizationSchedule,
   interestForCalendarYear,
   groupAmortizationScheduleByYear,
+  trimAmortizationScheduleToPayoff,
 } from '@/lib/calculations/amortizationCalculator';
 
 describe('amortizationCalculator', () => {
@@ -177,5 +178,25 @@ describe('groupAmortizationScheduleByYear', () => {
 
   it('an empty schedule returns an empty array', () => {
     expect(groupAmortizationScheduleByYear([], f.loanAmount)).toEqual([]);
+  });
+});
+
+describe('trimAmortizationScheduleToPayoff', () => {
+  it('cuts off trailing zeroed rows after payoff', () => {
+    // Same synthetic loan as the "payoff handling" describe above: pays off at month 2.
+    const schedule = amortizationSchedule(1_000, 0.12, 600, makeDate(2025, 1, 1), 5);
+    const trimmed = trimAmortizationScheduleToPayoff(schedule);
+    expect(trimmed).toHaveLength(2);
+    expect(trimmed[trimmed.length - 1].remainingDebt).toBeCloseTo(0, 5);
+  });
+
+  it('a schedule that never pays off within its window is returned unchanged', () => {
+    const schedule = amortizationSchedule(f.loanAmount, f.interestRate, f.monthlyMortgage, f.loanStartDate, 12);
+    const trimmed = trimAmortizationScheduleToPayoff(schedule);
+    expect(trimmed).toHaveLength(12);
+  });
+
+  it('an empty schedule returns an empty array', () => {
+    expect(trimAmortizationScheduleToPayoff([])).toEqual([]);
   });
 });

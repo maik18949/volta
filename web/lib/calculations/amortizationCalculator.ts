@@ -142,3 +142,10 @@ export function groupAmortizationScheduleByYear(schedule: AnnuityRow[], loanAmou
 
   return result;
 }
+
+/** Slices off the trailing all-zero rows amortizationSchedule appends after a loan is fully paid off. */
+export function trimAmortizationScheduleToPayoff(schedule: AnnuityRow[]): AnnuityRow[] {
+  const lastPaymentIndex = schedule.reduce((lastIdx, row, idx) => (row.payment > 0 ? idx : lastIdx), -1);
+  if (lastPaymentIndex === -1) return schedule;
+  return schedule.slice(0, lastPaymentIndex + 1);
+}
