@@ -18,32 +18,44 @@ describe('statusPeriodCalculator', () => {
 
   it('incomeForMonth: fully vermietet', () => {
     const history = [entry('vermietet', 2026, 2)];
-    const result = incomeForMonth(makeDate(2026, 6, 1), history, today, 950, 48);
+    const result = incomeForMonth(makeDate(2026, 6, 1), history, today, 950, 48, 0);
     expect(result).toBeCloseTo(998.0, 2);
+  });
+
+  it('incomeForMonth: includes otherIncomeMonthly while vermietet', () => {
+    const history = [entry('vermietet', 2026, 2)];
+    const result = incomeForMonth(makeDate(2026, 6, 1), history, today, 950, 48, 75);
+    expect(result).toBeCloseTo(998.0 + 75, 2);
+  });
+
+  it('incomeForMonth: otherIncomeMonthly is zero during leerstand', () => {
+    const history = [entry('leerstand', 2026, 2)];
+    const result = incomeForMonth(makeDate(2026, 6, 1), history, today, 950, 48, 75);
+    expect(result).toBeCloseTo(0, 2);
   });
 
   it('incomeForMonth: fully leerstand is zero', () => {
     const history = [entry('leerstand', 2026, 2)];
-    const result = incomeForMonth(makeDate(2026, 6, 1), history, today, 950, 48);
+    const result = incomeForMonth(makeDate(2026, 6, 1), history, today, 950, 48, 0);
     expect(result).toBeCloseTo(0, 2);
   });
 
   it('incomeForMonth: mietgarantie uses the entry income, not settings', () => {
     const history = [entry('mietgarantie', 2026, 2, 1, 999)];
-    const result = incomeForMonth(makeDate(2026, 6, 1), history, today, 950, 48);
+    const result = incomeForMonth(makeDate(2026, 6, 1), history, today, 950, 48, 0);
     expect(result).toBeCloseTo(999.0, 2);
   });
 
   it('incomeForMonth: mid-month transition leerstand -> vermietet (30-day month)', () => {
     const history = [entry('leerstand', 2026, 2), entry('vermietet', 2026, 6, 16)];
-    const result = incomeForMonth(makeDate(2026, 6, 1), history, today, 950, 48);
+    const result = incomeForMonth(makeDate(2026, 6, 1), history, today, 950, 48, 0);
     // vermietet 15/30 days: 998 * 15/30 = 499.00
     expect(result).toBeCloseTo(998.0 * (15 / 30), 2);
   });
 
   it('incomeForMonth: future month projects the last known status', () => {
     const history = [entry('vermietet', 2026, 2)];
-    const result = incomeForMonth(makeDate(2026, 12, 1), history, makeDate(2026, 6, 1), 950, 48);
+    const result = incomeForMonth(makeDate(2026, 12, 1), history, makeDate(2026, 6, 1), 950, 48, 0);
     expect(result).toBeCloseTo(998.0, 2);
   });
 
