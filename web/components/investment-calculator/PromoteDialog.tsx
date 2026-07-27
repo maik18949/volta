@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { isRedirectError } from 'next/dist/client/components/redirect-error';
+import { unstable_rethrow } from 'next/navigation';
 import { Modal } from '@/components/ui/Modal';
 import { promoteInvestmentCalculation } from '@/lib/data/investmentCalculationActions';
 
@@ -24,9 +24,10 @@ export function PromoteDialog({
       try {
         await promoteInvestmentCalculation(calculationId);
       } catch (err) {
-        // promoteInvestmentCalculation redirects on success, which Next.js implements
-        // via a special thrown value — that must propagate, not be treated as an error.
-        if (isRedirectError(err)) throw err;
+        // promoteInvestmentCalculation redirects on success, which Next.js implements via an
+        // internal thrown signal — unstable_rethrow re-throws that (and other Next.js internal
+        // control-flow errors like notFound()) so only a genuine failure reaches setError below.
+        unstable_rethrow(err);
         setError(err instanceof Error ? err.message : 'Übernehmen fehlgeschlagen — bitte erneut versuchen.');
       }
     });
