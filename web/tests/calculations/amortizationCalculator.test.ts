@@ -6,6 +6,7 @@ import {
   remainingDebt,
   amortizationSchedule,
   interestForCalendarYear,
+  groupAmortizationScheduleByYear,
 } from '@/lib/calculations/amortizationCalculator';
 
 describe('amortizationCalculator', () => {
@@ -142,5 +143,39 @@ describe('amortizationCalculator', () => {
       expect(amortizationSchedule(f.loanAmount, f.interestRate, f.monthlyMortgage, f.loanStartDate, 0)).toEqual([]);
       expect(amortizationSchedule(f.loanAmount, f.interestRate, f.monthlyMortgage, f.loanStartDate, -5)).toEqual([]);
     });
+  });
+});
+
+describe('groupAmortizationScheduleByYear', () => {
+  it('groups rows by calendar year, tracking remaining debt start/end per year', () => {
+    // loanStartDate = Oct 2025 -> 24 months covers Oct 2025 - Sep 2027 (3 partial/full years).
+    const schedule = amortizationSchedule(f.loanAmount, f.interestRate, f.monthlyMortgage, f.loanStartDate, 24);
+    const rows = groupAmortizationScheduleByYear(schedule, f.loanAmount);
+
+    expect(rows).toHaveLength(3);
+    expect(rows.map((r) => r.year)).toEqual([2025, 2026, 2027]);
+    expect(rows[0].remainingDebtStart).toBeCloseTo(f.loanAmount, 1);
+    expect(rows[1].remainingDebtStart).toBeCloseTo(rows[0].remainingDebtEnd, 6);
+    expect(rows[2].remainingDebtStart).toBeCloseTo(rows[1].remainingDebtEnd, 6);
+  });
+
+  it('interest + principal = payment for every yearly row', () => {
+    const schedule = amortizationSchedule(f.loanAmount, f.interestRate, f.monthlyMortgage, f.loanStartDate, 24);
+    const rows = groupAmortizationScheduleByYear(schedule, f.loanAmount);
+    for (const row of rows) {
+      expect(row.interest + row.principal).toBeCloseTo(row.payment, 1);
+    }
+  });
+
+  it('a full calendar year matches interestForCalendarYear exactly', () => {
+    const schedule = amortizationSchedule(f.loanAmount, f.interestRate, f.monthlyMortgage, f.loanStartDate, 15); // Oct 2025 - Dec 2026
+    const rows = groupAmortizationScheduleByYear(schedule, f.loanAmount);
+    const year2026 = rows.find((r) => r.year === 2026)!;
+    const expected = interestForCalendarYear(2026, f.loanStartDate, f.loanAmount, f.interestRate, f.monthlyMortgage);
+    expect(year2026.interest).toBeCloseTo(expected, 0);
+  });
+
+  it('an empty schedule returns an empty array', () => {
+    expect(groupAmortizationScheduleByYear([], f.loanAmount)).toEqual([]);
   });
 });

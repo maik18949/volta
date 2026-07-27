@@ -105,3 +105,40 @@ export function interestForCalendarYear(
 
   return schedule.filter((row) => yearOf(row.date) === year).reduce((sum, row) => sum + row.interest, 0);
 }
+
+export interface YearlyAmortizationRow {
+  year: number;
+  remainingDebtStart: number;
+  interest: number;
+  principal: number;
+  payment: number;
+  remainingDebtEnd: number;
+}
+
+/** Groups a monthly AnnuityRow[] schedule into per-calendar-year totals for the Finanzierung tab's Tilgungsplan table. */
+export function groupAmortizationScheduleByYear(schedule: AnnuityRow[], loanAmount: number): YearlyAmortizationRow[] {
+  const byYear = new Map<number, AnnuityRow[]>();
+  for (const row of schedule) {
+    const y = yearOf(row.date);
+    const existing = byYear.get(y) ?? [];
+    existing.push(row);
+    byYear.set(y, existing);
+  }
+
+  const years = [...byYear.keys()].sort((a, b) => a - b);
+  const result: YearlyAmortizationRow[] = [];
+  let previousYearEndDebt = loanAmount;
+
+  for (const year of years) {
+    const rows = byYear.get(year)!;
+    const interest = rows.reduce((sum, r) => sum + r.interest, 0);
+    const principal = rows.reduce((sum, r) => sum + r.principal, 0);
+    const payment = rows.reduce((sum, r) => sum + r.payment, 0);
+    const remainingDebtEnd = rows[rows.length - 1].remainingDebt;
+
+    result.push({ year, remainingDebtStart: previousYearEndDebt, interest, principal, payment, remainingDebtEnd });
+    previousYearEndDebt = remainingDebtEnd;
+  }
+
+  return result;
+}
