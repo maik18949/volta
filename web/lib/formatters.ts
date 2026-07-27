@@ -38,3 +38,8 @@ export function formatNumber(value: number, fractionDigits: number): string {
     maximumFractionDigits: fractionDigits,
   }).format(value);
 }
+
+/** Kaufpreisfaktor / Mietmultiplikator — plain number with one decimal and a × suffix. */
+export function formatMultiplier(value: number): string {
+  return `${formatNumber(value, 1)}×`;
+}
