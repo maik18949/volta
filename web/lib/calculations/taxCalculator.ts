@@ -25,6 +25,7 @@ export interface AnnualTaxableIncomeInput {
   otherCostsMonthly: number;
   coldRentMonthly: number;
   parkingRentMonthly: number;
+  otherIncomeMonthly: number;
   today: Date;
 }
 
@@ -121,8 +122,14 @@ export function annualTaxableIncomeBreakdown(input: AnnualTaxableIncomeBreakdown
     leerstandEquivalentMonths += ownerFraction * leerstandFraction;
 
     totalIncome +=
-      incomeForMonth(month, input.statusHistory, input.today, input.coldRentMonthly, input.parkingRentMonthly) *
-      ownerFraction;
+      incomeForMonth(
+        month,
+        input.statusHistory,
+        input.today,
+        input.coldRentMonthly,
+        input.parkingRentMonthly,
+        input.otherIncomeMonthly
+      ) * ownerFraction;
   }
 
   const hoaNonRecoverableWE = input.hoaUnitNonRecoverableMonthly * ownershipMonthEquivalent;

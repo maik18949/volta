@@ -100,7 +100,14 @@ export function computePropertySummary(
     property.property_tax_annual
   );
 
-  const incomeThisMonth = incomeForMonth(currentMonth, statusHistory, today, property.cold_rent_monthly, property.parking_rent_monthly);
+  const incomeThisMonth = incomeForMonth(
+    currentMonth,
+    statusHistory,
+    today,
+    property.cold_rent_monthly,
+    property.parking_rent_monthly,
+    property.other_income_monthly
+  );
 
   const taxableIncomeYear = annualTaxableIncome({
     year: currentYear,
@@ -123,6 +130,7 @@ export function computePropertySummary(
     propertyInsuranceMonthly: property.property_insurance_annual / 12, // annual → monthly
     coldRentMonthly: property.cold_rent_monthly,
     parkingRentMonthly: property.parking_rent_monthly,
+    otherIncomeMonthly: property.other_income_monthly,
     today,
   });
   // Sum of ownership day-fractions across the calendar year — matches taxCalculator's own

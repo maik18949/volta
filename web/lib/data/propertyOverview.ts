@@ -95,6 +95,7 @@ export function computeOverviewMetrics(
     today,
     coldRentMonthly: property.cold_rent_monthly,
     parkingRentMonthly: property.parking_rent_monthly,
+    otherIncomeMonthly: property.other_income_monthly,
     monthlyMortgage: property.monthly_mortgage,
     operatingCostsNonRecoverableMonthly,
     hoaFeeRecoverableMonthly: property.hoa_fee_recoverable_monthly,

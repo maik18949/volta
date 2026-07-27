@@ -156,6 +156,7 @@ describe('annualCashflowBeforeTax', () => {
       today: makeDate(2026, 12, 31),
       coldRentMonthly: 1000,
       parkingRentMonthly: 0,
+      otherIncomeMonthly: 0,
       monthlyMortgage: 600,
       operatingCostsNonRecoverableMonthly: 150,
       hoaFeeRecoverableMonthly: 0,
@@ -179,6 +180,7 @@ describe('annualCashflowBeforeTax', () => {
       today: makeDate(2026, 12, 31),
       coldRentMonthly: 1000,
       parkingRentMonthly: 0,
+      otherIncomeMonthly: 0,
       monthlyMortgage: 600,
       operatingCostsNonRecoverableMonthly: 150,
       hoaFeeRecoverableMonthly: 0,
@@ -266,6 +268,7 @@ describe('cashflowLineItemsForActualMonth', () => {
   const baseInput: Omit<CashflowActualMonthInput, 'month' | 'statusHistory' | 'today'> = {
     coldRentMonthly: f.coldRentMonthly,
     parkingRentMonthly: f.parkingRentMonthly,
+    otherIncomeMonthly: 0,
     monthlyMortgage: f.monthlyMortgage,
     hoaFeeNonRecoverableMonthly: f.hoaFeeNonRecoverableMonthly,
     hoaFeeMaintenanceReserveMonthly: f.maintenanceReserveMonthly,
@@ -288,6 +291,14 @@ describe('cashflowLineItemsForActualMonth', () => {
     expect(result.income).toBeCloseTo(998, 2);
     expect(result.hoaRecoverableWE).toBe(0);
     expect(result.cashflowBeforeTax).toBeCloseTo(-437.61, 1);
+  });
+
+  it('cashflowLineItemsForActualMonth: includes otherIncomeMonthly for a fully vermietet month', () => {
+    const history: StatusEntry[] = [{ date: makeDate(2026, 2, 1), status: 'vermietet', incomeActualMonthly: null }];
+    const input = { ...baseInput, month: makeDate(2026, 6, 1), statusHistory: history, today, otherIncomeMonthly: 75 };
+    const before = cashflowLineItemsForActualMonth({ ...input, otherIncomeMonthly: 0 });
+    const after = cashflowLineItemsForActualMonth(input);
+    expect(after.income).toBeCloseTo(before.income + 75, 2);
   });
 
   it('fully leerstand since before this month matches the leerstand scenario result', () => {

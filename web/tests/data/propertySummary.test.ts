@@ -172,6 +172,13 @@ describe('computePropertySummary', () => {
     const result = computePropertySummary(property, statusHistory, today);
     expect(Number.isFinite(result.cashflowAfterTaxMonthly)).toBe(true);
   });
+
+  it('incomeActualMonthly includes other_income_monthly while vermietet', () => {
+    const vermietetEntry = [makeStatusEntry()];
+    const withOther = computePropertySummary(makeProperty({ other_income_monthly: 75 }), vermietetEntry, today);
+    const withoutOther = computePropertySummary(makeProperty({ other_income_monthly: 0 }), vermietetEntry, today);
+    expect(withOther.incomeActualMonthly).toBeCloseTo(withoutOther.incomeActualMonthly + 75, 2);
+  });
 });
 
 describe('computePropertySummary — hoaFeeNonRecoverableMonthly "davon" derivation', () => {

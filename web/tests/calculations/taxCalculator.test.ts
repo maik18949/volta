@@ -26,6 +26,7 @@ const baseInput = {
   otherCostsMonthly: 0,
   coldRentMonthly: f.coldRentMonthly,
   parkingRentMonthly: f.parkingRentMonthly,
+  otherIncomeMonthly: 0,
 };
 
 describe('taxCalculator.annualTaxableIncome', () => {
@@ -178,6 +179,22 @@ describe('taxCalculator.annualTaxableIncomeBreakdown', () => {
       breakdown.extraordinaryCostsDeductible;
     expect(recomputed).toBeCloseTo(breakdown.taxableIncome, 6);
     expect(breakdown.taxableIncome).toBeCloseTo(-10407.52, 0);
+  });
+
+  it('annualTaxableIncomeBreakdown: includes otherIncomeMonthly for fully vermietet months', () => {
+    // Full calendar year (2027), no acquisition-year proration — 12 ownership months.
+    const history: StatusEntry[] = [{ date: makeDate(2027, 1, 1), status: 'vermietet', incomeActualMonthly: null }];
+    const input = {
+      ...baseInput,
+      year: 2027,
+      statusHistory: history,
+      today: makeDate(2027, 12, 31),
+      extraordinaryCostsDeductibleYearly: 0,
+      otherIncomeMonthly: 75,
+    };
+    const before = annualTaxableIncomeBreakdown({ ...input, otherIncomeMonthly: 0 });
+    const after = annualTaxableIncomeBreakdown(input);
+    expect(after.income).toBeCloseTo(before.income + 75 * 12, 2);
   });
 
   it('a year entirely before ownership returns all-zero line items', () => {

@@ -92,6 +92,7 @@ export interface AnnualCashflowBeforeTaxInput {
   today: Date;
   coldRentMonthly: number;
   parkingRentMonthly: number;
+  otherIncomeMonthly: number;
   monthlyMortgage: number;
   operatingCostsNonRecoverableMonthly: number;
   hoaFeeRecoverableMonthly: number;
@@ -121,7 +122,14 @@ export function annualCashflowBeforeTax(input: AnnualCashflowBeforeTaxInput): nu
     const ownerFraction = ownershipDayFraction(month, input.economicTransferDate);
     if (ownerFraction <= 0) continue;
 
-    const income = incomeForMonth(month, input.statusHistory, input.today, input.coldRentMonthly, input.parkingRentMonthly);
+    const income = incomeForMonth(
+      month,
+      input.statusHistory,
+      input.today,
+      input.coldRentMonthly,
+      input.parkingRentMonthly,
+      input.otherIncomeMonthly
+    );
     const ownerBorneRecoverableWE = ownerBorneRecoverableWEForMonth(
       month,
       input.statusHistory,
@@ -251,6 +259,7 @@ export interface CashflowActualMonthInput {
   today: Date;
   coldRentMonthly: number;
   parkingRentMonthly: number;
+  otherIncomeMonthly: number;
   monthlyMortgage: number;
   hoaFeeNonRecoverableMonthly: number;
   hoaFeeMaintenanceReserveMonthly: number;
@@ -274,7 +283,14 @@ export interface CashflowActualMonthInput {
  * functions already.
  */
 export function cashflowLineItemsForActualMonth(input: CashflowActualMonthInput): CashflowLineItems {
-  const income = incomeForMonth(input.month, input.statusHistory, input.today, input.coldRentMonthly, input.parkingRentMonthly);
+  const income = incomeForMonth(
+    input.month,
+    input.statusHistory,
+    input.today,
+    input.coldRentMonthly,
+    input.parkingRentMonthly,
+    input.otherIncomeMonthly
+  );
   const { hoaRecoverable: hoaRecoverableWE, propertyTax: propertyTaxWE } = ownerBorneRecoverableWEBreakdown(
     input.month,
     input.statusHistory,
