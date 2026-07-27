@@ -217,11 +217,11 @@ export function canFinish(values: WizardFormValues): boolean {
   );
 }
 
-function n(value: number): number {
+export function n(value: number): number {
   return Number.isNaN(value) ? 0 : value;
 }
 
-function nOrNull(value: number | null): number | null {
+export function nOrNull(value: number | null): number | null {
   return value === null || Number.isNaN(value) ? null : value;
 }
 
