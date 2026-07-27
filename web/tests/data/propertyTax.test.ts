@@ -219,4 +219,35 @@ describe('computeTaxForecastYear', () => {
     const result = computeTaxForecastYear(property, 2028, 'vollvermietung');
     expect(result.taxEffectMonthly).toBeCloseTo(result.taxEffectYearly / 12, 4);
   });
+
+  it('lineItems fields are individually wired correctly (insurance, other costs, management, and parking all nonzero)', () => {
+    // vollvermietung -> the unit's owner-borne recoverable/property-tax fields
+    // (hoaRecoverableWE, propertyTaxWE) stay 0; every field below is a plain
+    // monthlyValue * 12, so a copy-paste swap between any two of the several
+    // *Monthly cost inputs passed into taxLineItemsForScenario would flip two
+    // of these expectations without failing the other tests in this block.
+    const withExtras = makeProperty({
+      property_insurance_annual: 240, // /12 = 20/mo
+      other_costs_monthly: 15,
+      parking_type: 'tiefgarage',
+      hoa_fee_parking_total_monthly: 30,
+      is_hoa_parking_split: true,
+      hoa_fee_parking_recoverable_monthly: 12,
+      hoa_fee_parking_maintenance_reserve_monthly: 3,
+      property_tax_parking_annual: 60, // /12 = 5/mo
+    });
+    const result = computeTaxForecastYear(withExtras, 2028, 'vollvermietung');
+
+    expect(result.lineItems.insuranceWE).toBeCloseTo(20 * 12, 2); // 240
+    expect(result.lineItems.otherCostsWE).toBeCloseTo(15 * 12, 2); // 180
+    expect(result.lineItems.managementWE).toBeCloseTo(f.propertyManagementMonthly * 12, 2);
+    // hoaUnitNonRecoverableMonthly = hoa_fee_total_monthly - recoverable - maintenance reserve = 417 - 292 - 34.76 = 90.24/mo
+    expect(result.lineItems.hoaNonRecoverableWE).toBeCloseTo((f.hoaFeeTotalMonthly - f.hoaFeeRecoverableMonthly - f.maintenanceReserveMonthly) * 12, 2);
+    // hoaParkingNonRecoverableMonthly = 30 - 12 - 3 = 15/mo
+    expect(result.lineItems.hoaNonRecoverableTE).toBeCloseTo(15 * 12, 2); // 180
+    expect(result.lineItems.hoaRecoverableTE).toBeCloseTo(12 * 12, 2); // 144
+    expect(result.lineItems.propertyTaxTE).toBeCloseTo(5 * 12, 2); // 60
+    expect(result.lineItems.propertyTaxWE).toBe(0);
+    expect(result.lineItems.hoaRecoverableWE).toBe(0);
+  });
 });
