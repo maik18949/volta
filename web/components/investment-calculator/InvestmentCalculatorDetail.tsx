@@ -82,6 +82,7 @@ export function InvestmentCalculatorDetail({ calculation }: { calculation: Inves
   const [sensitivity, setSensitivity] = useState<SensitivityDeltas>(ZERO_SENSITIVITY);
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const latestValuesRef = useRef<InvestmentCalculatorValues | null>(null);
 
   const { register, control, watch } = useForm<InvestmentCalculatorValues>({ defaultValues: toFormValues(calculation) });
   const values = watch();
@@ -89,8 +90,13 @@ export function InvestmentCalculatorDetail({ calculation }: { calculation: Inves
 
   useEffect(() => {
     const subscription = watch((formValues) => {
+      // `formValues` is typed as a DeepPartial by react-hook-form's watch() signature, but in
+      // practice it's never actually partial here: defaultValues (toFormValues) populates every
+      // field synchronously on construction.
+      latestValuesRef.current = formValues as InvestmentCalculatorValues;
       if (debounceRef.current) clearTimeout(debounceRef.current);
       debounceRef.current = setTimeout(() => {
+        debounceRef.current = null;
         setSaveState('saving');
         updateInvestmentCalculation(calculation.id, toPatch(formValues as InvestmentCalculatorValues))
           .then(() => setSaveState('saved'))
@@ -99,7 +105,18 @@ export function InvestmentCalculatorDetail({ calculation }: { calculation: Inves
     });
     return () => {
       subscription.unsubscribe();
-      if (debounceRef.current) clearTimeout(debounceRef.current);
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+        debounceRef.current = null;
+        if (latestValuesRef.current) {
+          // Component is unmounting (e.g. user navigated away mid-debounce) — flush the
+          // pending edit rather than silently dropping it. Fire-and-forget: there's no
+          // component left to show saving/saved/error state to.
+          updateInvestmentCalculation(calculation.id, toPatch(latestValuesRef.current)).catch(() => {
+            // Best-effort flush on unmount; nothing left to report the error to.
+          });
+        }
+      }
     };
   }, [watch, calculation.id]);
 
