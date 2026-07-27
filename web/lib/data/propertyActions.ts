@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
-import type { TablesInsert } from '@/lib/supabase/types';
+import type { TablesInsert, TablesUpdate } from '@/lib/supabase/types';
 
 export async function deleteProperty(propertyId: string): Promise<void> {
   const supabase = await createClient();
@@ -43,4 +43,13 @@ export async function createProperty(
 
   revalidatePath('/');
   return property.id;
+}
+
+/** Applies a partial update to a property — used by the Immobiliendaten tab's auto-save. */
+export async function updateProperty(propertyId: string, patch: TablesUpdate<'properties'>): Promise<void> {
+  const supabase = await createClient();
+  const { error } = await supabase.from('properties').update(patch).eq('id', propertyId);
+  if (error) throw error;
+  revalidatePath('/');
+  revalidatePath(`/properties/${propertyId}`, 'layout');
 }
