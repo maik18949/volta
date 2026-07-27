@@ -194,6 +194,7 @@ function lineItemsForMonth(
     today,
     coldRentMonthly: property.cold_rent_monthly,
     parkingRentMonthly: property.parking_rent_monthly,
+    otherIncomeMonthly: property.other_income_monthly,
     monthlyMortgage: property.monthly_mortgage,
     hoaFeeNonRecoverableMonthly,
     hoaFeeMaintenanceReserveMonthly: property.hoa_fee_maintenance_reserve_monthly,

@@ -76,16 +76,17 @@ function segments(month: Date, statusHistory: StatusEntry[], today: Date): Statu
   return result;
 }
 
-/** Monthly income from all status segments (day-accurate). */
+/** Monthly income from all status segments (day-accurate). otherIncomeMonthly counts only while vermietet — matches cashflowLineItemsForScenario's treatment of it as occupancy-tied. */
 export function incomeForMonth(
   month: Date,
   statusHistory: StatusEntry[],
   today: Date,
   coldRentMonthly: number,
-  parkingRentMonthly: number
+  parkingRentMonthly: number,
+  otherIncomeMonthly: number
 ): number {
   return segments(month, statusHistory, today).reduce((sum, seg) => {
-    if (seg.status === 'vermietet') return sum + (coldRentMonthly + parkingRentMonthly) * seg.dayFraction;
+    if (seg.status === 'vermietet') return sum + (coldRentMonthly + parkingRentMonthly + otherIncomeMonthly) * seg.dayFraction;
     if (seg.status === 'mietgarantie') return sum + seg.incomeActualMonthly * seg.dayFraction;
     return sum; // leerstand
   }, 0);
