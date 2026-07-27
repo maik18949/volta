@@ -4,6 +4,8 @@ import { makeDate } from '@/lib/calculations/dateHelpers';
 import { interestForCalendarYear } from '@/lib/calculations/amortizationCalculator';
 import type { StatusEntry } from '@/lib/calculations/statusPeriodCalculator';
 import { annualTaxableIncome, taxEffectYearly, taxEffectMonthly } from '@/lib/calculations/taxCalculator';
+import { annualTaxableIncomeBreakdown } from '@/lib/calculations/taxCalculator';
+import { taxLineItemsForScenario, type TaxScenarioInput } from '@/lib/calculations/taxCalculator';
 
 const baseInput = {
   economicTransferDate: f.economicTransferDate,
@@ -112,5 +114,130 @@ describe('taxCalculator.taxEffectYearly / taxEffectMonthly', () => {
   it('taxEffectMonthly divides by ownership months, not always 12', () => {
     const yearly = taxEffectYearly(-9100.44, 0.42);
     expect(taxEffectMonthly(yearly, 11)).toBeCloseTo(yearly / 11, 2);
+  });
+});
+
+describe('taxCalculator.annualTaxableIncomeBreakdown', () => {
+  it('taxableIncome matches annualTaxableIncome for the same input when extraordinaryCostsDeductibleYearly is 0', () => {
+    const history: StatusEntry[] = [{ date: f.economicTransferDate, status: 'vermietet', incomeActualMonthly: null }];
+    const breakdown = annualTaxableIncomeBreakdown({
+      ...baseInput,
+      year: 2026,
+      statusHistory: history,
+      today: makeDate(2026, 12, 31),
+      extraordinaryCostsDeductibleYearly: 0,
+    });
+    expect(breakdown.taxableIncome).toBeCloseTo(-9100.44, 0);
+  });
+
+  it('a deductible extraordinary cost reduces taxableIncome by exactly its amount', () => {
+    const history: StatusEntry[] = [{ date: f.economicTransferDate, status: 'vermietet', incomeActualMonthly: null }];
+    const without = annualTaxableIncomeBreakdown({
+      ...baseInput,
+      year: 2026,
+      statusHistory: history,
+      today: makeDate(2026, 12, 31),
+      extraordinaryCostsDeductibleYearly: 0,
+    });
+    const withCost = annualTaxableIncomeBreakdown({
+      ...baseInput,
+      year: 2026,
+      statusHistory: history,
+      today: makeDate(2026, 12, 31),
+      extraordinaryCostsDeductibleYearly: 800,
+    });
+    expect(without.taxableIncome - withCost.taxableIncome).toBeCloseTo(800, 2);
+    expect(withCost.extraordinaryCostsDeductible).toBe(800);
+  });
+
+  it('line items sum to taxableIncome (mixed leerstand/vermietet year)', () => {
+    const history: StatusEntry[] = [
+      { date: f.economicTransferDate, status: 'leerstand', incomeActualMonthly: null },
+      { date: makeDate(2026, 3, 1), status: 'vermietet', incomeActualMonthly: null },
+    ];
+    const breakdown = annualTaxableIncomeBreakdown({
+      ...baseInput,
+      year: 2026,
+      statusHistory: history,
+      today: makeDate(2026, 12, 31),
+      extraordinaryCostsDeductibleYearly: 0,
+    });
+    const recomputed =
+      breakdown.income -
+      breakdown.interest -
+      breakdown.depreciation -
+      breakdown.hoaNonRecoverableWE -
+      breakdown.insuranceWE -
+      breakdown.managementWE -
+      breakdown.otherCostsWE -
+      breakdown.hoaRecoverableWE -
+      breakdown.propertyTaxWE -
+      breakdown.hoaNonRecoverableTE -
+      breakdown.hoaRecoverableTE -
+      breakdown.propertyTaxTE -
+      breakdown.extraordinaryCostsDeductible;
+    expect(recomputed).toBeCloseTo(breakdown.taxableIncome, 6);
+    expect(breakdown.taxableIncome).toBeCloseTo(-10407.52, 0);
+  });
+
+  it('a year entirely before ownership returns all-zero line items', () => {
+    const breakdown = annualTaxableIncomeBreakdown({
+      ...baseInput,
+      year: 2024,
+      statusHistory: [],
+      today: makeDate(2024, 12, 31),
+      extraordinaryCostsDeductibleYearly: 500,
+    });
+    expect(breakdown.taxableIncome).toBe(0);
+    expect(breakdown.income).toBe(0);
+    expect(breakdown.extraordinaryCostsDeductible).toBe(0);
+  });
+});
+
+describe('taxCalculator.taxLineItemsForScenario', () => {
+  const scenarioBaseInput: Omit<TaxScenarioInput, 'scenario' | 'year'> = {
+    coldRentMonthly: f.coldRentMonthly,
+    parkingRentMonthly: f.parkingRentMonthly,
+    loanStartDate: f.loanStartDate,
+    loanAmount: f.loanAmount,
+    interestRate: f.interestRate,
+    monthlyMortgage: f.monthlyMortgage,
+    afaBasis: f.afaBasis,
+    depreciationRate: f.depreciationRate,
+    hoaUnitNonRecoverableMonthly: 125.0,
+    hoaUnitRecoverableMonthly: f.hoaFeeRecoverableMonthly,
+    hoaParkingNonRecoverableMonthly: 0,
+    hoaParkingRecoverableMonthly: 0,
+    propertyTaxUnitMonthly: f.propertyTaxMonthly,
+    propertyTaxParkingMonthly: 0,
+    propertyManagementMonthly: f.propertyManagementMonthly,
+    propertyInsuranceMonthly: 0,
+    otherCostsMonthly: 0,
+  };
+
+  it('vollvermietung scenario for 2027 matches the full-year annualTaxableIncomeBreakdown (all vermietet)', () => {
+    const scenarioResult = taxLineItemsForScenario({ ...scenarioBaseInput, scenario: 'vollvermietung', year: 2027 });
+    const breakdownResult = annualTaxableIncomeBreakdown({
+      ...baseInput,
+      year: 2027,
+      statusHistory: [{ date: makeDate(2027, 1, 1), status: 'vermietet', incomeActualMonthly: null }],
+      today: makeDate(2027, 12, 31),
+      extraordinaryCostsDeductibleYearly: 0,
+    });
+    expect(scenarioResult.taxableIncome).toBeCloseTo(breakdownResult.taxableIncome, 0);
+    expect(scenarioResult.hoaRecoverableWE).toBe(0);
+    expect(scenarioResult.propertyTaxWE).toBe(0);
+  });
+
+  it('leerstand scenario: zero income, full owner-borne recoverable WE costs for all 12 months', () => {
+    const result = taxLineItemsForScenario({ ...scenarioBaseInput, scenario: 'leerstand', year: 2027 });
+    expect(result.income).toBe(0);
+    expect(result.hoaRecoverableWE).toBeCloseTo(f.hoaFeeRecoverableMonthly * 12, 2);
+    expect(result.propertyTaxWE).toBeCloseTo(f.propertyTaxMonthly * 12, 2);
+  });
+
+  it('AfA is never prorated (no acquisition-year discount in a scenario forecast)', () => {
+    const result = taxLineItemsForScenario({ ...scenarioBaseInput, scenario: 'vollvermietung', year: 2030 });
+    expect(result.depreciation).toBeCloseTo(f.afaBasis * f.depreciationRate, 2);
   });
 });

@@ -148,3 +148,28 @@ export function ownershipAndVacancyDaysSinceTransfer(
 
   return { ownershipDays: Math.round(ownershipDays), leerstandDays: Math.round(leerstandDays) };
 }
+
+/**
+ * The status with the most cumulative days across all of `month`'s segments
+ * (a status can appear in multiple non-adjacent segments within one month) —
+ * feeds the Cashflow year table's per-column status badge. Ties keep
+ * whichever status was encountered first while summing `monthSegments` in
+ * order (the chronologically earliest one), since no explicit tiebreaker is
+ * specified.
+ */
+export function dominantStatusForMonth(month: Date, statusHistory: StatusEntry[], today: Date): PropertyStatus {
+  const monthSegments = segments(month, statusHistory, today);
+  const totalsByStatus = new Map<PropertyStatus, number>();
+  for (const seg of monthSegments) {
+    totalsByStatus.set(seg.status, (totalsByStatus.get(seg.status) ?? 0) + seg.dayFraction);
+  }
+  let bestStatus: PropertyStatus = monthSegments[0].status;
+  let bestTotal = -1;
+  for (const [status, total] of totalsByStatus) {
+    if (total > bestTotal) {
+      bestStatus = status;
+      bestTotal = total;
+    }
+  }
+  return bestStatus;
+}

@@ -2,6 +2,7 @@ import { makeDate } from './dateHelpers';
 import { interestForCalendarYear } from './amortizationCalculator';
 import { ownershipDayFraction, leerstandDayFraction, incomeForMonth } from './statusPeriodCalculator';
 import type { StatusEntry } from './statusPeriodCalculator';
+import { depreciationYearly } from './depreciationCalculator';
 
 export interface AnnualTaxableIncomeInput {
   year: number;
@@ -27,11 +28,53 @@ export interface AnnualTaxableIncomeInput {
   today: Date;
 }
 
+export interface TaxLineItems {
+  income: number;
+  interest: number;
+  depreciation: number;
+  hoaNonRecoverableWE: number;
+  insuranceWE: number;
+  managementWE: number;
+  otherCostsWE: number;
+  hoaRecoverableWE: number;
+  propertyTaxWE: number;
+  hoaNonRecoverableTE: number;
+  hoaRecoverableTE: number;
+  propertyTaxTE: number;
+  extraordinaryCostsDeductible: number;
+  taxableIncome: number;
+}
+
+export interface AnnualTaxableIncomeBreakdownInput extends AnnualTaxableIncomeInput {
+  /** Sum of extraordinary_costs.amount for the year where is_deductible = true. */
+  extraordinaryCostsDeductibleYearly: number;
+}
+
+const ZERO_TAX_LINE_ITEMS: TaxLineItems = {
+  income: 0,
+  interest: 0,
+  depreciation: 0,
+  hoaNonRecoverableWE: 0,
+  insuranceWE: 0,
+  managementWE: 0,
+  otherCostsWE: 0,
+  hoaRecoverableWE: 0,
+  propertyTaxWE: 0,
+  hoaNonRecoverableTE: 0,
+  hoaRecoverableTE: 0,
+  propertyTaxTE: 0,
+  extraordinaryCostsDeductible: 0,
+  taxableIncome: 0,
+};
+
 /**
- * Full annual taxable income for V+V (§21 EStG). Handles acquisition-year
- * proration, exact amortizing interest, and day-level status/ownership splits.
+ * Itemized version of annualTaxableIncome (§21 EStG) — same acquisition-year
+ * proration and day-level status/ownership splits, but returns every
+ * deduction as its own field instead of just the final total. `annualTaxableIncome`
+ * (below) is a thin wrapper around this with extraordinaryCostsDeductibleYearly
+ * hardcoded to 0, so its behavior is unchanged by this refactor.
  */
-export function annualTaxableIncome(input: AnnualTaxableIncomeInput): number {
+export function annualTaxableIncomeBreakdown(input: AnnualTaxableIncomeBreakdownInput): TaxLineItems {
   const isAcquisitionYear = input.year === input.economicTransferDate.getUTCFullYear();
 
   const ownershipMonths: Date[] = [];
@@ -41,7 +84,7 @@ export function annualTaxableIncome(input: AnnualTaxableIncomeInput): number {
       ownershipMonths.push(d);
     }
   }
-  if (ownershipMonths.length === 0) return 0;
+  if (ownershipMonths.length === 0) return ZERO_TAX_LINE_ITEMS;
 
   const interestYear = interestForCalendarYear(
     input.year,
@@ -82,19 +125,58 @@ export function annualTaxableIncome(input: AnnualTaxableIncomeInput): number {
       ownerFraction;
   }
 
-  const alwaysDeductions =
-    (input.hoaUnitNonRecoverableMonthly +
-      input.hoaParkingNonRecoverableMonthly +
-      input.hoaParkingRecoverableMonthly +
-      input.propertyTaxParkingMonthly +
-      input.propertyManagementMonthly +
-      input.propertyInsuranceMonthly +
-      input.otherCostsMonthly) *
-    ownershipMonthEquivalent;
+  const hoaNonRecoverableWE = input.hoaUnitNonRecoverableMonthly * ownershipMonthEquivalent;
+  const insuranceWE = input.propertyInsuranceMonthly * ownershipMonthEquivalent;
+  const managementWE = input.propertyManagementMonthly * ownershipMonthEquivalent;
+  const otherCostsWE = input.otherCostsMonthly * ownershipMonthEquivalent;
+  const hoaNonRecoverableTE = input.hoaParkingNonRecoverableMonthly * ownershipMonthEquivalent;
+  const hoaRecoverableTE = input.hoaParkingRecoverableMonthly * ownershipMonthEquivalent;
+  const propertyTaxTE = input.propertyTaxParkingMonthly * ownershipMonthEquivalent;
 
-  const leerstandDeductions = (input.hoaUnitRecoverableMonthly + input.propertyTaxUnitMonthly) * leerstandEquivalentMonths;
+  const hoaRecoverableWE = input.hoaUnitRecoverableMonthly * leerstandEquivalentMonths;
+  const propertyTaxWE = input.propertyTaxUnitMonthly * leerstandEquivalentMonths;
 
-  return totalIncome - interestYear - afaYear - alwaysDeductions - leerstandDeductions;
+  const extraordinaryCostsDeductible = input.extraordinaryCostsDeductibleYearly;
+
+  const taxableIncome =
+    totalIncome -
+    interestYear -
+    afaYear -
+    hoaNonRecoverableWE -
+    insuranceWE -
+    managementWE -
+    otherCostsWE -
+    hoaNonRecoverableTE -
+    hoaRecoverableTE -
+    propertyTaxTE -
+    hoaRecoverableWE -
+    propertyTaxWE -
+    extraordinaryCostsDeductible;
+
+  return {
+    income: totalIncome,
+    interest: interestYear,
+    depreciation: afaYear,
+    hoaNonRecoverableWE,
+    insuranceWE,
+    managementWE,
+    otherCostsWE,
+    hoaRecoverableWE,
+    propertyTaxWE,
+    hoaNonRecoverableTE,
+    hoaRecoverableTE,
+    propertyTaxTE,
+    extraordinaryCostsDeductible,
+    taxableIncome,
+  };
+}
+
+/**
+ * Full annual taxable income for V+V (§21 EStG). Handles acquisition-year
+ * proration, exact amortizing interest, and day-level status/ownership splits.
+ */
+export function annualTaxableIncome(input: AnnualTaxableIncomeInput): number {
+  return annualTaxableIncomeBreakdown({ ...input, extraordinaryCostsDeductibleYearly: 0 }).taxableIncome;
 }
 
 /** Jährlicher Steuereffekt: negatives Ergebnis (Verlust) × Grenzsteuersatz = Erstattung. */
@@ -106,4 +188,79 @@ export function taxEffectYearly(taxableIncomeVV: number, marginalTaxRate: number
 export function taxEffectMonthly(taxEffectYearlyValue: number, ownershipMonths: number): number {
   if (ownershipMonths <= 0) return 0;
   return taxEffectYearlyValue / ownershipMonths;
+}
+
+export interface TaxScenarioInput {
+  scenario: 'vollvermietung' | 'leerstand';
+  year: number;
+  coldRentMonthly: number;
+  parkingRentMonthly: number;
+  loanStartDate: Date;
+  loanAmount: number;
+  interestRate: number;
+  monthlyMortgage: number;
+  afaBasis: number;
+  depreciationRate: number;
+  hoaUnitNonRecoverableMonthly: number;
+  hoaUnitRecoverableMonthly: number;
+  hoaParkingNonRecoverableMonthly: number;
+  hoaParkingRecoverableMonthly: number;
+  propertyTaxUnitMonthly: number;
+  propertyTaxParkingMonthly: number;
+  propertyManagementMonthly: number;
+  propertyInsuranceMonthly: number;
+  otherCostsMonthly: number;
+}
+
+/**
+ * Steuer tab Section 2 ("Prognose") basis — a full calendar year, no
+ * acquisition-year proration (this isn't necessarily the acquisition year),
+ * no status history (a scenario toggle stands in for it).
+ */
+export function taxLineItemsForScenario(input: TaxScenarioInput): TaxLineItems {
+  const income = input.scenario === 'vollvermietung' ? (input.coldRentMonthly + input.parkingRentMonthly) * 12 : 0;
+  const interest = interestForCalendarYear(input.year, input.loanStartDate, input.loanAmount, input.interestRate, input.monthlyMortgage);
+  const depreciation = depreciationYearly(input.afaBasis, input.depreciationRate);
+
+  const hoaRecoverableWE = input.scenario === 'leerstand' ? input.hoaUnitRecoverableMonthly * 12 : 0;
+  const propertyTaxWE = input.scenario === 'leerstand' ? input.propertyTaxUnitMonthly * 12 : 0;
+
+  const hoaNonRecoverableWE = input.hoaUnitNonRecoverableMonthly * 12;
+  const insuranceWE = input.propertyInsuranceMonthly * 12;
+  const managementWE = input.propertyManagementMonthly * 12;
+  const otherCostsWE = input.otherCostsMonthly * 12;
+  const hoaNonRecoverableTE = input.hoaParkingNonRecoverableMonthly * 12;
+  const hoaRecoverableTE = input.hoaParkingRecoverableMonthly * 12;
+  const propertyTaxTE = input.propertyTaxParkingMonthly * 12;
+
+  const taxableIncome =
+    income -
+    interest -
+    depreciation -
+    hoaNonRecoverableWE -
+    insuranceWE -
+    managementWE -
+    otherCostsWE -
+    hoaNonRecoverableTE -
+    hoaRecoverableTE -
+    propertyTaxTE -
+    hoaRecoverableWE -
+    propertyTaxWE;
+
+  return {
+    income,
+    interest,
+    depreciation,
+    hoaNonRecoverableWE,
+    insuranceWE,
+    managementWE,
+    otherCostsWE,
+    hoaRecoverableWE,
+    propertyTaxWE,
+    hoaNonRecoverableTE,
+    hoaRecoverableTE,
+    propertyTaxTE,
+    extraordinaryCostsDeductible: 0,
+    taxableIncome,
+  };
 }
