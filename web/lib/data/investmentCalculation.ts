@@ -114,6 +114,7 @@ export function computeInvestmentKPIs(
   );
   const effectiveNonRecoverableMonthly = Math.max(0, baseNonRecoverableMonthly + sensitivity.maintenanceDelta);
 
+  const rawPurchasePrice = values.purchasePriceUnit + values.purchasePriceParking;
   const purchasePrice = effectivePurchasePriceUnit + values.purchasePriceParking;
   const closingCostsTotal = computeClosingCostsTotal(
     values.landTransferTax,
@@ -174,7 +175,7 @@ export function computeInvestmentKPIs(
   const taxEffectMonthlyValue = taxEffectMonthly(taxEffectYearlyValue, 12);
   const cashflowAfterTaxMonthly = cashflowAfterTax(cashflowAfterDebtMonthly, taxEffectMonthlyValue);
 
-  const hasBaseData = values.name.trim() !== '' && purchasePrice > 0 && effectiveColdRentMonthly > 0;
+  const hasBaseData = values.name.trim() !== '' && rawPurchasePrice > 0 && effectiveColdRentMonthly > 0;
   const hasFinancingData = hasBaseData && values.loanAmount > 0 && values.interestRate > 0 && values.amortizationRate > 0;
   const hasCostData =
     hasFinancingData &&

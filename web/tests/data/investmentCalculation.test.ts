@@ -46,6 +46,15 @@ describe('computeInvestmentKPIs — stage unlocking', () => {
     expect(kpis.hasBaseData).toBe(false);
   });
 
+  it('hasBaseData is false when purchasePriceUnit is 0, even with name and rent set', () => {
+    // Regression test: effectivePurchasePriceUnit is floored to Math.max(1, ...) for
+    // KPI math, but hasBaseData must gate on the raw, un-floored purchase price so a
+    // fresh calculation (purchasePriceUnit: 0) doesn't unlock the KPI panel on a
+    // nonsensical €1 purchase price before the user has entered a real one.
+    const kpis = computeInvestmentKPIs(makeValues({ purchasePriceUnit: 0, purchasePriceParking: 0 }), ZERO_SENSITIVITY);
+    expect(kpis.hasBaseData).toBe(false);
+  });
+
   it('hasFinancingData is false without a loan', () => {
     const kpis = computeInvestmentKPIs(makeValues({ loanAmount: 0 }), ZERO_SENSITIVITY);
     expect(kpis.hasFinancingData).toBe(false);
