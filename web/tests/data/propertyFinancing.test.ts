@@ -5,6 +5,7 @@ import { monthsBetween } from '@/lib/calculations/dateHelpers';
 import { remainingDebt } from '@/lib/calculations/amortizationCalculator';
 import type { Database } from '@/lib/supabase/types';
 import { computeFinancingOverview } from '@/lib/data/propertyFinancing';
+import { computeAmortizationYearTable } from '@/lib/data/propertyFinancing';
 
 type PropertyRow = Database['public']['Tables']['properties']['Row'];
 
@@ -135,5 +136,55 @@ describe('computeFinancingOverview', () => {
     const monthsToFixedRateEnd = monthsBetween(f.loanStartDate, makeDate(2035, 10, 1)) - 1;
     const expected = remainingDebt(f.loanAmount, f.interestRate, f.monthlyMortgage, monthsToFixedRateEnd);
     if (result.hasFinancing) expect(result.remainingDebtAtFixedRateEnd).toBeCloseTo(expected, 1);
+  });
+});
+
+describe('computeAmortizationYearTable', () => {
+  const property = makeProperty();
+  const today = makeDate(2026, 6, 15);
+
+  it('hasFinancing is false and rows is empty when loan_amount is 0', () => {
+    const result = computeAmortizationYearTable(makeProperty({ loan_amount: 0 }), today);
+    expect(result.hasFinancing).toBe(false);
+    expect(result.rows).toHaveLength(0);
+  });
+
+  it('rows start at the loan start year and chain remainingDebtStart/End across years', () => {
+    const result = computeAmortizationYearTable(property, today);
+    expect(result.rows[0].year).toBe(2025);
+    for (let i = 1; i < result.rows.length; i++) {
+      expect(result.rows[i].remainingDebtStart).toBeCloseTo(result.rows[i - 1].remainingDebtEnd, 4);
+    }
+  });
+
+  it('exactly one row is flagged as the fixed-rate-end year (2035)', () => {
+    const result = computeAmortizationYearTable(property, today);
+    const flagged = result.rows.filter((r) => r.isFixedRateEndYear);
+    expect(flagged).toHaveLength(1);
+    expect(flagged[0].year).toBe(2035);
+  });
+
+  it('years after the fixed-rate-end year are flagged isPostFixedRatePeriod; the end year itself is not', () => {
+    const result = computeAmortizationYearTable(property, today);
+    const at2035 = result.rows.find((r) => r.year === 2035)!;
+    expect(at2035.isPostFixedRatePeriod).toBe(false);
+    const after = result.rows.filter((r) => r.year > 2035);
+    expect(after.length).toBeGreaterThan(0);
+    for (const row of after) expect(row.isPostFixedRatePeriod).toBe(true);
+  });
+
+  it('exactly one row is flagged as the current year', () => {
+    const result = computeAmortizationYearTable(property, today);
+    const flagged = result.rows.filter((r) => r.isCurrentYear);
+    expect(flagged).toHaveLength(1);
+    expect(flagged[0].year).toBe(2026);
+  });
+
+  it('the schedule is trimmed at payoff (last row reaches ~0), not padded to the full 40-year horizon', () => {
+    const result = computeAmortizationYearTable(property, today);
+    const lastRow = result.rows[result.rows.length - 1];
+    expect(lastRow.remainingDebtEnd).toBeCloseTo(0, 1);
+    // Fixture loan (230000 @ 4.3%, ~1% Tilgung) pays off ~2051 -> well under a 40-year window.
+    expect(result.rows.length).toBeLessThan(40);
   });
 });

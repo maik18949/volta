@@ -1,6 +1,12 @@
 import type { Database } from '@/lib/supabase/types';
-import { addMonths, monthsBetween } from '@/lib/calculations/dateHelpers';
-import { remainingDebt } from '@/lib/calculations/amortizationCalculator';
+import { addMonths, monthsBetween, yearOf } from '@/lib/calculations/dateHelpers';
+import {
+  remainingDebt,
+  amortizationSchedule,
+  groupAmortizationScheduleByYear,
+  trimAmortizationScheduleToPayoff,
+  type YearlyAmortizationRow,
+} from '@/lib/calculations/amortizationCalculator';
 
 type PropertyRow = Database['public']['Tables']['properties']['Row'];
 
@@ -47,4 +53,50 @@ export function computeFinancingOverview(property: PropertyRow, today: Date = ne
     yearsRemainingUntilFixedRateEnd: Math.max(0, Math.floor(monthsUntilFixedRateEnd / 12)),
     remainingDebtAtFixedRateEnd,
   };
+}
+
+const MAX_AMORTIZATION_HORIZON_YEARS = 40;
+
+export type AmortizationYearRow = YearlyAmortizationRow & {
+  isCurrentYear: boolean;
+  isFixedRateEndYear: boolean;
+  isPostFixedRatePeriod: boolean;
+};
+
+export type AmortizationYearTableResult =
+  | { hasFinancing: false; rows: AmortizationYearRow[]; fixedRateEndYear: null }
+  | { hasFinancing: true; rows: AmortizationYearRow[]; fixedRateEndYear: number };
+
+/**
+ * Finanzierung tab Section 2 (Tilgungsplan) — a yearly table spanning the
+ * full schedule from loanStartDate to payoff, capped at
+ * MAX_AMORTIZATION_HORIZON_YEARS so a degenerate (near-interest-only) loan
+ * can't produce an effectively unbounded table.
+ */
+export function computeAmortizationYearTable(property: PropertyRow, today: Date = new Date()): AmortizationYearTableResult {
+  if (property.loan_amount <= 0) return { hasFinancing: false, rows: [], fixedRateEndYear: null };
+
+  const loanStartDate = new Date(property.loan_start_date + 'T00:00:00Z');
+  const fullSchedule = amortizationSchedule(
+    property.loan_amount,
+    property.interest_rate,
+    property.monthly_mortgage,
+    loanStartDate,
+    MAX_AMORTIZATION_HORIZON_YEARS * 12
+  );
+  const trimmedSchedule = trimAmortizationScheduleToPayoff(fullSchedule);
+  const yearRows = groupAmortizationScheduleByYear(trimmedSchedule, property.loan_amount);
+
+  const fixedRateEndDate = addMonths(loanStartDate, property.fixed_interest_period_years * 12);
+  const fixedRateEndYear = yearOf(fixedRateEndDate);
+  const currentYear = today.getUTCFullYear();
+
+  const rows: AmortizationYearRow[] = yearRows.map((row) => ({
+    ...row,
+    isCurrentYear: row.year === currentYear,
+    isFixedRateEndYear: row.year === fixedRateEndYear,
+    isPostFixedRatePeriod: row.year > fixedRateEndYear,
+  }));
+
+  return { hasFinancing: true, rows, fixedRateEndYear };
 }
