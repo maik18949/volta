@@ -77,6 +77,11 @@ export function totalInvestment(
   return purchasePrice + closingCostsTotal + renovationModernizationCosts;
 }
 
+/** Hausgeld nicht umlagefähig = gesamt − umlagefähig − Instandhaltungsrücklage. */
+export function hoaNonRecoverableMonthly(totalMonthly: number, recoverableMonthly: number, maintenanceReserveMonthly: number): number {
+  return totalMonthly - recoverableMonthly - maintenanceReserveMonthly;
+}
+
 /** Kaufnebenkosten gesamt */
 export function closingCostsTotal(
   landTransferTax: number,

@@ -10,7 +10,7 @@ import {
   type TaxLineItems,
 } from '@/lib/calculations/taxCalculator';
 import { afaBasis as computeAfaBasis } from '@/lib/calculations/depreciationCalculator';
-import { closingCostsTotal as computeClosingCostsTotal } from '@/lib/calculations/kpiCalculator';
+import { closingCostsTotal as computeClosingCostsTotal, hoaNonRecoverableMonthly } from '@/lib/calculations/kpiCalculator';
 
 type PropertyRow = Database['public']['Tables']['properties']['Row'];
 type StatusEntryRow = Database['public']['Tables']['status_entries']['Row'];
@@ -53,12 +53,16 @@ export function computeTaxCurrentYear(
   const loanStartDate = new Date(property.loan_start_date + 'T00:00:00Z');
   const year = today.getUTCFullYear();
 
-  const hoaFeeNonRecoverableMonthly =
-    property.hoa_fee_total_monthly - property.hoa_fee_recoverable_monthly - property.hoa_fee_maintenance_reserve_monthly;
-  const hoaFeeParkingNonRecoverableMonthly =
-    property.hoa_fee_parking_total_monthly -
-    property.hoa_fee_parking_recoverable_monthly -
-    property.hoa_fee_parking_maintenance_reserve_monthly;
+  const hoaFeeNonRecoverableMonthly = hoaNonRecoverableMonthly(
+    property.hoa_fee_total_monthly,
+    property.hoa_fee_recoverable_monthly,
+    property.hoa_fee_maintenance_reserve_monthly
+  );
+  const hoaFeeParkingNonRecoverableMonthly = hoaNonRecoverableMonthly(
+    property.hoa_fee_parking_total_monthly,
+    property.hoa_fee_parking_recoverable_monthly,
+    property.hoa_fee_parking_maintenance_reserve_monthly
+  );
 
   const totalPurchasePrice = property.purchase_price_unit + property.purchase_price_parking;
   const closingCosts = computeClosingCostsTotal(
@@ -126,12 +130,16 @@ export interface TaxForecastYearResult {
 export function computeTaxForecastYear(property: PropertyRow, year: number, scenario: TaxScenarioChoice): TaxForecastYearResult {
   const loanStartDate = new Date(property.loan_start_date + 'T00:00:00Z');
 
-  const hoaFeeNonRecoverableMonthly =
-    property.hoa_fee_total_monthly - property.hoa_fee_recoverable_monthly - property.hoa_fee_maintenance_reserve_monthly;
-  const hoaFeeParkingNonRecoverableMonthly =
-    property.hoa_fee_parking_total_monthly -
-    property.hoa_fee_parking_recoverable_monthly -
-    property.hoa_fee_parking_maintenance_reserve_monthly;
+  const hoaFeeNonRecoverableMonthly = hoaNonRecoverableMonthly(
+    property.hoa_fee_total_monthly,
+    property.hoa_fee_recoverable_monthly,
+    property.hoa_fee_maintenance_reserve_monthly
+  );
+  const hoaFeeParkingNonRecoverableMonthly = hoaNonRecoverableMonthly(
+    property.hoa_fee_parking_total_monthly,
+    property.hoa_fee_parking_recoverable_monthly,
+    property.hoa_fee_parking_maintenance_reserve_monthly
+  );
 
   const totalPurchasePrice = property.purchase_price_unit + property.purchase_price_parking;
   const closingCosts = computeClosingCostsTotal(

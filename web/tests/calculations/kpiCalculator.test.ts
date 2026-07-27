@@ -11,6 +11,7 @@ import {
   ltvRatio,
   actualVacancyRate,
   benchmarkColor,
+  hoaNonRecoverableMonthly,
 } from '@/lib/calculations/kpiCalculator';
 
 describe('kpiCalculator', () => {
@@ -67,6 +68,11 @@ describe('kpiCalculator', () => {
   it('breakEvenRentMonthly', () => {
     const result = breakEvenRentMonthly(f.operatingCostsNonRecoverableMonthly, f.monthlyMortgage);
     expect(result).toBeCloseTo(1_435.61, 1);
+  });
+
+  it('hoaNonRecoverableMonthly', () => {
+    const result = hoaNonRecoverableMonthly(f.hoaFeeTotalMonthly, f.hoaFeeRecoverableMonthly, f.maintenanceReserveMonthly);
+    expect(result).toBeCloseTo(f.hoaFeeTotalMonthly - f.hoaFeeRecoverableMonthly - f.maintenanceReserveMonthly, 2);
   });
 
   it('ltvRatio', () => {
