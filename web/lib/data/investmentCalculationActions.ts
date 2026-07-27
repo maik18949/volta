@@ -23,7 +23,10 @@ export async function createInvestmentCalculation(): Promise<string> {
   return data.id;
 }
 
-export async function updateInvestmentCalculation(id: string, patch: TablesUpdate<'investment_calculations'>): Promise<void> {
+export async function updateInvestmentCalculation(
+  id: string,
+  patch: Omit<TablesUpdate<'investment_calculations'>, 'id' | 'user_id' | 'is_promoted' | 'promoted_property_id' | 'promoted_at' | 'created_at'>
+): Promise<void> {
   const supabase = await createClient();
   const { error } = await supabase.from('investment_calculations').update(patch).eq('id', id);
   if (error) throw error;
@@ -53,6 +56,7 @@ export async function promoteInvestmentCalculation(id: string): Promise<never> {
 
   const { data: calc, error: calcError } = await supabase.from('investment_calculations').select('*').eq('id', id).single();
   if (calcError) throw calcError;
+  if (calc.is_promoted) throw new Error('Diese Berechnung wurde bereits übernommen.');
 
   const today = new Date().toISOString().slice(0, 10);
 
