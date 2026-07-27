@@ -93,6 +93,35 @@ describe('computeInvestmentKPIs — KPI values', () => {
     expect(kpis.cashOnCashReturn).toBeNull();
   });
 
+  it('mietmultiplikator = purchasePrice / (coldRent + parkingRent) yearly', () => {
+    const kpis = computeInvestmentKPIs(makeValues(), ZERO_SENSITIVITY);
+    const purchasePrice = 250_000 + 13_600;
+    expect(kpis.mietmultiplikator).toBeCloseTo(purchasePrice / (950 * 12), 4);
+  });
+
+  it('dscrNOI = netOperatingIncomeYearly / debtServiceAnnual', () => {
+    const kpis = computeInvestmentKPIs(makeValues(), ZERO_SENSITIVITY);
+    // Base fixture has zero HOA/management/insurance/other costs, so effective
+    // gross income (after vacancy) is the entire NOI.
+    const netOperatingIncomeYearly = 950 * 12 * (1 - 0.03);
+    const debtServiceAnnual = 1_015 * 12;
+    expect(kpis.dscrNOI).toBeCloseTo(netOperatingIncomeYearly / debtServiceAnnual, 4);
+  });
+
+  it('breakEvenRentMonthly = non-recoverable operating costs + monthlyMortgage', () => {
+    const kpis = computeInvestmentKPIs(makeValues({ hoaFeeTotalMonthly: 180 }), ZERO_SENSITIVITY);
+    // hoaFeeRecoverableMonthly and hoaFeeMaintenanceReserveMonthly are both 0, so the
+    // entire hoaFeeTotalMonthly is non-recoverable; management/insurance/other are 0.
+    expect(kpis.breakEvenRentMonthly).toBeCloseTo(180 + 1_015, 2);
+  });
+
+  it('dscrNOI, ltvRatio and breakEvenRentMonthly are all null without financing data', () => {
+    const kpis = computeInvestmentKPIs(makeValues({ loanAmount: 0 }), ZERO_SENSITIVITY);
+    expect(kpis.dscrNOI).toBeNull();
+    expect(kpis.ltvRatio).toBeNull();
+    expect(kpis.breakEvenRentMonthly).toBeNull();
+  });
+
   it('cashflowAfterTaxMonthly equals cashflowAfterDebtMonthly when marginalTaxRate is 0', () => {
     const kpis = computeInvestmentKPIs(
       makeValues({ hoaFeeTotalMonthly: 180, buildingValue: 180_000, marginalTaxRate: 0 }),
@@ -120,5 +149,38 @@ describe('computeInvestmentKPIs — sensitivity', () => {
     const bumped = computeInvestmentKPIs(makeValues(), { ...ZERO_SENSITIVITY, rateDelta: 0.01 });
     expect(bumped.effectiveInterestRate).toBeCloseTo(base.effectiveInterestRate + 0.01, 4);
     expect(bumped.monthlyMortgage).toBeGreaterThan(base.monthlyMortgage);
+  });
+
+  it('priceDelta shifts effectivePurchasePriceUnit by the delta amount', () => {
+    const base = computeInvestmentKPIs(makeValues(), ZERO_SENSITIVITY);
+    const bumped = computeInvestmentKPIs(makeValues(), { ...ZERO_SENSITIVITY, priceDelta: -20_000 });
+    expect(bumped.effectivePurchasePriceUnit).toBeCloseTo(base.effectivePurchasePriceUnit - 20_000, 2);
+  });
+
+  it('priceDelta never pushes effectivePurchasePriceUnit below 1', () => {
+    const kpis = computeInvestmentKPIs(makeValues(), { ...ZERO_SENSITIVITY, priceDelta: -1_000_000 });
+    expect(kpis.effectivePurchasePriceUnit).toBe(1);
+  });
+
+  it('vacancyDelta shifts effectiveVacancyRate by the delta amount', () => {
+    const base = computeInvestmentKPIs(makeValues(), ZERO_SENSITIVITY);
+    const bumped = computeInvestmentKPIs(makeValues(), { ...ZERO_SENSITIVITY, vacancyDelta: 0.05 });
+    expect(bumped.effectiveVacancyRate).toBeCloseTo(base.effectiveVacancyRate + 0.05, 4);
+  });
+
+  it('vacancyDelta clamps effectiveVacancyRate to [0, 1] at extremes', () => {
+    const low = computeInvestmentKPIs(makeValues(), { ...ZERO_SENSITIVITY, vacancyDelta: -1 });
+    const high = computeInvestmentKPIs(makeValues(), { ...ZERO_SENSITIVITY, vacancyDelta: 1 });
+    expect(low.effectiveVacancyRate).toBe(0);
+    expect(high.effectiveVacancyRate).toBe(1);
+  });
+
+  it('maintenanceDelta increases non-recoverable costs and decreases cashflowAfterDebtMonthly', () => {
+    const base = computeInvestmentKPIs(makeValues(), ZERO_SENSITIVITY);
+    const bumped = computeInvestmentKPIs(makeValues(), { ...ZERO_SENSITIVITY, maintenanceDelta: 50 });
+    // Base fixture's non-recoverable HOA cost is 0, so the +50 delta isn't clamped by
+    // the Math.max(0, ...) floor: it flows straight through to yearly costs (*12) and
+    // back down to monthly cashflow, i.e. an exact -50/month shift.
+    expect(bumped.cashflowAfterDebtMonthly).toBeCloseTo(base.cashflowAfterDebtMonthly - 50, 2);
   });
 });
