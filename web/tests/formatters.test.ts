@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatCurrency, formatPercent, formatDate, formatNumber } from '@/lib/formatters';
+import { formatCurrency, formatPercent, formatDate, formatNumber, formatMultiplier } from '@/lib/formatters';
 
 describe('formatters', () => {
   it('formatCurrency formats EUR with de-DE grouping', () => {
@@ -24,5 +24,13 @@ describe('formatters', () => {
 
   it('formatNumber respects the requested fraction digits', () => {
     expect(formatNumber(1.25, 2)).toBe('1,25');
+  });
+
+  it('formatMultiplier formats a decimal factor with one decimal and an × suffix', () => {
+    expect(formatMultiplier(21.347)).toBe('21,3×');
+  });
+
+  it('formatMultiplier formats a whole number with a trailing .0', () => {
+    expect(formatMultiplier(20)).toBe('20,0×');
   });
 });

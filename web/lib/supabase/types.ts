@@ -77,6 +77,131 @@ export type Database = {
           },
         ]
       }
+      investment_calculations: {
+        Row: {
+          agent_fee: number
+          amortization_rate: number
+          appraisal_costs: number
+          building_value: number
+          cold_rent_monthly: number
+          created_at: string
+          depreciation_rate: number
+          hoa_fee_maintenance_reserve_monthly: number
+          hoa_fee_recoverable_monthly: number
+          hoa_fee_total_monthly: number
+          id: string
+          interest_rate: number
+          is_promoted: boolean
+          land_registry_costs: number
+          land_transfer_tax: number
+          loan_amount: number
+          loan_start_date: string
+          marginal_tax_rate: number
+          monthly_mortgage: number
+          name: string
+          notary_costs: number
+          other_costs_monthly: number
+          other_income_monthly: number
+          parking_rent_monthly: number
+          promoted_at: string | null
+          promoted_property_id: string | null
+          property_insurance_annual: number
+          property_management_annual: number
+          purchase_price_parking: number
+          purchase_price_unit: number
+          renovation_afa_eligible: number
+          renovation_modernization_costs: number
+          sort_order: number
+          updated_at: string
+          user_id: string
+          vacancy_rate_assumption: number
+        }
+        Insert: {
+          agent_fee?: number
+          amortization_rate?: number
+          appraisal_costs?: number
+          building_value?: number
+          cold_rent_monthly?: number
+          created_at?: string
+          depreciation_rate?: number
+          hoa_fee_maintenance_reserve_monthly?: number
+          hoa_fee_recoverable_monthly?: number
+          hoa_fee_total_monthly?: number
+          id?: string
+          interest_rate?: number
+          is_promoted?: boolean
+          land_registry_costs?: number
+          land_transfer_tax?: number
+          loan_amount?: number
+          loan_start_date?: string
+          marginal_tax_rate?: number
+          monthly_mortgage?: number
+          name?: string
+          notary_costs?: number
+          other_costs_monthly?: number
+          other_income_monthly?: number
+          parking_rent_monthly?: number
+          promoted_at?: string | null
+          promoted_property_id?: string | null
+          property_insurance_annual?: number
+          property_management_annual?: number
+          purchase_price_parking?: number
+          purchase_price_unit?: number
+          renovation_afa_eligible?: number
+          renovation_modernization_costs?: number
+          sort_order?: number
+          updated_at?: string
+          user_id: string
+          vacancy_rate_assumption?: number
+        }
+        Update: {
+          agent_fee?: number
+          amortization_rate?: number
+          appraisal_costs?: number
+          building_value?: number
+          cold_rent_monthly?: number
+          created_at?: string
+          depreciation_rate?: number
+          hoa_fee_maintenance_reserve_monthly?: number
+          hoa_fee_recoverable_monthly?: number
+          hoa_fee_total_monthly?: number
+          id?: string
+          interest_rate?: number
+          is_promoted?: boolean
+          land_registry_costs?: number
+          land_transfer_tax?: number
+          loan_amount?: number
+          loan_start_date?: string
+          marginal_tax_rate?: number
+          monthly_mortgage?: number
+          name?: string
+          notary_costs?: number
+          other_costs_monthly?: number
+          other_income_monthly?: number
+          parking_rent_monthly?: number
+          promoted_at?: string | null
+          promoted_property_id?: string | null
+          property_insurance_annual?: number
+          property_management_annual?: number
+          purchase_price_parking?: number
+          purchase_price_unit?: number
+          renovation_afa_eligible?: number
+          renovation_modernization_costs?: number
+          sort_order?: number
+          updated_at?: string
+          user_id?: string
+          vacancy_rate_assumption?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "investment_calculations_promoted_property_id_fkey"
+            columns: ["promoted_property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       properties: {
         Row: {
           acquisition_type: Database["public"]["Enums"]["acquisition_type"]
