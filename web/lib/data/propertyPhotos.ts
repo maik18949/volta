@@ -38,13 +38,12 @@ export async function getPropertyPhotosWithUrls(propertyId: string): Promise<Pro
     );
   if (signError) throw signError;
 
-  return photos.map((photo, i) => ({ photo, url: signed[i]?.signedUrl ?? '' }));
-}
-
-/** Cover photo URL only, for list/header contexts that don't need the full gallery. */
-export async function getCoverPhotoUrl(propertyId: string): Promise<string | null> {
-  const photos = await getPropertyPhotosWithUrls(propertyId);
-  const cover = resolveCoverPhoto(photos.map((p) => p.photo));
-  if (!cover) return null;
-  return photos.find((p) => p.photo.id === cover.id)?.url ?? null;
+  const results: PropertyPhotoWithUrl[] = [];
+  photos.forEach((photo, i) => {
+    const entry = signed[i];
+    if (entry?.signedUrl) results.push({ photo, url: entry.signedUrl });
+    // Per-item signing failures (e.g. an orphaned file_path with no matching Storage
+    // object) are silently skipped rather than surfaced as a broken <img src="">.
+  });
+  return results;
 }
