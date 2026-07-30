@@ -17,6 +17,8 @@ import { StepFinanzierung } from '@/components/wizard/steps/StepFinanzierung';
 import { StepAfaSteuer } from '@/components/wizard/steps/StepAfaSteuer';
 import { StepAnnahmen } from './StepAnnahmen';
 import { GefahrenzoneSection } from './GefahrenzoneSection';
+import { FotosSection } from './FotosSection';
+import type { PropertyPhotoWithUrl } from '@/lib/data/propertyPhotos';
 import type { Database } from '@/lib/supabase/types';
 
 type PropertyRow = Database['public']['Tables']['properties']['Row'];
@@ -24,6 +26,7 @@ type PropertyRow = Database['public']['Tables']['properties']['Row'];
 const SECTIONS = [
   { key: 'stammdaten', label: 'Stammdaten' },
   { key: 'objektdaten', label: 'Objektdaten' },
+  { key: 'fotos', label: 'Fotos' },
   { key: 'kauf', label: 'Kauf' },
   { key: 'einnahmen', label: 'Einnahmen' },
   { key: 'annahmen', label: 'Annahmen' },
@@ -38,7 +41,15 @@ type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 
 const AUTOSAVE_DEBOUNCE_MS = 600;
 
-export function PropertyEditForm({ propertyId, property }: { propertyId: string; property: PropertyRow }) {
+export function PropertyEditForm({
+  propertyId,
+  property,
+  photos,
+}: {
+  propertyId: string;
+  property: PropertyRow;
+  photos: PropertyPhotoWithUrl[];
+}) {
   const [activeSection, setActiveSection] = useState<SectionKey>('stammdaten');
   const [saveState, setSaveState] = useState<SaveState>('idle');
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -110,6 +121,7 @@ export function PropertyEditForm({ propertyId, property }: { propertyId: string;
 
           {activeSection === 'stammdaten' && <StepStammdaten />}
           {activeSection === 'objektdaten' && <StepObjektdaten />}
+          {activeSection === 'fotos' && <FotosSection propertyId={propertyId} photos={photos} />}
           {activeSection === 'kauf' && <StepKauf />}
           {activeSection === 'einnahmen' && <StepEinnahmen />}
           {activeSection === 'annahmen' && <StepAnnahmen control={control} />}

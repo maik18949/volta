@@ -1,5 +1,6 @@
 import { cache } from 'react';
 import { createClient } from '@/lib/supabase/server';
+import { getPropertyPhotosWithUrls, type PropertyPhotoWithUrl } from '@/lib/data/propertyPhotos';
 import type { Database } from '@/lib/supabase/types';
 
 type PropertyRow = Database['public']['Tables']['properties']['Row'];
@@ -10,6 +11,7 @@ export interface PropertyDetailData {
   property: PropertyRow;
   statusEntries: StatusEntryRow[];
   extraordinaryCosts: ExtraordinaryCostRow[];
+  photos: PropertyPhotoWithUrl[];
 }
 
 /**
@@ -30,13 +32,14 @@ export const getPropertyDetail = cache(async (propertyId: string): Promise<Prope
   if (propertyError) throw propertyError;
   if (!property) return null;
 
-  const [{ data: statusEntries, error: statusError }, { data: extraordinaryCosts, error: costsError }] = await Promise.all([
+  const [{ data: statusEntries, error: statusError }, { data: extraordinaryCosts, error: costsError }, photos] = await Promise.all([
     supabase.from('status_entries').select('*').eq('property_id', propertyId).order('date', { ascending: true }),
     supabase.from('extraordinary_costs').select('*').eq('property_id', propertyId).order('cost_month', { ascending: true }),
+    getPropertyPhotosWithUrls(propertyId),
   ]);
 
   if (statusError) throw statusError;
   if (costsError) throw costsError;
 
-  return { property, statusEntries: statusEntries ?? [], extraordinaryCosts: extraordinaryCosts ?? [] };
+  return { property, statusEntries: statusEntries ?? [], extraordinaryCosts: extraordinaryCosts ?? [], photos };
 });

@@ -2,7 +2,9 @@ import { notFound } from 'next/navigation';
 import { getPropertyDetail } from '@/lib/data/propertyDetail';
 import { computePropertySummary } from '@/lib/data/propertySummary';
 import { computeOverviewMetrics } from '@/lib/data/propertyOverview';
+import { resolveCoverPhoto } from '@/lib/data/propertyPhotos';
 import { OverviewKpiBar } from '@/components/property/overview/OverviewKpiBar';
+import { PropertyHeaderPhoto } from '@/components/property/PropertyHeaderPhoto';
 import { CurrentStatusCard } from '@/components/property/overview/CurrentStatusCard';
 import { ReturnsCard } from '@/components/property/overview/ReturnsCard';
 import { FinancingCard } from '@/components/property/overview/FinancingCard';
@@ -20,11 +22,14 @@ export default async function PropertyOverviewPage({ params }: { params: Promise
   const sortedHistory = [...detail.statusEntries].sort((a, b) => a.date.localeCompare(b.date));
   const latestEntry = sortedHistory.length > 0 ? sortedHistory[sortedHistory.length - 1] : null;
 
+  const cover = resolveCoverPhoto(detail.photos.map((p) => p.photo));
+  const coverUrl = cover ? (detail.photos.find((p) => p.photo.id === cover.id)?.url ?? null) : null;
+
   return (
     <div className="space-y-4">
       <OverviewKpiBar summary={summary} overview={overview} />
 
-      <div className="h-[200px] rounded-xl bg-gradient-to-br from-slate-200 to-slate-300" />
+      <PropertyHeaderPhoto coverPhotoUrl={coverUrl} propertyType={detail.property.property_type} />
 
       <CurrentStatusCard
         propertyId={id}

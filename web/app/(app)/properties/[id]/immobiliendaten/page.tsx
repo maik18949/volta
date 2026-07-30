@@ -7,5 +7,5 @@ export default async function ImmobiliendatenTabPage({ params }: { params: Promi
   const detail = await getPropertyDetail(id);
   if (!detail) notFound();
 
-  return <PropertyEditForm propertyId={id} property={detail.property} />;
+  return <PropertyEditForm propertyId={id} property={detail.property} photos={detail.photos} />;
 }

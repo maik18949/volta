@@ -36,8 +36,8 @@ export default async function PortfolioPage() {
         <>
           <PortfolioCard totals={totals} />
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {items.map(({ property, summary }) => (
-              <PropertyCard key={property.id} property={property} summary={summary} />
+            {items.map(({ property, summary, coverPhotoUrl }) => (
+              <PropertyCard key={property.id} property={property} summary={summary} coverPhotoUrl={coverPhotoUrl} />
             ))}
           </div>
         </>

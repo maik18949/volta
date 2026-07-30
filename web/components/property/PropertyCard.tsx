@@ -2,17 +2,18 @@ import Link from 'next/link';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { DeletePropertyButton } from '@/components/property/DeletePropertyButton';
+import { PropertyThumbnail } from '@/components/property/PropertyThumbnail';
 import { formatCurrency, formatPercent } from '@/lib/formatters';
 import type { PropertyWithSummary } from '@/lib/data/properties';
 
-export function PropertyCard({ property, summary }: PropertyWithSummary) {
+export function PropertyCard({ property, summary, coverPhotoUrl }: PropertyWithSummary) {
   const cashflowColor = summary.cashflowAfterTaxMonthly >= 0 ? 'text-positive' : 'text-negative';
   const transferDate = new Date(property.economic_transfer_date + 'T00:00:00Z');
   const sinceLabel = `${String(transferDate.getUTCMonth() + 1).padStart(2, '0')}/${String(transferDate.getUTCFullYear()).slice(2)}`;
 
   return (
     <GlassCard className="p-0 overflow-hidden">
-      <div className="h-[160px] bg-gradient-to-br from-slate-200 to-slate-300" />
+      <PropertyThumbnail coverPhotoUrl={coverPhotoUrl} propertyType={property.property_type} />
       <div className="px-3 py-2.5">
         <div className="flex items-center justify-between gap-2">
           <Link href={`/properties/${property.id}`} className="font-bold text-text-primary hover:underline">

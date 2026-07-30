@@ -23,7 +23,7 @@ function makeItem(overrides: Partial<PropertySummary> = {}): PropertyWithSummary
     taxEffectYearly: 0,
     ...overrides,
   };
-  return { property: {} as PropertyWithSummary['property'], summary };
+  return { property: {} as PropertyWithSummary['property'], summary, coverPhotoUrl: null };
 }
 
 describe('computePortfolioTotals', () => {
