@@ -54,6 +54,12 @@ export function ReturnsCard({ summary, overview }: { summary: PropertySummary; o
         formattedValue={overview.cashOnCash !== null ? formatPercent(overview.cashOnCash) : '–'}
       />
       <KpiRow
+        kpi="eigenkapitalrendite"
+        label="Eigenkapitalrendite"
+        rawValue={overview.eigenkapitalrendite}
+        formattedValue={overview.eigenkapitalrendite !== null ? formatPercent(overview.eigenkapitalrendite) : '–'}
+      />
+      <KpiRow
         kpi="kaufpreisfaktor"
         label="Kaufpreisfaktor"
         rawValue={overview.kaufpreisfaktor}

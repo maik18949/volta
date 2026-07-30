@@ -37,8 +37,11 @@ export const KPI_INFO: Record<BenchmarkKpi, KpiInfo> = {
   },
   cashOnCash: {
     name: 'Cash-on-Cash Return',
-    formula: 'Cashflow nach Steuern (Jahr) / eingesetztes Eigenkapital',
-    meaning: 'Wie gut arbeitet das eingesetzte Eigenkapital — wichtigster Vergleich zu anderen Anlageformen.',
+    formula:
+      'Cashflow vor Steuern (Jahr) / eingesetztes Eigenkapital\n' +
+      '  Cashflow vor Steuern = Mieteinnahmen − volle Kreditrate (Zins + Tilgung) − Bewirtschaftungskosten',
+    meaning:
+      'Wie viel Bargeld die Immobilie dieses Jahr abwirft, relativ zu deinem Eigenkapital — ohne Anrechnung von Tilgung oder Wertsteigerung. Für die Gesamtrendite inkl. Vermögensaufbau siehe „Eigenkapitalrendite".',
     benchmarks: [
       { label: 'Grün (gut)', range: '≥ 6 %' },
       { label: 'Orange (ok)', range: '3 – 6 %' },
@@ -46,6 +49,22 @@ export const KPI_INFO: Record<BenchmarkKpi, KpiInfo> = {
     ],
     context:
       'Bei aktuellen Zinsen und typischen Kaufpreisfaktoren in A/B-Städten ist 0–2% realistisch — in A-Lagen oft negativ. Stark hebel-abhängig: mehr Eigenkapital senkt den prozentualen CoC trotz besserem Zins-Coverage.',
+  },
+  eigenkapitalrendite: {
+    name: 'Eigenkapitalrendite',
+    formula:
+      'Gesamtrückfluss (Jahr) / eingesetztes Eigenkapital, wobei:\n' +
+      '  Gesamtrückfluss = Cashflow nach Steuern + Tilgungsanteil dieses Jahres + anteilige Wertsteigerung\n' +
+      '  anteilige Wertsteigerung = (Marktwert − Kaufpreis) / Jahre seit Besitzübergang (mind. 1 Jahr)',
+    meaning:
+      'Die vollständige Rendite auf dein eingesetztes Kapital — anders als Cash-on-Cash zählt hier auch die Tilgung (baut Vermögen auf, auch wenn kein Bargeld fließt) und die Wertsteigerung der Immobilie mit.',
+    benchmarks: [
+      { label: 'Grün (gut)', range: '≥ 8 %' },
+      { label: 'Orange (ok)', range: '4 – 8 %' },
+      { label: 'Rot (schlecht)', range: '< 4 %' },
+    ],
+    context:
+      'Ohne hinterlegten Marktwert wird die Wertsteigerung als 0 angenommen — die Zahl zeigt dann nur Cashflow + Tilgung. Die Wertsteigerung ist seit Kauf gemessen und wird über die Haltedauer geglättet (nicht das tatsächliche Ergebnis eines einzelnen Jahres).',
   },
   kaufpreisfaktor: {
     name: 'Kaufpreisfaktor',

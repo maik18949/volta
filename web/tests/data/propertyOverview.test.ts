@@ -6,6 +6,7 @@ import { computePropertySummary } from '@/lib/data/propertySummary';
 import { computeOverviewMetrics } from '@/lib/data/propertyOverview';
 import { grossYield, mietmultiplikator, cashOnCashReturn } from '@/lib/calculations/kpiCalculator';
 import { annualCashflowBeforeTax } from '@/lib/calculations/cashflowCalculator';
+import { principalForCalendarYear } from '@/lib/calculations/amortizationCalculator';
 
 type PropertyRow = Database['public']['Tables']['properties']['Row'];
 type StatusEntryRow = Database['public']['Tables']['status_entries']['Row'];
@@ -164,7 +165,7 @@ describe('computeOverviewMetrics', () => {
     expect(withoutHistory.actualVacancyRate).toBeNull();
   });
 
-  it('cashOnCash matches annualCashflowBeforeTax(...) + taxEffectYearly, divided by equityUsed (equityContributed is 0)', () => {
+  it('cashOnCash matches annualCashflowBeforeTax(...) PRE-tax, divided by equityUsed (equityContributed is 0)', () => {
     const hoaFeeNonRecoverableMonthly =
       property.hoa_fee_total_monthly - property.hoa_fee_recoverable_monthly - property.hoa_fee_maintenance_reserve_monthly;
     const operatingCostsNonRecoverableMonthly =
@@ -192,7 +193,8 @@ describe('computeOverviewMetrics', () => {
       propertyTaxParkingMonthly: 0,
       extraordinaryCostsByMonth: new Map(),
     });
-    const expected = cashOnCashReturn(expectedCashflowYear + summary.taxEffectYearly, f.equityUsed);
+    // Cash-on-Cash is defined pre-tax per standard usage — no + summary.taxEffectYearly here.
+    const expected = cashOnCashReturn(expectedCashflowYear, f.equityUsed);
     expect(result.cashOnCash).toBeCloseTo(expected!, 2);
   });
 
@@ -216,5 +218,52 @@ describe('computeOverviewMetrics', () => {
     const summaryWithEquity = computePropertySummary(propertyWithEquity, statusEntries, today);
     const resultWithEquity = computeOverviewMetrics(propertyWithEquity, statusEntries, extraordinaryCosts, summaryWithEquity, today);
     expect(resultWithEquity.equityUsed).toBeCloseTo(5_134.96 + 15_000, 2);
+  });
+
+  describe('eigenkapitalrendite (total return: cashflow after tax + Tilgung + Wertsteigerung)', () => {
+    it('within the first year of ownership, the full valueGain counts unreduced (annualization floors at 1 year)', () => {
+      const propertyWithValue = makeProperty({ current_market_value: f.purchasePrice + 30_000 });
+      const summaryWithValue = computePropertySummary(propertyWithValue, statusEntries, today);
+      const resultWithValue = computeOverviewMetrics(propertyWithValue, statusEntries, extraordinaryCosts, summaryWithValue, today);
+
+      // Once Cash-on-Cash is pre-tax: cashflowBeforeTaxYear = cashOnCash * equityUsed.
+      const cashflowBeforeTaxYear = result.cashOnCash! * result.equityUsed;
+      const cashflowAfterTaxYear = cashflowBeforeTaxYear + summary.taxEffectYearly;
+      const principalThisYear = principalForCalendarYear(
+        2026,
+        new Date(property.loan_start_date + 'T00:00:00Z'),
+        property.loan_amount,
+        property.interest_rate,
+        property.monthly_mortgage
+      );
+      const expected = (cashflowAfterTaxYear + principalThisYear + 30_000) / resultWithValue.equityUsed;
+      expect(resultWithValue.eigenkapitalrendite).toBeCloseTo(expected, 3);
+    });
+
+    it('is still computed (not null) when current_market_value is unset — treats unknown appreciation as 0, not "unavailable"', () => {
+      // No current_market_value set anywhere in this describe block's base `property` fixture.
+      expect(result.eigenkapitalrendite).not.toBeNull();
+    });
+
+    it('for a property held multiple years, valueGain is annualized (divided by years since Besitzübergang)', () => {
+      const propertyWithValue = makeProperty({ current_market_value: f.purchasePrice + 30_000 });
+      const summaryWithValue = computePropertySummary(propertyWithValue, statusEntries, today);
+      const laterToday = makeDate(2029, 2, 1); // ~3 years after economic_transfer_date (2026-02-01)
+      const resultLater = computeOverviewMetrics(propertyWithValue, statusEntries, extraordinaryCosts, summaryWithValue, laterToday);
+      const resultSoonAfter = computeOverviewMetrics(
+        propertyWithValue,
+        statusEntries,
+        extraordinaryCosts,
+        summaryWithValue,
+        makeDate(2026, 3, 1)
+      );
+
+      // Same total valueGain (30_000, current_market_value doesn't change), but annualized over ~3
+      // years instead of the ~1-year floor — so the per-year contribution, and therefore
+      // eigenkapitalrendite, must be meaningfully smaller for the longer holding period.
+      expect(resultLater.eigenkapitalrendite).not.toBeNull();
+      expect(resultSoonAfter.eigenkapitalrendite).not.toBeNull();
+      expect(resultLater.eigenkapitalrendite!).toBeLessThan(resultSoonAfter.eigenkapitalrendite!);
+    });
   });
 });

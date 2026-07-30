@@ -97,6 +97,12 @@ describe('kpiCalculator', () => {
     expect(benchmarkColor('grossYield', 0.02)).toBe('red');
   });
 
+  it('benchmarkColor: eigenkapitalrendite thresholds (higher is better)', () => {
+    expect(benchmarkColor('eigenkapitalrendite', 0.1)).toBe('green');
+    expect(benchmarkColor('eigenkapitalrendite', 0.06)).toBe('orange');
+    expect(benchmarkColor('eigenkapitalrendite', 0.02)).toBe('red');
+  });
+
   it('benchmarkColor: ltv thresholds (lower is better)', () => {
     expect(benchmarkColor('ltv', 0.65)).toBe('green');
     expect(benchmarkColor('ltv', 0.75)).toBe('orange');

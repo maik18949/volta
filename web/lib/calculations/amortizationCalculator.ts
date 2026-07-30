@@ -106,6 +106,30 @@ export function interestForCalendarYear(
   return schedule.filter((row) => yearOf(row.date) === year).reduce((sum, row) => sum + row.interest, 0);
 }
 
+/**
+ * Total principal (Tilgung) paid within a calendar year, using the exact amortization
+ * schedule (not an approximation). Mirrors interestForCalendarYear exactly — same
+ * guard clauses, same schedule — just sums `principal` instead of `interest`.
+ */
+export function principalForCalendarYear(
+  year: number,
+  loanStartDate: Date,
+  loanAmount: number,
+  interestRate: number,
+  monthlyPayment: number
+): number {
+  if (loanAmount <= 0 || interestRate <= 0 || monthlyPayment <= 0) return 0;
+  if (yearOf(loanStartDate) > year) return 0;
+
+  const yearEnd = makeDate(year, 12, 31);
+  const totalMonths = monthsBetween(loanStartDate, yearEnd);
+  if (totalMonths <= 0) return 0;
+
+  const schedule = amortizationSchedule(loanAmount, interestRate, monthlyPayment, loanStartDate, totalMonths);
+
+  return schedule.filter((row) => yearOf(row.date) === year).reduce((sum, row) => sum + row.principal, 0);
+}
+
 export interface YearlyAmortizationRow {
   year: number;
   remainingDebtStart: number;

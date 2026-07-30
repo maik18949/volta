@@ -2,6 +2,7 @@ import type { Database } from '@/lib/supabase/types';
 import { toStatusHistory, type PropertySummary } from '@/lib/data/propertySummary';
 import { ownershipAndVacancyDaysSinceTransfer } from '@/lib/calculations/statusPeriodCalculator';
 import { annualCashflowBeforeTax } from '@/lib/calculations/cashflowCalculator';
+import { principalForCalendarYear } from '@/lib/calculations/amortizationCalculator';
 import {
   grossYield,
   mietmultiplikator,
@@ -13,13 +14,18 @@ import {
   actualVacancyRate,
 } from '@/lib/calculations/kpiCalculator';
 
+const MS_PER_YEAR = 365.25 * 24 * 60 * 60 * 1000;
+
 type PropertyRow = Database['public']['Tables']['properties']['Row'];
 type StatusEntryRow = Database['public']['Tables']['status_entries']['Row'];
 type ExtraordinaryCostRow = Database['public']['Tables']['extraordinary_costs']['Row'];
 
 export interface OverviewMetrics {
   grossYield: number | null;
+  /** Pre-tax cash flow ÷ equity — no credit for principal paydown or appreciation. */
   cashOnCash: number | null;
+  /** Total return on equity: (Cashflow nach Steuern + Tilgungsanteil dieses Jahres + anteilige Wertsteigerung seit Kauf) ÷ eingesetztes Eigenkapital. */
+  eigenkapitalrendite: number | null;
   kaufpreisfaktor: number | null;
   dscr: number | null;
   ltv: number | null;
@@ -114,7 +120,9 @@ export function computeOverviewMetrics(
   // denominator alongside equityContributed. Falls back to equityUsed when both are 0.
   const totalEquityContributed = property.equity_contributed + property.broker_commission_agreement;
   const cashOnCashDenominator = totalEquityContributed > 0 ? totalEquityContributed : equityUsedValue;
-  const cashOnCashValue = cashOnCashReturn(cashflowAfterTaxYear, cashOnCashDenominator);
+  // Cash-on-Cash Return is defined pre-tax in standard usage (Freedom Mortgage, Wikipedia,
+  // PropertyMetrics all agree) — the tax effect belongs in eigenkapitalrendite below instead.
+  const cashOnCashValue = cashOnCashReturn(cashflowBeforeTaxYear, cashOnCashDenominator);
 
   const valueGain = property.current_market_value !== null ? property.current_market_value - summary.totalPurchasePrice : null;
   const valueGainPercent =
@@ -122,9 +130,29 @@ export function computeOverviewMetrics(
       ? (property.current_market_value - summary.totalPurchasePrice) / summary.totalPurchasePrice
       : null;
 
+  // Total return on equity: unlike Cash-on-Cash, this credits back the two ways your equity
+  // grows beyond cash in hand — paying down the loan (Tilgung) and the property gaining value.
+  // Wertsteigerung is total-since-purchase (the app has no year-by-year valuation history), so
+  // it's annualized over the holding period (floored at 1 year) rather than crediting the full
+  // multi-year gain into a single year's return. An unset current_market_value is treated as 0
+  // appreciation (not "unavailable") so the KPI still resolves for properties without one.
+  const loanStartDate = new Date(property.loan_start_date + 'T00:00:00Z');
+  const principalThisYear = principalForCalendarYear(
+    currentYear,
+    loanStartDate,
+    property.loan_amount,
+    property.interest_rate,
+    property.monthly_mortgage
+  );
+  const yearsHeld = Math.max(1, (today.getTime() - economicTransferDate.getTime()) / MS_PER_YEAR);
+  const annualizedValueGain = (valueGain ?? 0) / yearsHeld;
+  const eigenkapitalrenditeNumerator = cashflowAfterTaxYear + principalThisYear + annualizedValueGain;
+  const eigenkapitalrenditeValue = cashOnCashDenominator > 0 ? eigenkapitalrenditeNumerator / cashOnCashDenominator : null;
+
   return {
     grossYield: grossYieldValue,
     cashOnCash: cashOnCashValue,
+    eigenkapitalrendite: eigenkapitalrenditeValue,
     kaufpreisfaktor: kaufpreisfaktorValue,
     dscr: dscrValue,
     ltv: ltvValue,

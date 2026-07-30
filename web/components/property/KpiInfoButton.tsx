@@ -22,7 +22,7 @@ export function KpiInfoButton({ kpi }: { kpi: BenchmarkKpi }) {
       </button>
       <Modal open={open} onClose={() => setOpen(false)} title={info.name}>
         <div className="space-y-3 text-sm">
-          <p className="font-mono text-xs text-text-dim">{info.formula}</p>
+          <p className="whitespace-pre-line font-mono text-xs text-text-dim">{info.formula}</p>
           <p className="text-text-primary">{info.meaning}</p>
           <table className="w-full text-left text-xs">
             <tbody>
