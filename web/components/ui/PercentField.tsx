@@ -31,6 +31,7 @@ export function PercentField<T extends FieldValues>({
           value={displayValue}
           onChange={(e) => field.onChange(e.target.value === '' ? 0 : Number(e.target.value) / 100)}
           onBlur={field.onBlur}
+          onFocus={(e) => e.target.select()}
           className="w-full bg-transparent py-2 text-sm text-text-primary outline-none"
         />
         <span className="text-sm text-text-dim">%</span>

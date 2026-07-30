@@ -24,6 +24,7 @@ export function TextField<T extends FieldValues>({
       <input
         type={type}
         className="mt-1 w-full rounded-md border border-black/10 bg-white/90 px-3 py-2 text-sm text-text-primary outline-none"
+        onFocus={type === 'number' ? (e) => e.target.select() : undefined}
         {...register(name, type === 'number' ? { valueAsNumber: true } : undefined)}
       />
     </label>

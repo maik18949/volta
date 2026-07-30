@@ -13,7 +13,7 @@ export interface KpiInfo {
 export const KPI_INFO: Record<BenchmarkKpi, KpiInfo> = {
   grossYield: {
     name: 'Bruttorendite',
-    formula: '(Kaltmiete + Parkingmiete) × 12 / Kaufpreis',
+    formula: '(Kaltmiete + Stellplatzmiete) × 12 / Kaufpreis',
     meaning: 'Rohertrag der Immobilie ohne laufende Kosten — guter erster Vergleichswert, aber kein Maß für die tatsächliche Rentabilität.',
     benchmarks: [
       { label: 'Grün (gut)', range: '≥ 5 %' },

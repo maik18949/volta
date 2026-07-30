@@ -1,4 +1,4 @@
-/** Bruttorendite = (Kaltmiete jährlich + Parkingmiete jährlich) / Kaufpreis */
+/** Bruttorendite = (Kaltmiete jährlich + Stellplatzmiete jährlich) / Kaufpreis */
 export function grossYield(coldRentYearly: number, parkingRentYearly: number, purchasePrice: number): number | null {
   if (purchasePrice <= 0) return null;
   return (coldRentYearly + parkingRentYearly) / purchasePrice;
