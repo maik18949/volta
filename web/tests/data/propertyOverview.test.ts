@@ -195,4 +195,19 @@ describe('computeOverviewMetrics', () => {
     const expected = cashOnCashReturn(expectedCashflowYear + summary.taxEffectYearly, f.equityUsed);
     expect(result.cashOnCash).toBeCloseTo(expected!, 2);
   });
+
+  it('cashOnCash denominator combines equityContributed and brokerCommissionAgreement when either is set', () => {
+    // A separate, privately-arranged broker commission (paid in cash, outside the notarized
+    // closing costs) is real invested equity just like equityContributed — per product decision,
+    // it must count toward the Cash-on-Cash denominator, not toward Gesamtinvestment/AfA-Basis.
+    const totalEquity = 5_134.96 + 15_000;
+    const propertyWithEquity = makeProperty({ equity_contributed: 5_134.96, broker_commission_agreement: 15_000 });
+    const summaryWithEquity = computePropertySummary(propertyWithEquity, statusEntries, today);
+    const resultWithEquity = computeOverviewMetrics(propertyWithEquity, statusEntries, extraordinaryCosts, summaryWithEquity, today);
+
+    // equityContributed/brokerCommissionAgreement don't affect cashflow or taxEffectYearly, only
+    // the cashOnCash denominator — so the numerator is identical to the base fixture's above.
+    const expected = (result.cashOnCash! * f.equityUsed) / totalEquity;
+    expect(resultWithEquity.cashOnCash).toBeCloseTo(expected, 4);
+  });
 });

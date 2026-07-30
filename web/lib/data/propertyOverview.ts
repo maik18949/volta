@@ -107,8 +107,12 @@ export function computeOverviewMetrics(
     extraordinaryCostsByMonth,
   });
   const cashflowAfterTaxYear = cashflowBeforeTaxYear + summary.taxEffectYearly;
-  // Per spec-calculations.md: fallback to equityUsed when equityContributed is 0.
-  const cashOnCashDenominator = property.equity_contributed > 0 ? property.equity_contributed : equityUsedValue;
+  // A separately-arranged broker commission (Eigenprovisions-Vereinbarung) is paid in cash
+  // outside the notarized closing costs, so it's treated as additional invested equity here
+  // (not folded into Gesamtinvestment/AfA-Basis) — it must count toward the Cash-on-Cash
+  // denominator alongside equityContributed. Falls back to equityUsed when both are 0.
+  const totalEquityContributed = property.equity_contributed + property.broker_commission_agreement;
+  const cashOnCashDenominator = totalEquityContributed > 0 ? totalEquityContributed : equityUsedValue;
   const cashOnCashValue = cashOnCashReturn(cashflowAfterTaxYear, cashOnCashDenominator);
 
   const valueGain = property.current_market_value !== null ? property.current_market_value - summary.totalPurchasePrice : null;

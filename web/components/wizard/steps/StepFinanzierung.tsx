@@ -68,7 +68,7 @@ export function StepFinanzierung() {
         label="Eigenprovisions-Vereinbarung"
         name="brokerCommissionAgreement"
         register={register}
-        hint="Maklerkosten aus separater Vereinbarung — Anschaffungsnebenkosten, erhöht die AfA-Basis"
+        hint="Maklerkosten aus separater Vereinbarung — zählt wie eingebrachtes Eigenkapital für die Cash-on-Cash-Rendite"
       />
 
       <div className="space-y-1 rounded-md bg-black/[0.03] p-3 text-sm">
