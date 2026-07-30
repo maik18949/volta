@@ -210,4 +210,11 @@ describe('computeOverviewMetrics', () => {
     const expected = (result.cashOnCash! * f.equityUsed) / totalEquity;
     expect(resultWithEquity.cashOnCash).toBeCloseTo(expected, 4);
   });
+
+  it('equityUsed (the "Eigenkapital" display value) also reflects real contributed equity once entered', () => {
+    const propertyWithEquity = makeProperty({ equity_contributed: 5_134.96, broker_commission_agreement: 15_000 });
+    const summaryWithEquity = computePropertySummary(propertyWithEquity, statusEntries, today);
+    const resultWithEquity = computeOverviewMetrics(propertyWithEquity, statusEntries, extraordinaryCosts, summaryWithEquity, today);
+    expect(resultWithEquity.equityUsed).toBeCloseTo(5_134.96 + 15_000, 2);
+  });
 });

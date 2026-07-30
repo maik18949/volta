@@ -25,6 +25,7 @@ export interface OverviewMetrics {
   ltv: number | null;
   actualVacancyRate: number | null;
   breakEvenRentMonthly: number;
+  /** Real equity_contributed + broker_commission_agreement once either is set, else the theoretical totalInvestment - loanAmount. */
   equityUsed: number;
   currentMarketValue: number | null;
   valueGain: number | null;
@@ -129,7 +130,10 @@ export function computeOverviewMetrics(
     ltv: ltvValue,
     actualVacancyRate: actualVacancyRateValue,
     breakEvenRentMonthly: breakEvenRentMonthlyValue,
-    equityUsed: equityUsedValue,
+    // Same resolved value as the Cash-on-Cash denominator (real contributed equity when
+    // entered, else the theoretical totalInvestment-minus-loan estimate) — the "Eigenkapital"
+    // row shouldn't show a different, unexplained number than what the CoC % was computed from.
+    equityUsed: cashOnCashDenominator,
     currentMarketValue: property.current_market_value,
     valueGain,
     valueGainPercent,

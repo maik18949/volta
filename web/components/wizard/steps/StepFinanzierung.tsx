@@ -43,7 +43,12 @@ export function StepFinanzierung() {
     safeNum(values.appraisalCosts)
   );
   const total = computeTotalInvestment(purchasePrice, closingCosts, safeNum(values.renovationModernizationCosts));
-  const equity = equityUsed(total, loanAmount);
+  const theoreticalEquity = equityUsed(total, loanAmount);
+  // Same resolution as computeOverviewMetrics: real contributed equity (eingebracht +
+  // Eigenprovisions-Vereinbarung) once entered, else the theoretical totalInvestment-minus-loan
+  // estimate — so this preview matches the saved property's Übersicht tab, not a different number.
+  const totalEquityContributed = safeNum(values.equityContributed) + safeNum(values.brokerCommissionAgreement);
+  const equity = totalEquityContributed > 0 ? totalEquityContributed : theoreticalEquity;
   const ltv = ltvRatio(loanAmount, total);
 
   return (
