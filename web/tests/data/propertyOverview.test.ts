@@ -220,12 +220,8 @@ describe('computeOverviewMetrics', () => {
     expect(resultWithEquity.equityUsed).toBeCloseTo(5_134.96 + 15_000, 2);
   });
 
-  describe('eigenkapitalrendite (total return: cashflow after tax + Tilgung + Wertsteigerung)', () => {
-    it('within the first year of ownership, the full valueGain counts unreduced (annualization floors at 1 year)', () => {
-      const propertyWithValue = makeProperty({ current_market_value: f.purchasePrice + 30_000 });
-      const summaryWithValue = computePropertySummary(propertyWithValue, statusEntries, today);
-      const resultWithValue = computeOverviewMetrics(propertyWithValue, statusEntries, extraordinaryCosts, summaryWithValue, today);
-
+  describe('eigenkapitalrendite = (Jahresnettokaltmiete - nicht umlegbare Kosten - Steuern - NUR Zinsen) / eingesetztes Eigenkapital', () => {
+    it('equals (cashflowAfterTax + Tilgungsanteil dieses Jahres) / equityUsed — i.e. cashOnCash with only interest subtracted, not the full rate', () => {
       // Once Cash-on-Cash is pre-tax: cashflowBeforeTaxYear = cashOnCash * equityUsed.
       const cashflowBeforeTaxYear = result.cashOnCash! * result.equityUsed;
       const cashflowAfterTaxYear = cashflowBeforeTaxYear + summary.taxEffectYearly;
@@ -236,34 +232,28 @@ describe('computeOverviewMetrics', () => {
         property.interest_rate,
         property.monthly_mortgage
       );
-      const expected = (cashflowAfterTaxYear + principalThisYear + 30_000) / resultWithValue.equityUsed;
-      expect(resultWithValue.eigenkapitalrendite).toBeCloseTo(expected, 3);
+      const expected = (cashflowAfterTaxYear + principalThisYear) / result.equityUsed;
+      expect(result.eigenkapitalrendite).toBeCloseTo(expected, 3);
     });
 
-    it('is still computed (not null) when current_market_value is unset — treats unknown appreciation as 0, not "unavailable"', () => {
-      // No current_market_value set anywhere in this describe block's base `property` fixture.
-      expect(result.eigenkapitalrendite).not.toBeNull();
-    });
-
-    it('for a property held multiple years, valueGain is annualized (divided by years since Besitzübergang)', () => {
+    it('is unaffected by current_market_value — Wertsteigerung is not part of this formula', () => {
       const propertyWithValue = makeProperty({ current_market_value: f.purchasePrice + 30_000 });
       const summaryWithValue = computePropertySummary(propertyWithValue, statusEntries, today);
-      const laterToday = makeDate(2029, 2, 1); // ~3 years after economic_transfer_date (2026-02-01)
-      const resultLater = computeOverviewMetrics(propertyWithValue, statusEntries, extraordinaryCosts, summaryWithValue, laterToday);
-      const resultSoonAfter = computeOverviewMetrics(
-        propertyWithValue,
-        statusEntries,
-        extraordinaryCosts,
-        summaryWithValue,
-        makeDate(2026, 3, 1)
-      );
+      const resultWithValue = computeOverviewMetrics(propertyWithValue, statusEntries, extraordinaryCosts, summaryWithValue, today);
 
-      // Same total valueGain (30_000, current_market_value doesn't change), but annualized over ~3
-      // years instead of the ~1-year floor — so the per-year contribution, and therefore
-      // eigenkapitalrendite, must be meaningfully smaller for the longer holding period.
-      expect(resultLater.eigenkapitalrendite).not.toBeNull();
-      expect(resultSoonAfter.eigenkapitalrendite).not.toBeNull();
-      expect(resultLater.eigenkapitalrendite!).toBeLessThan(resultSoonAfter.eigenkapitalrendite!);
+      expect(resultWithValue.eigenkapitalrendite).toBeCloseTo(result.eigenkapitalrendite!, 6);
+    });
+
+    it('differs from cashOnCash by exactly (Tilgungsanteil + Steuereffekt) / equityUsed — cashOnCash is pre-tax and subtracts the full Kreditrate, this is after-tax and only subtracts interest', () => {
+      const principalThisYear = principalForCalendarYear(
+        2026,
+        new Date(property.loan_start_date + 'T00:00:00Z'),
+        property.loan_amount,
+        property.interest_rate,
+        property.monthly_mortgage
+      );
+      const expectedDelta = (principalThisYear + summary.taxEffectYearly) / result.equityUsed;
+      expect(result.eigenkapitalrendite! - result.cashOnCash!).toBeCloseTo(expectedDelta, 4);
     });
   });
 });

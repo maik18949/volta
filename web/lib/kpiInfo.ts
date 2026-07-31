@@ -53,18 +53,18 @@ export const KPI_INFO: Record<BenchmarkKpi, KpiInfo> = {
   eigenkapitalrendite: {
     name: 'Eigenkapitalrendite',
     formula:
-      'Gesamtrückfluss (Jahr) / eingesetztes Eigenkapital, wobei:\n' +
-      '  Gesamtrückfluss = Cashflow nach Steuern + Tilgungsanteil dieses Jahres + anteilige Wertsteigerung\n' +
-      '  anteilige Wertsteigerung = (Marktwert − Kaufpreis) / Jahre seit Besitzübergang (mind. 1 Jahr)',
+      '(Jahresnettokaltmiete − nicht umlegbare Kosten p.a. − Steuern p.a. − Zinskosten p.a.)\n' +
+      '  / eingesetztes Eigenkapital\n' +
+      'Entspricht: Cash-on-Cash, aber nur der Zinsanteil der Kreditrate wird abgezogen (nicht die Tilgung).',
     meaning:
-      'Die vollständige Rendite auf dein eingesetztes Kapital — anders als Cash-on-Cash zählt hier auch die Tilgung (baut Vermögen auf, auch wenn kein Bargeld fließt) und die Wertsteigerung der Immobilie mit.',
+      'Wie Cash-on-Cash, aber die Tilgung wird nicht als Kosten behandelt — sie baut ja Vermögen auf, auch wenn kein Bargeld fließt. Enthält keine Wertsteigerung.',
     benchmarks: [
       { label: 'Grün (gut)', range: '≥ 8 %' },
       { label: 'Orange (ok)', range: '4 – 8 %' },
       { label: 'Rot (schlecht)', range: '< 4 %' },
     ],
     context:
-      'Ohne hinterlegten Marktwert wird die Wertsteigerung als 0 angenommen — die Zahl zeigt dann nur Cashflow + Tilgung. Die Wertsteigerung ist seit Kauf gemessen und wird über die Haltedauer geglättet (nicht das tatsächliche Ergebnis eines einzelnen Jahres).',
+      'Da nur Zinsen statt der vollen Kreditrate abgezogen werden, liegt die Eigenkapitalrendite immer über dem Cash-on-Cash-Wert (um genau den Tilgungsanteil / eingesetztes Eigenkapital) — das ist kein Fehler, sondern der Unterschied zwischen den beiden Kennzahlen.',
   },
   kaufpreisfaktor: {
     name: 'Kaufpreisfaktor',
