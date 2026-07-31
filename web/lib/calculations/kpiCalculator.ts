@@ -1,4 +1,4 @@
-/** Bruttorendite = (Kaltmiete jährlich + Parkingmiete jährlich) / Kaufpreis */
+/** Bruttorendite = (Kaltmiete jährlich + Stellplatzmiete jährlich) / Kaufpreis */
 export function grossYield(coldRentYearly: number, parkingRentYearly: number, purchasePrice: number): number | null {
   if (purchasePrice <= 0) return null;
   return (coldRentYearly + parkingRentYearly) / purchasePrice;
@@ -99,7 +99,15 @@ export function actualVacancyRate(leerstandDays: number, ownershipDays: number):
   return leerstandDays / ownershipDays;
 }
 
-export type BenchmarkKpi = 'grossYield' | 'netYield' | 'cashOnCash' | 'kaufpreisfaktor' | 'dscr' | 'ltv' | 'actualVacancyRate';
+export type BenchmarkKpi =
+  | 'grossYield'
+  | 'netYield'
+  | 'cashOnCash'
+  | 'eigenkapitalrendite'
+  | 'kaufpreisfaktor'
+  | 'dscr'
+  | 'ltv'
+  | 'actualVacancyRate';
 export type BenchmarkColor = 'green' | 'orange' | 'red';
 
 interface BenchmarkThreshold {
@@ -115,6 +123,8 @@ const BENCHMARK_THRESHOLDS: Record<BenchmarkKpi, BenchmarkThreshold> = {
   grossYield: { direction: 'higherIsBetter', green: 0.05, orange: 0.03 },
   netYield: { direction: 'higherIsBetter', green: 0.04, orange: 0.02 },
   cashOnCash: { direction: 'higherIsBetter', green: 0.06, orange: 0.03 },
+  // Higher than cashOnCash's thresholds since this also credits Tilgung + Wertsteigerung.
+  eigenkapitalrendite: { direction: 'higherIsBetter', green: 0.08, orange: 0.04 },
   kaufpreisfaktor: { direction: 'lowerIsBetter', green: 20, orange: 25 },
   dscr: { direction: 'higherIsBetter', green: 1.25, orange: 1.0 },
   ltv: { direction: 'lowerIsBetter', green: 0.7, orange: 0.8 },

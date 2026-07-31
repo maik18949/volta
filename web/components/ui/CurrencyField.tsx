@@ -26,6 +26,7 @@ export function CurrencyField<T extends FieldValues>({
           type="number"
           step="0.01"
           className="w-full bg-transparent py-2 text-sm text-text-primary outline-none"
+          onFocus={(e) => e.target.select()}
           {...register(name, { valueAsNumber: true })}
         />
         <span className="text-sm text-text-dim">€</span>

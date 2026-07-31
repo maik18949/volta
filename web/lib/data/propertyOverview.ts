@@ -2,6 +2,7 @@ import type { Database } from '@/lib/supabase/types';
 import { toStatusHistory, type PropertySummary } from '@/lib/data/propertySummary';
 import { ownershipAndVacancyDaysSinceTransfer } from '@/lib/calculations/statusPeriodCalculator';
 import { annualCashflowBeforeTax } from '@/lib/calculations/cashflowCalculator';
+import { principalForCalendarYear } from '@/lib/calculations/amortizationCalculator';
 import {
   grossYield,
   mietmultiplikator,
@@ -19,12 +20,16 @@ type ExtraordinaryCostRow = Database['public']['Tables']['extraordinary_costs'][
 
 export interface OverviewMetrics {
   grossYield: number | null;
+  /** Pre-tax cash flow ÷ equity — no credit for principal paydown or appreciation. */
   cashOnCash: number | null;
+  /** (Jahresnettokaltmiete − nicht umlegbare Kosten p.a. − Steuern p.a. − Zinskosten p.a.) ÷ eingesetztes Eigenkapital — subtracts only interest, not the full Kreditrate; no Wertsteigerung. */
+  eigenkapitalrendite: number | null;
   kaufpreisfaktor: number | null;
   dscr: number | null;
   ltv: number | null;
   actualVacancyRate: number | null;
   breakEvenRentMonthly: number;
+  /** Real equity_contributed + broker_commission_agreement once either is set, else the theoretical totalInvestment - loanAmount. */
   equityUsed: number;
   currentMarketValue: number | null;
   valueGain: number | null;
@@ -107,9 +112,15 @@ export function computeOverviewMetrics(
     extraordinaryCostsByMonth,
   });
   const cashflowAfterTaxYear = cashflowBeforeTaxYear + summary.taxEffectYearly;
-  // Per spec-calculations.md: fallback to equityUsed when equityContributed is 0.
-  const cashOnCashDenominator = property.equity_contributed > 0 ? property.equity_contributed : equityUsedValue;
-  const cashOnCashValue = cashOnCashReturn(cashflowAfterTaxYear, cashOnCashDenominator);
+  // A separately-arranged broker commission (Eigenprovisions-Vereinbarung) is paid in cash
+  // outside the notarized closing costs, so it's treated as additional invested equity here
+  // (not folded into Gesamtinvestment/AfA-Basis) — it must count toward the Cash-on-Cash
+  // denominator alongside equityContributed. Falls back to equityUsed when both are 0.
+  const totalEquityContributed = property.equity_contributed + property.broker_commission_agreement;
+  const cashOnCashDenominator = totalEquityContributed > 0 ? totalEquityContributed : equityUsedValue;
+  // Cash-on-Cash Return is defined pre-tax in standard usage (Freedom Mortgage, Wikipedia,
+  // PropertyMetrics all agree) — the tax effect belongs in eigenkapitalrendite below instead.
+  const cashOnCashValue = cashOnCashReturn(cashflowBeforeTaxYear, cashOnCashDenominator);
 
   const valueGain = property.current_market_value !== null ? property.current_market_value - summary.totalPurchasePrice : null;
   const valueGainPercent =
@@ -117,15 +128,36 @@ export function computeOverviewMetrics(
       ? (property.current_market_value - summary.totalPurchasePrice) / summary.totalPurchasePrice
       : null;
 
+  // Eigenkapitalrendite = (Jahresnettokaltmiete − nicht umlegbare Kosten p.a. − Steuern p.a. −
+  // Zinskosten p.a.) / eingesetztes Eigenkapital. Unlike Cash-on-Cash (which subtracts the full
+  // Kreditrate, i.e. Zins + Tilgung), this formula only subtracts interest — Tilgung isn't treated
+  // as a cost here (it builds equity), but it also isn't credited as a return, and Wertsteigerung
+  // plays no part at all. Adding principalThisYear back to cashflowAfterTaxYear (which already
+  // subtracted the full Kreditrate) leaves exactly "minus interest only".
+  const loanStartDate = new Date(property.loan_start_date + 'T00:00:00Z');
+  const principalThisYear = principalForCalendarYear(
+    currentYear,
+    loanStartDate,
+    property.loan_amount,
+    property.interest_rate,
+    property.monthly_mortgage
+  );
+  const eigenkapitalrenditeNumerator = cashflowAfterTaxYear + principalThisYear;
+  const eigenkapitalrenditeValue = cashOnCashDenominator > 0 ? eigenkapitalrenditeNumerator / cashOnCashDenominator : null;
+
   return {
     grossYield: grossYieldValue,
     cashOnCash: cashOnCashValue,
+    eigenkapitalrendite: eigenkapitalrenditeValue,
     kaufpreisfaktor: kaufpreisfaktorValue,
     dscr: dscrValue,
     ltv: ltvValue,
     actualVacancyRate: actualVacancyRateValue,
     breakEvenRentMonthly: breakEvenRentMonthlyValue,
-    equityUsed: equityUsedValue,
+    // Same resolved value as the Cash-on-Cash denominator (real contributed equity when
+    // entered, else the theoretical totalInvestment-minus-loan estimate) — the "Eigenkapital"
+    // row shouldn't show a different, unexplained number than what the CoC % was computed from.
+    equityUsed: cashOnCashDenominator,
     currentMarketValue: property.current_market_value,
     valueGain,
     valueGainPercent,

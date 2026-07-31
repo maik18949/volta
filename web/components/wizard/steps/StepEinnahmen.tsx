@@ -24,6 +24,8 @@ export function StepEinnahmen() {
     typeof values.warmmieteMonthly === 'number' && !Number.isNaN(values.warmmieteMonthly)
       ? values.warmmieteMonthly * 12
       : null;
+  const coldRentYearlyInclParking = (coldRentMonthly + parkingRentMonthly) * 12;
+  const warmmieteYearlyInclParking = warmmieteYearly !== null ? warmmieteYearly + parkingRentMonthly * 12 : null;
   const yieldValue = grossYield(coldRentYearly, parkingRentMonthly * 12, purchasePrice);
 
   return (
@@ -35,7 +37,7 @@ export function StepEinnahmen() {
       <CurrencyField label="Nettomiete/Monat" name="coldRentMonthly" register={register} required />
       <CurrencyField label="Bruttomiete/Monat" name="warmmieteMonthly" register={register} hint="Optional, vereinbarte Warmmiete inkl. NK" />
       {parkingType !== 'nicht_vorhanden' && (
-        <CurrencyField label="Parkingmiete/Monat" name="parkingRentMonthly" register={register} />
+        <CurrencyField label="Stellplatzmiete/Monat" name="parkingRentMonthly" register={register} />
       )}
       <CurrencyField label="Sonstige Einnahmen/Monat" name="otherIncomeMonthly" register={register} />
 
@@ -49,6 +51,20 @@ export function StepEinnahmen() {
             <span>Bruttomiete / Jahr</span>
             <span>{formatCurrency(warmmieteYearly)}</span>
           </div>
+        )}
+        {parkingRentMonthly > 0 && (
+          <>
+            <div className="flex justify-between border-t border-black/[0.06] pt-1">
+              <span>Nettomiete inkl. Stellplatz / Jahr</span>
+              <span>{formatCurrency(coldRentYearlyInclParking)}</span>
+            </div>
+            {warmmieteYearlyInclParking !== null && (
+              <div className="flex justify-between">
+                <span>Bruttomiete inkl. Stellplatz / Jahr</span>
+                <span>{formatCurrency(warmmieteYearlyInclParking)}</span>
+              </div>
+            )}
+          </>
         )}
       </div>
 

@@ -13,7 +13,7 @@ export interface KpiInfo {
 export const KPI_INFO: Record<BenchmarkKpi, KpiInfo> = {
   grossYield: {
     name: 'Bruttorendite',
-    formula: '(Kaltmiete + Parkingmiete) × 12 / Kaufpreis',
+    formula: '(Kaltmiete + Stellplatzmiete) × 12 / Kaufpreis',
     meaning: 'Rohertrag der Immobilie ohne laufende Kosten — guter erster Vergleichswert, aber kein Maß für die tatsächliche Rentabilität.',
     benchmarks: [
       { label: 'Grün (gut)', range: '≥ 5 %' },
@@ -37,8 +37,11 @@ export const KPI_INFO: Record<BenchmarkKpi, KpiInfo> = {
   },
   cashOnCash: {
     name: 'Cash-on-Cash Return',
-    formula: 'Cashflow nach Steuern (Jahr) / eingesetztes Eigenkapital',
-    meaning: 'Wie gut arbeitet das eingesetzte Eigenkapital — wichtigster Vergleich zu anderen Anlageformen.',
+    formula:
+      'Cashflow vor Steuern (Jahr) / eingesetztes Eigenkapital\n' +
+      '  Cashflow vor Steuern = Mieteinnahmen − volle Kreditrate (Zins + Tilgung) − Bewirtschaftungskosten',
+    meaning:
+      'Wie viel Bargeld die Immobilie dieses Jahr abwirft, relativ zu deinem Eigenkapital — ohne Anrechnung von Tilgung oder Wertsteigerung. Für die Gesamtrendite inkl. Vermögensaufbau siehe „Eigenkapitalrendite".',
     benchmarks: [
       { label: 'Grün (gut)', range: '≥ 6 %' },
       { label: 'Orange (ok)', range: '3 – 6 %' },
@@ -46,6 +49,22 @@ export const KPI_INFO: Record<BenchmarkKpi, KpiInfo> = {
     ],
     context:
       'Bei aktuellen Zinsen und typischen Kaufpreisfaktoren in A/B-Städten ist 0–2% realistisch — in A-Lagen oft negativ. Stark hebel-abhängig: mehr Eigenkapital senkt den prozentualen CoC trotz besserem Zins-Coverage.',
+  },
+  eigenkapitalrendite: {
+    name: 'Eigenkapitalrendite',
+    formula:
+      '(Jahresnettokaltmiete − nicht umlegbare Kosten p.a. − Steuern p.a. − Zinskosten p.a.)\n' +
+      '  / eingesetztes Eigenkapital\n' +
+      'Entspricht: Cash-on-Cash, aber nur der Zinsanteil der Kreditrate wird abgezogen (nicht die Tilgung).',
+    meaning:
+      'Wie Cash-on-Cash, aber die Tilgung wird nicht als Kosten behandelt — sie baut ja Vermögen auf, auch wenn kein Bargeld fließt. Enthält keine Wertsteigerung.',
+    benchmarks: [
+      { label: 'Grün (gut)', range: '≥ 8 %' },
+      { label: 'Orange (ok)', range: '4 – 8 %' },
+      { label: 'Rot (schlecht)', range: '< 4 %' },
+    ],
+    context:
+      'Da nur Zinsen statt der vollen Kreditrate abgezogen werden, liegt die Eigenkapitalrendite immer über dem Cash-on-Cash-Wert (um genau den Tilgungsanteil / eingesetztes Eigenkapital) — das ist kein Fehler, sondern der Unterschied zwischen den beiden Kennzahlen.',
   },
   kaufpreisfaktor: {
     name: 'Kaufpreisfaktor',

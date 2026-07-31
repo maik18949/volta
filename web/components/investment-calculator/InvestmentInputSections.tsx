@@ -44,7 +44,7 @@ export function InvestmentInputSections({
 
       <Section title="Einnahmen — Stufe 1">
         <CurrencyField label="Kaltmiete/Monat" name="coldRentMonthly" register={register} required />
-        <CurrencyField label="Parkingmiete/Monat" name="parkingRentMonthly" register={register} />
+        <CurrencyField label="Stellplatzmiete/Monat" name="parkingRentMonthly" register={register} />
         <CurrencyField label="Sonstige Einnahmen/Monat" name="otherIncomeMonthly" register={register} />
         <PercentField label="Leerstandsquote" name="vacancyRateAssumption" control={control} />
       </Section>

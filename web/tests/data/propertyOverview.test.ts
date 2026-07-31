@@ -6,6 +6,7 @@ import { computePropertySummary } from '@/lib/data/propertySummary';
 import { computeOverviewMetrics } from '@/lib/data/propertyOverview';
 import { grossYield, mietmultiplikator, cashOnCashReturn } from '@/lib/calculations/kpiCalculator';
 import { annualCashflowBeforeTax } from '@/lib/calculations/cashflowCalculator';
+import { principalForCalendarYear } from '@/lib/calculations/amortizationCalculator';
 
 type PropertyRow = Database['public']['Tables']['properties']['Row'];
 type StatusEntryRow = Database['public']['Tables']['status_entries']['Row'];
@@ -164,7 +165,7 @@ describe('computeOverviewMetrics', () => {
     expect(withoutHistory.actualVacancyRate).toBeNull();
   });
 
-  it('cashOnCash matches annualCashflowBeforeTax(...) + taxEffectYearly, divided by equityUsed (equityContributed is 0)', () => {
+  it('cashOnCash matches annualCashflowBeforeTax(...) PRE-tax, divided by equityUsed (equityContributed is 0)', () => {
     const hoaFeeNonRecoverableMonthly =
       property.hoa_fee_total_monthly - property.hoa_fee_recoverable_monthly - property.hoa_fee_maintenance_reserve_monthly;
     const operatingCostsNonRecoverableMonthly =
@@ -192,7 +193,67 @@ describe('computeOverviewMetrics', () => {
       propertyTaxParkingMonthly: 0,
       extraordinaryCostsByMonth: new Map(),
     });
-    const expected = cashOnCashReturn(expectedCashflowYear + summary.taxEffectYearly, f.equityUsed);
+    // Cash-on-Cash is defined pre-tax per standard usage — no + summary.taxEffectYearly here.
+    const expected = cashOnCashReturn(expectedCashflowYear, f.equityUsed);
     expect(result.cashOnCash).toBeCloseTo(expected!, 2);
+  });
+
+  it('cashOnCash denominator combines equityContributed and brokerCommissionAgreement when either is set', () => {
+    // A separate, privately-arranged broker commission (paid in cash, outside the notarized
+    // closing costs) is real invested equity just like equityContributed — per product decision,
+    // it must count toward the Cash-on-Cash denominator, not toward Gesamtinvestment/AfA-Basis.
+    const totalEquity = 5_134.96 + 15_000;
+    const propertyWithEquity = makeProperty({ equity_contributed: 5_134.96, broker_commission_agreement: 15_000 });
+    const summaryWithEquity = computePropertySummary(propertyWithEquity, statusEntries, today);
+    const resultWithEquity = computeOverviewMetrics(propertyWithEquity, statusEntries, extraordinaryCosts, summaryWithEquity, today);
+
+    // equityContributed/brokerCommissionAgreement don't affect cashflow or taxEffectYearly, only
+    // the cashOnCash denominator — so the numerator is identical to the base fixture's above.
+    const expected = (result.cashOnCash! * f.equityUsed) / totalEquity;
+    expect(resultWithEquity.cashOnCash).toBeCloseTo(expected, 4);
+  });
+
+  it('equityUsed (the "Eigenkapital" display value) also reflects real contributed equity once entered', () => {
+    const propertyWithEquity = makeProperty({ equity_contributed: 5_134.96, broker_commission_agreement: 15_000 });
+    const summaryWithEquity = computePropertySummary(propertyWithEquity, statusEntries, today);
+    const resultWithEquity = computeOverviewMetrics(propertyWithEquity, statusEntries, extraordinaryCosts, summaryWithEquity, today);
+    expect(resultWithEquity.equityUsed).toBeCloseTo(5_134.96 + 15_000, 2);
+  });
+
+  describe('eigenkapitalrendite = (Jahresnettokaltmiete - nicht umlegbare Kosten - Steuern - NUR Zinsen) / eingesetztes Eigenkapital', () => {
+    it('equals (cashflowAfterTax + Tilgungsanteil dieses Jahres) / equityUsed — i.e. cashOnCash with only interest subtracted, not the full rate', () => {
+      // Once Cash-on-Cash is pre-tax: cashflowBeforeTaxYear = cashOnCash * equityUsed.
+      const cashflowBeforeTaxYear = result.cashOnCash! * result.equityUsed;
+      const cashflowAfterTaxYear = cashflowBeforeTaxYear + summary.taxEffectYearly;
+      const principalThisYear = principalForCalendarYear(
+        2026,
+        new Date(property.loan_start_date + 'T00:00:00Z'),
+        property.loan_amount,
+        property.interest_rate,
+        property.monthly_mortgage
+      );
+      const expected = (cashflowAfterTaxYear + principalThisYear) / result.equityUsed;
+      expect(result.eigenkapitalrendite).toBeCloseTo(expected, 3);
+    });
+
+    it('is unaffected by current_market_value — Wertsteigerung is not part of this formula', () => {
+      const propertyWithValue = makeProperty({ current_market_value: f.purchasePrice + 30_000 });
+      const summaryWithValue = computePropertySummary(propertyWithValue, statusEntries, today);
+      const resultWithValue = computeOverviewMetrics(propertyWithValue, statusEntries, extraordinaryCosts, summaryWithValue, today);
+
+      expect(resultWithValue.eigenkapitalrendite).toBeCloseTo(result.eigenkapitalrendite!, 6);
+    });
+
+    it('differs from cashOnCash by exactly (Tilgungsanteil + Steuereffekt) / equityUsed — cashOnCash is pre-tax and subtracts the full Kreditrate, this is after-tax and only subtracts interest', () => {
+      const principalThisYear = principalForCalendarYear(
+        2026,
+        new Date(property.loan_start_date + 'T00:00:00Z'),
+        property.loan_amount,
+        property.interest_rate,
+        property.monthly_mortgage
+      );
+      const expectedDelta = (principalThisYear + summary.taxEffectYearly) / result.equityUsed;
+      expect(result.eigenkapitalrendite! - result.cashOnCash!).toBeCloseTo(expectedDelta, 4);
+    });
   });
 });

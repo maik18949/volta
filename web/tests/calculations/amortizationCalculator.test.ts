@@ -6,6 +6,7 @@ import {
   remainingDebt,
   amortizationSchedule,
   interestForCalendarYear,
+  principalForCalendarYear,
   groupAmortizationScheduleByYear,
   trimAmortizationScheduleToPayoff,
 } from '@/lib/calculations/amortizationCalculator';
@@ -59,6 +60,17 @@ describe('amortizationCalculator', () => {
 
   it('interestForCalendarYear: before loanStartDate is zero', () => {
     const result = interestForCalendarYear(2024, f.loanStartDate, f.loanAmount, f.interestRate, f.monthlyMortgage);
+    expect(result).toBe(0);
+  });
+
+  it('principalForCalendarYear: 2026 full year = total payments minus interestForCalendarYear', () => {
+    const interest = interestForCalendarYear(2026, f.loanStartDate, f.loanAmount, f.interestRate, f.monthlyMortgage);
+    const result = principalForCalendarYear(2026, f.loanStartDate, f.loanAmount, f.interestRate, f.monthlyMortgage);
+    expect(result).toBeCloseTo(f.monthlyMortgage * 12 - interest, 0);
+  });
+
+  it('principalForCalendarYear: before loanStartDate is zero', () => {
+    const result = principalForCalendarYear(2024, f.loanStartDate, f.loanAmount, f.interestRate, f.monthlyMortgage);
     expect(result).toBe(0);
   });
 

@@ -43,7 +43,12 @@ export function StepFinanzierung() {
     safeNum(values.appraisalCosts)
   );
   const total = computeTotalInvestment(purchasePrice, closingCosts, safeNum(values.renovationModernizationCosts));
-  const equity = equityUsed(total, loanAmount);
+  const theoreticalEquity = equityUsed(total, loanAmount);
+  // Same resolution as computeOverviewMetrics: real contributed equity (eingebracht +
+  // Eigenprovisions-Vereinbarung) once entered, else the theoretical totalInvestment-minus-loan
+  // estimate — so this preview matches the saved property's Übersicht tab, not a different number.
+  const totalEquityContributed = safeNum(values.equityContributed) + safeNum(values.brokerCommissionAgreement);
+  const equity = totalEquityContributed > 0 ? totalEquityContributed : theoreticalEquity;
   const ltv = ltvRatio(loanAmount, total);
 
   return (
@@ -68,7 +73,7 @@ export function StepFinanzierung() {
         label="Eigenprovisions-Vereinbarung"
         name="brokerCommissionAgreement"
         register={register}
-        hint="Maklerkosten aus separater Vereinbarung — Anschaffungsnebenkosten, erhöht die AfA-Basis"
+        hint="Maklerkosten aus separater Vereinbarung — zählt wie eingebrachtes Eigenkapital für die Cash-on-Cash-Rendite"
       />
 
       <div className="space-y-1 rounded-md bg-black/[0.03] p-3 text-sm">
