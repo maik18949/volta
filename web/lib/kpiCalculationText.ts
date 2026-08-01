@@ -8,7 +8,7 @@ type PropertyRow = Database['public']['Tables']['properties']['Row'];
 
 /**
  * The KPI's formula with this property's real numbers plugged in, e.g.
- * "950,00 € + 48,00 € × 12 ÷ 278.600,00 € = 4,3 %". Returns null when the
+ * "(950,00 € + 48,00 €) × 12 ÷ 278.600,00 € = 4,3 %". Returns null when the
  * KPI's own value is null (same "no data yet" cases as the KPI itself).
  */
 export function kpiCalculationText(

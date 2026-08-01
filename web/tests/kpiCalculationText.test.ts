@@ -157,4 +157,18 @@ describe('kpiCalculationText', () => {
     expect(text).toContain(`${overview.leerstandDaysSinceTransfer}`);
     expect(text).toContain(`${overview.ownershipDaysSinceTransfer}`);
   });
+
+  it('cashOnCash: pre-tax annual cashflow over equity used', () => {
+    const text = kpiCalculationText('cashOnCash', property, summary, overview);
+    expect(text).toContain(formatCurrency(overview.cashflowBeforeTaxYear));
+    expect(text).toContain(formatCurrency(overview.equityUsed));
+    expect(text?.endsWith(formatPercent(overview.cashOnCash!))).toBe(true);
+  });
+
+  it('eigenkapitalrendite: numerator (interest-only, not full Kreditrate) over equity used', () => {
+    const text = kpiCalculationText('eigenkapitalrendite', property, summary, overview);
+    expect(text).toContain(formatCurrency(overview.eigenkapitalrenditeNumerator));
+    expect(text).toContain(formatCurrency(overview.equityUsed));
+    expect(text?.endsWith(formatPercent(overview.eigenkapitalrendite!))).toBe(true);
+  });
 });
