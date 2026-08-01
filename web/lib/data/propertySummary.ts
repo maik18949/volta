@@ -11,6 +11,11 @@ import { netYield as computeNetYield, totalInvestment as computeTotalInvestment,
 type PropertyRow = Database['public']['Tables']['properties']['Row'];
 type StatusEntryRow = Database['public']['Tables']['status_entries']['Row'];
 
+export interface RunningCostBreakdownItem {
+  label: string;
+  amountMonthly: number;
+}
+
 export interface PropertySummary {
   totalInvestment: number;
   totalPurchasePrice: number;
@@ -24,6 +29,7 @@ export interface PropertySummary {
   cashflowBeforeTaxMonthly: number;
   taxEffectMonthly: number;
   taxEffectYearly: number;
+  runningCostsBreakdown: RunningCostBreakdownItem[];
 }
 
 export function toStatusHistory(rows: StatusEntryRow[]): StatusEntry[] {
@@ -155,6 +161,23 @@ export function computePropertySummary(
   });
   const cashflowAfterTaxMonthly = cashflowAfterTax(cashflowBeforeTaxThisMonth, taxEffectThisMonth);
 
+  const runningCostsBreakdown: RunningCostBreakdownItem[] = [
+    { label: 'Hausgeld (nicht umlagefähig)', amountMonthly: hoaFeeNonRecoverableMonthly },
+    { label: 'Instandhaltungsrücklage', amountMonthly: property.hoa_fee_maintenance_reserve_monthly },
+    { label: 'Hausverwaltung', amountMonthly: property.property_management_annual / 12 },
+    { label: 'Gebäudeversicherung', amountMonthly: property.property_insurance_annual / 12 },
+    { label: 'Sonstige Kosten', amountMonthly: property.other_costs_monthly },
+    {
+      label: 'Stellplatz-Kosten',
+      amountMonthly:
+        hoaFeeParkingNonRecoverableMonthly +
+        property.hoa_fee_parking_maintenance_reserve_monthly +
+        property.hoa_fee_parking_recoverable_monthly +
+        property.property_tax_parking_annual / 12,
+    },
+    { label: 'Umlagefähige Kosten während Leerstand', amountMonthly: ownerBorneRecoverableWEMonthly },
+  ].filter((item) => Math.abs(item.amountMonthly) > 0.005);
+
   const operatingCostsNonRecoverableYearly = operatingCostsNonRecoverableMonthly * 12;
   const effectiveGrossIncomeYearly =
     (property.cold_rent_monthly + property.parking_rent_monthly) * 12 * (1 - property.vacancy_rate_assumption);
@@ -181,5 +204,6 @@ export function computePropertySummary(
     cashflowBeforeTaxMonthly: cashflowBeforeTaxThisMonth,
     taxEffectMonthly: taxEffectThisMonth,
     taxEffectYearly: taxEffectYear,
+    runningCostsBreakdown,
   };
 }

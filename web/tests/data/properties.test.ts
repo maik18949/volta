@@ -21,6 +21,7 @@ function makeItem(overrides: Partial<PropertySummary> = {}): PropertyWithSummary
     cashflowBeforeTaxMonthly: 0,
     taxEffectMonthly: 0,
     taxEffectYearly: 0,
+    runningCostsBreakdown: [],
     ...overrides,
   };
   return { property: {} as PropertyWithSummary['property'], summary, coverPhotoUrl: null };

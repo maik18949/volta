@@ -300,3 +300,39 @@ describe('computePropertySummary — Card 1 breakdown fields', () => {
     expect(result.cashflowAfterTaxMonthly).toBeCloseTo(600, 2);
   });
 });
+
+describe('computePropertySummary — runningCostsBreakdown', () => {
+  const statusHistory = [makeStatusEntry()];
+  const today = makeDate(2026, 6, 15);
+
+  it('sums to the same value the old algebraic-inverse formula produced (incomeActualMonthly - monthlyMortgage - cashflowBeforeTaxMonthly)', () => {
+    const property = makeProperty();
+    const result = computePropertySummary(property, statusHistory, today);
+    const expectedTotal = result.incomeActualMonthly - property.monthly_mortgage - result.cashflowBeforeTaxMonthly;
+    const actualTotal = result.runningCostsBreakdown.reduce((sum, item) => sum + item.amountMonthly, 0);
+    expect(actualTotal).toBeCloseTo(expectedTotal, 2);
+  });
+
+  it('omits zero-amount items — base fixture has no parking, no insurance, no other costs', () => {
+    const result = computePropertySummary(makeProperty(), statusHistory, today);
+    const labels = result.runningCostsBreakdown.map((item) => item.label);
+    expect(labels).not.toContain('Stellplatz-Kosten');
+    expect(labels).not.toContain('Gebäudeversicherung');
+    expect(labels).not.toContain('Sonstige Kosten');
+    expect(labels).toContain('Hausgeld (nicht umlagefähig)');
+    expect(labels).toContain('Instandhaltungsrücklage');
+    expect(labels).toContain('Hausverwaltung');
+  });
+
+  it('includes a non-zero Stellplatz-Kosten line when parking HOA costs are set', () => {
+    const property = makeProperty({
+      parking_type: 'tiefgarage',
+      hoa_fee_parking_total_monthly: 40,
+      hoa_fee_parking_recoverable_monthly: 0,
+      hoa_fee_parking_maintenance_reserve_monthly: 0,
+    });
+    const result = computePropertySummary(property, statusHistory, today);
+    const parkingItem = result.runningCostsBreakdown.find((item) => item.label === 'Stellplatz-Kosten');
+    expect(parkingItem?.amountMonthly).toBeCloseTo(40, 2);
+  });
+});
