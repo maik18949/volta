@@ -256,4 +256,18 @@ describe('computeOverviewMetrics', () => {
       expect(result.eigenkapitalrendite! - result.cashOnCash!).toBeCloseTo(expectedDelta, 4);
     });
   });
+
+  it('exposes cashflowBeforeTaxYear consistent with cashOnCash * equityUsed (its own numerator/denominator)', () => {
+    expect(result.cashflowBeforeTaxYear).toBeCloseTo(result.cashOnCash! * result.equityUsed, 2);
+  });
+
+  it('exposes eigenkapitalrenditeNumerator consistent with eigenkapitalrendite * equityUsed', () => {
+    expect(result.eigenkapitalrenditeNumerator).toBeCloseTo(result.eigenkapitalrendite! * result.equityUsed, 2);
+  });
+
+  it('exposes leerstandDaysSinceTransfer/ownershipDaysSinceTransfer consistent with actualVacancyRate', () => {
+    expect(result.leerstandDaysSinceTransfer).toBe(0);
+    expect(result.ownershipDaysSinceTransfer).toBeGreaterThan(0);
+    expect(result.actualVacancyRate).toBeCloseTo(result.leerstandDaysSinceTransfer / result.ownershipDaysSinceTransfer, 6);
+  });
 });
