@@ -11,11 +11,13 @@ export function Modal({
   onClose,
   title,
   children,
+  overlay = true,
 }: {
   open: boolean;
   onClose: () => void;
   title: string;
   children: ReactNode;
+  overlay?: boolean;
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
   const titleId = useId();
@@ -73,7 +75,7 @@ export function Modal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center"
+      className={`fixed inset-0 z-50 flex items-end justify-center sm:items-center ${overlay ? 'bg-black/40' : ''}`}
       onClick={onClose}
     >
       <div
