@@ -32,7 +32,12 @@ export interface OverviewMetrics {
   cashflowBeforeTaxYear: number;
   /** The numerator eigenkapitalrendite was computed from. */
   eigenkapitalrenditeNumerator: number;
-  /** Raw day counts actualVacancyRate was computed from (0/0 when there's no status history). */
+  /**
+   * Raw day counts actualVacancyRate was computed from. When there's no status history,
+   * leerstandDays equals ownershipDays (every day defaults to 'leerstand', i.e. 100% vacant) —
+   * they are not 0/0. actualVacancyRate is null in that case via a separate explicit guard
+   * (statusHistory.length === 0) below, not because these counts are zero.
+   */
   leerstandDaysSinceTransfer: number;
   ownershipDaysSinceTransfer: number;
   breakEvenRentMonthly: number;
