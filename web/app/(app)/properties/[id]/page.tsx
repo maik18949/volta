@@ -38,7 +38,7 @@ export default async function PropertyOverviewPage({ params }: { params: Promise
         hasStatusHistory={detail.statusEntries.length > 0}
         latestStatusDate={latestEntry ? new Date(latestEntry.date + 'T00:00:00Z') : null}
       />
-      <ReturnsCard summary={summary} overview={overview} />
+      <ReturnsCard property={detail.property} summary={summary} overview={overview} />
       <FinancingCard property={detail.property} remainingDebtNow={summary.remainingDebtNow} today={today} />
       <ObjectCard property={detail.property} purchasePricePerSqm={summary.purchasePricePerSqm} />
     </div>

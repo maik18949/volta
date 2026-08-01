@@ -1,38 +1,57 @@
 import { GlassCard } from '@/components/ui/GlassCard';
 import { SectionLabel } from '@/components/ui/SectionLabel';
-import { KpiChip } from '@/components/property/KpiChip';
+import { KpiScale, kpiValueColorClass } from '@/components/property/KpiScale';
 import { KpiInfoButton } from '@/components/property/KpiInfoButton';
 import { formatCurrency, formatNumber, formatPercent } from '@/lib/formatters';
-import { benchmarkColor, type BenchmarkKpi } from '@/lib/calculations/kpiCalculator';
+import type { BenchmarkKpi } from '@/lib/calculations/kpiCalculator';
 import type { OverviewMetrics } from '@/lib/data/propertyOverview';
 import type { PropertySummary } from '@/lib/data/propertySummary';
+import type { Database } from '@/lib/supabase/types';
+
+type PropertyRow = Database['public']['Tables']['properties']['Row'];
 
 function KpiRow({
   kpi,
   label,
   rawValue,
   formattedValue,
+  property,
+  summary,
+  overview,
 }: {
   kpi: BenchmarkKpi;
   label: string;
   rawValue: number | null;
   formattedValue: string;
+  property: PropertyRow;
+  summary: PropertySummary;
+  overview: OverviewMetrics;
 }) {
   return (
-    <div className="flex items-center justify-between py-1 text-sm">
+    <div className="flex items-center justify-between gap-3 py-1.5 text-sm">
       <span className="text-text-secondary">{label}</span>
       <div className="flex items-center gap-2">
-        <span className="font-semibold text-text-primary">{formattedValue}</span>
-        <KpiChip color={benchmarkColor(kpi, rawValue)} />
-        <KpiInfoButton kpi={kpi} />
+        <span className={`font-semibold ${kpiValueColorClass(kpi, rawValue)}`}>{formattedValue}</span>
+        <div className="w-[90px]">
+          <KpiScale kpi={kpi} value={rawValue} />
+        </div>
+        <KpiInfoButton kpi={kpi} value={rawValue} property={property} summary={summary} overview={overview} />
       </div>
     </div>
   );
 }
 
-export function ReturnsCard({ summary, overview }: { summary: PropertySummary; overview: OverviewMetrics }) {
+export function ReturnsCard({
+  property,
+  summary,
+  overview,
+}: {
+  property: PropertyRow;
+  summary: PropertySummary;
+  overview: OverviewMetrics;
+}) {
   return (
-    <GlassCard>
+    <GlassCard variant="solid">
       <SectionLabel>Rendite & Investment</SectionLabel>
 
       <KpiRow
@@ -40,43 +59,72 @@ export function ReturnsCard({ summary, overview }: { summary: PropertySummary; o
         label="Bruttorendite"
         rawValue={overview.grossYield}
         formattedValue={overview.grossYield !== null ? formatPercent(overview.grossYield) : '–'}
+        property={property}
+        summary={summary}
+        overview={overview}
       />
       <KpiRow
         kpi="netYield"
         label="Nettorendite"
         rawValue={summary.netYield}
         formattedValue={summary.netYield !== null ? formatPercent(summary.netYield) : '–'}
+        property={property}
+        summary={summary}
+        overview={overview}
       />
       <KpiRow
         kpi="cashOnCash"
         label="Cash-on-Cash"
         rawValue={overview.cashOnCash}
         formattedValue={overview.cashOnCash !== null ? formatPercent(overview.cashOnCash) : '–'}
+        property={property}
+        summary={summary}
+        overview={overview}
       />
       <KpiRow
         kpi="eigenkapitalrendite"
         label="Eigenkapitalrendite"
         rawValue={overview.eigenkapitalrendite}
         formattedValue={overview.eigenkapitalrendite !== null ? formatPercent(overview.eigenkapitalrendite) : '–'}
+        property={property}
+        summary={summary}
+        overview={overview}
       />
       <KpiRow
         kpi="kaufpreisfaktor"
         label="Kaufpreisfaktor"
         rawValue={overview.kaufpreisfaktor}
         formattedValue={overview.kaufpreisfaktor !== null ? `${formatNumber(overview.kaufpreisfaktor, 1)}×` : '–'}
+        property={property}
+        summary={summary}
+        overview={overview}
       />
       <KpiRow
         kpi="dscr"
         label="DSCR (NOI)"
         rawValue={overview.dscr}
         formattedValue={overview.dscr !== null ? formatNumber(overview.dscr, 2) : '–'}
+        property={property}
+        summary={summary}
+        overview={overview}
       />
-      <KpiRow kpi="ltv" label="LTV" rawValue={overview.ltv} formattedValue={overview.ltv !== null ? formatPercent(overview.ltv) : '–'} />
+      <KpiRow
+        kpi="ltv"
+        label="LTV"
+        rawValue={overview.ltv}
+        formattedValue={overview.ltv !== null ? formatPercent(overview.ltv) : '–'}
+        property={property}
+        summary={summary}
+        overview={overview}
+      />
       <KpiRow
         kpi="actualVacancyRate"
         label="Tats. Leerstandsquote"
         rawValue={overview.actualVacancyRate}
         formattedValue={overview.actualVacancyRate !== null ? formatPercent(overview.actualVacancyRate) : '–'}
+        property={property}
+        summary={summary}
+        overview={overview}
       />
 
       <div className="my-2 h-px bg-black/[0.06]" />
