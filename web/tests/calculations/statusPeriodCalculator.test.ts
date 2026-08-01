@@ -4,6 +4,7 @@ import type { StatusEntry } from '@/lib/calculations/statusPeriodCalculator';
 import {
   incomeForMonth,
   leerstandDayFraction,
+  genuineVacancyDayFraction,
   ownershipDayFraction,
   ownershipAndVacancyDaysSinceTransfer,
   dominantStatusForMonth,
@@ -71,6 +72,37 @@ describe('statusPeriodCalculator', () => {
     expect(result).toBeCloseTo(0, 4);
   });
 
+  it('leerstandDayFraction: mietgarantie counts as not-vermietet (owner-cost-bearing semantics)', () => {
+    const history = [entry('mietgarantie', 2026, 2, 1, 999)];
+    const result = leerstandDayFraction(makeDate(2026, 6, 1), history, today);
+    expect(result).toBeCloseTo(1, 4);
+  });
+
+  it('genuineVacancyDayFraction: fully leerstand is 1', () => {
+    const history = [entry('leerstand', 2026, 2)];
+    const result = genuineVacancyDayFraction(makeDate(2026, 6, 1), history, today);
+    expect(result).toBeCloseTo(1, 4);
+  });
+
+  it('genuineVacancyDayFraction: fully vermietet is zero', () => {
+    const history = [entry('vermietet', 2026, 2)];
+    const result = genuineVacancyDayFraction(makeDate(2026, 6, 1), history, today);
+    expect(result).toBeCloseTo(0, 4);
+  });
+
+  it('genuineVacancyDayFraction: mietgarantie is NOT counted as vacancy, unlike leerstandDayFraction', () => {
+    const history = [entry('mietgarantie', 2026, 2, 1, 999)];
+    const result = genuineVacancyDayFraction(makeDate(2026, 6, 1), history, today);
+    expect(result).toBeCloseTo(0, 4);
+  });
+
+  it('genuineVacancyDayFraction: mixed month — only the leerstand portion counts, not the mietgarantie portion', () => {
+    const history = [entry('leerstand', 2026, 2), entry('mietgarantie', 2026, 6, 16, 999)];
+    const result = genuineVacancyDayFraction(makeDate(2026, 6, 1), history, today);
+    // leerstand for the first 15 of 30 days, mietgarantie for the rest -> only 15/30 counts
+    expect(result).toBeCloseTo(15 / 30, 4);
+  });
+
   it('ownershipDayFraction: acquisition mid-month (Feb 15, 28-day month)', () => {
     // 14 days owned out of 28 (Feb 15-28 inclusive)
     const result = ownershipDayFraction(makeDate(2026, 2, 1), makeDate(2026, 2, 15));
@@ -108,6 +140,14 @@ describe('ownershipAndVacancyDaysSinceTransfer', () => {
     const result = ownershipAndVacancyDaysSinceTransfer(history, makeDate(2026, 2, 15), makeDate(2026, 2, 28));
     expect(result.ownershipDays).toBe(14);
     expect(result.leerstandDays).toBe(14);
+  });
+
+  it('mietgarantie days do NOT count as leerstandDays — only genuine leerstand does', () => {
+    // Jan: leerstand (31 days). Feb: mietgarantie (28 days) -> guaranteed rent flows, not vacancy.
+    const history = [entry('leerstand', 2026, 1, 1), entry('mietgarantie', 2026, 2, 1, 999)];
+    const result = ownershipAndVacancyDaysSinceTransfer(history, makeDate(2026, 1, 1), makeDate(2026, 2, 28));
+    expect(result.ownershipDays).toBe(31 + 28);
+    expect(result.leerstandDays).toBe(31);
   });
 });
 

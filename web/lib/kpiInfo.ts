@@ -81,9 +81,9 @@ export const KPI_INFO: Record<BenchmarkKpi, KpiInfo> = {
   },
   actualVacancyRate: {
     name: 'Tatsächliche Leerstandsquote',
-    formula: 'Leerstandstage seit Erwerb\n÷ Eigentumstage seit Erwerb',
+    formula: 'Leerstandstage seit wirtschaftlichem Übergang\n÷ Eigentumstage seit wirtschaftlichem Übergang',
     purpose:
-      'Zeigt den Ist-Leerstand seit dem Kauf im Vergleich zur angenommenen Leerstandsquote (Mietausfallwagnis) aus den Objektdaten.',
+      'Zeigt den Ist-Leerstand seit dem wirtschaftlichen Übergang im Vergleich zur angenommenen Leerstandsquote (Mietausfallwagnis) aus den Objektdaten. Mietgarantie-Phasen zählen nicht als Leerstand — da fließt garantierte Miete, auch ohne Mieter.',
     goodWhen: 'Unter 3 % ist der Leerstand gering. Über 8 % liegt deutlich über dem, was die meisten Kalkulationen einplanen.',
     einordnung: 'Nationaler Markt-Leerstand Ende 2024 bei ~2,2 %. In strukturschwachen Regionen reale Leerstandsquoten von 10–15 %+.',
   },
