@@ -93,7 +93,7 @@ export function closingCostsTotal(
   return landTransferTax + notaryCosts + landRegistryCosts + agentFee + appraisalCosts;
 }
 
-/** Tatsächliche Leerstandsquote = Leerstandstage / Eigentumstage seit Erwerb. */
+/** Tatsächliche Leerstandsquote = Leerstandstage / Eigentumstage seit wirtschaftlichem Übergang. */
 export function actualVacancyRate(leerstandDays: number, ownershipDays: number): number | null {
   if (ownershipDays <= 0) return null;
   return leerstandDays / ownershipDays;
