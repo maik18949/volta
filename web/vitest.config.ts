@@ -9,6 +9,7 @@ export default defineConfig({
     // jsdom individually via a `// @vitest-environment jsdom` docblock.
     environment: 'node',
     include: ['tests/**/*.test.{ts,tsx}'],
+    setupFiles: ['./vitest.setup.ts'],
     // Allow passing with no tests while the test suite is being built out in later tasks.
     passWithNoTests: true,
   },
