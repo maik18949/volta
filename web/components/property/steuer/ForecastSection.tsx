@@ -6,36 +6,40 @@ export function ForecastSection({ result, hasParking }: { result: TaxForecastYea
   const effectColor = result.taxEffectMonthly >= 0 ? 'text-positive' : 'text-negative';
 
   return (
-    <div className="space-y-1 text-sm">
-      <Row label="Einnahmen" value={lineItems.income} positive />
-      <Row label="Zinsen" value={-lineItems.interest} />
-      <Row label="AfA" value={-lineItems.depreciation} />
+    <div className="flex flex-1 flex-col text-sm">
+      <div className="space-y-1">
+        <Row label="Einnahmen" value={lineItems.income} positive />
+        <Row label="Zinsen" value={-lineItems.interest} />
+        <Row label="AfA" value={-lineItems.depreciation} />
 
-      <SectionDivider label="Kosten Wohnung" />
-      <Row label="Nicht umlagefähige Kosten" value={-lineItems.hoaNonRecoverableWE} />
-      {lineItems.insuranceWE > 0 && <Row label="Gebäudeversicherung" value={-lineItems.insuranceWE} />}
-      <Row label="Hausverwaltung" value={-lineItems.managementWE} />
-      {lineItems.otherCostsWE > 0 && <Row label="Sonstige Kosten" value={-lineItems.otherCostsWE} />}
-      {lineItems.hoaRecoverableWE > 0 && <Row label="Umlagefähige Kosten" value={-lineItems.hoaRecoverableWE} />}
-      {lineItems.propertyTaxWE > 0 && <Row label="Grundsteuer" value={-lineItems.propertyTaxWE} />}
+        <SectionDivider label="Kosten Wohnung" />
+        <Row label="Nicht umlagefähige Kosten" value={-lineItems.hoaNonRecoverableWE} />
+        {lineItems.insuranceWE > 0 && <Row label="Gebäudeversicherung" value={-lineItems.insuranceWE} />}
+        <Row label="Hausverwaltung" value={-lineItems.managementWE} />
+        {lineItems.otherCostsWE > 0 && <Row label="Sonstige Kosten" value={-lineItems.otherCostsWE} />}
+        {lineItems.hoaRecoverableWE > 0 && <Row label="Umlagefähige Kosten" value={-lineItems.hoaRecoverableWE} />}
+        {lineItems.propertyTaxWE > 0 && <Row label="Grundsteuer" value={-lineItems.propertyTaxWE} />}
 
-      {hasParking && (
-        <>
-          <SectionDivider label="Kosten Stellplatz" />
-          <Row label="Nicht umlagefähige Kosten" value={-lineItems.hoaNonRecoverableTE} />
-          <Row label="Umlagefähige Kosten" value={-lineItems.hoaRecoverableTE} />
-          <Row label="Grundsteuer" value={-lineItems.propertyTaxTE} />
-        </>
-      )}
-
-      <div className="mt-2 border-t border-blue-200 pt-2" />
-      <div className="flex justify-between font-bold text-text-primary">
-        <span>Steuerliches Ergebnis (Prog.)</span>
-        <span className="font-mono">{formatCurrency(lineItems.taxableIncome)}</span>
+        {hasParking && (
+          <>
+            <SectionDivider label="Kosten Stellplatz" />
+            <Row label="Nicht umlagefähige Kosten" value={-lineItems.hoaNonRecoverableTE} />
+            <Row label="Umlagefähige Kosten" value={-lineItems.hoaRecoverableTE} />
+            <Row label="Grundsteuer" value={-lineItems.propertyTaxTE} />
+          </>
+        )}
       </div>
-      <div className={`flex justify-between text-[22px] font-extrabold ${effectColor}`}>
-        <span>Steuereffekt / Mon</span>
-        <span className="font-mono">{formatCurrency(result.taxEffectMonthly)}</span>
+
+      <div className="mt-auto">
+        <div className="mt-2 border-t border-blue-200 pt-2" />
+        <div className="flex justify-between font-bold text-text-primary">
+          <span>Steuerliches Ergebnis (Prog.)</span>
+          <span className="font-mono">{formatCurrency(lineItems.taxableIncome)}</span>
+        </div>
+        <div className={`flex justify-between text-[18px] font-extrabold ${effectColor}`}>
+          <span>Steuereffekt / Mon</span>
+          <span className="font-mono">{formatCurrency(result.taxEffectMonthly)}</span>
+        </div>
       </div>
     </div>
   );
