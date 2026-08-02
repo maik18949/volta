@@ -50,82 +50,72 @@ export function ReturnsCard({
   summary: PropertySummary;
   overview: OverviewMetrics;
 }) {
+  const kpiRows: Array<{ kpi: BenchmarkKpi; label: string; rawValue: number | null; formattedValue: string }> = [
+    {
+      kpi: 'grossYield',
+      label: 'Bruttorendite',
+      rawValue: overview.grossYield,
+      formattedValue: overview.grossYield !== null ? formatPercent(overview.grossYield) : '–',
+    },
+    {
+      kpi: 'netYield',
+      label: 'Nettorendite',
+      rawValue: summary.netYield,
+      formattedValue: summary.netYield !== null ? formatPercent(summary.netYield) : '–',
+    },
+    {
+      kpi: 'cashOnCash',
+      label: 'Cash-on-Cash',
+      rawValue: overview.cashOnCash,
+      formattedValue: overview.cashOnCash !== null ? formatPercent(overview.cashOnCash) : '–',
+    },
+    {
+      kpi: 'eigenkapitalrendite',
+      label: 'Eigenkapitalrendite',
+      rawValue: overview.eigenkapitalrendite,
+      formattedValue: overview.eigenkapitalrendite !== null ? formatPercent(overview.eigenkapitalrendite) : '–',
+    },
+    {
+      kpi: 'kaufpreisfaktor',
+      label: 'Kaufpreisfaktor',
+      rawValue: overview.kaufpreisfaktor,
+      formattedValue: overview.kaufpreisfaktor !== null ? `${formatNumber(overview.kaufpreisfaktor, 1)}×` : '–',
+    },
+    {
+      kpi: 'dscr',
+      label: 'DSCR (NOI)',
+      rawValue: overview.dscr,
+      formattedValue: overview.dscr !== null ? formatNumber(overview.dscr, 2) : '–',
+    },
+    {
+      kpi: 'ltv',
+      label: 'LTV',
+      rawValue: overview.ltv,
+      formattedValue: overview.ltv !== null ? formatPercent(overview.ltv) : '–',
+    },
+    {
+      kpi: 'actualVacancyRate',
+      label: 'Tats. Leerstandsquote',
+      rawValue: overview.actualVacancyRate,
+      formattedValue: overview.actualVacancyRate !== null ? formatPercent(overview.actualVacancyRate) : '–',
+    },
+  ];
+  const half = Math.ceil(kpiRows.length / 2);
+  const kpiColumns = [kpiRows.slice(0, half), kpiRows.slice(half)];
+
   return (
     <GlassCard variant="solid">
       <SectionLabel>Rendite & Investment</SectionLabel>
 
-      <KpiRow
-        kpi="grossYield"
-        label="Bruttorendite"
-        rawValue={overview.grossYield}
-        formattedValue={overview.grossYield !== null ? formatPercent(overview.grossYield) : '–'}
-        property={property}
-        summary={summary}
-        overview={overview}
-      />
-      <KpiRow
-        kpi="netYield"
-        label="Nettorendite"
-        rawValue={summary.netYield}
-        formattedValue={summary.netYield !== null ? formatPercent(summary.netYield) : '–'}
-        property={property}
-        summary={summary}
-        overview={overview}
-      />
-      <KpiRow
-        kpi="cashOnCash"
-        label="Cash-on-Cash"
-        rawValue={overview.cashOnCash}
-        formattedValue={overview.cashOnCash !== null ? formatPercent(overview.cashOnCash) : '–'}
-        property={property}
-        summary={summary}
-        overview={overview}
-      />
-      <KpiRow
-        kpi="eigenkapitalrendite"
-        label="Eigenkapitalrendite"
-        rawValue={overview.eigenkapitalrendite}
-        formattedValue={overview.eigenkapitalrendite !== null ? formatPercent(overview.eigenkapitalrendite) : '–'}
-        property={property}
-        summary={summary}
-        overview={overview}
-      />
-      <KpiRow
-        kpi="kaufpreisfaktor"
-        label="Kaufpreisfaktor"
-        rawValue={overview.kaufpreisfaktor}
-        formattedValue={overview.kaufpreisfaktor !== null ? `${formatNumber(overview.kaufpreisfaktor, 1)}×` : '–'}
-        property={property}
-        summary={summary}
-        overview={overview}
-      />
-      <KpiRow
-        kpi="dscr"
-        label="DSCR (NOI)"
-        rawValue={overview.dscr}
-        formattedValue={overview.dscr !== null ? formatNumber(overview.dscr, 2) : '–'}
-        property={property}
-        summary={summary}
-        overview={overview}
-      />
-      <KpiRow
-        kpi="ltv"
-        label="LTV"
-        rawValue={overview.ltv}
-        formattedValue={overview.ltv !== null ? formatPercent(overview.ltv) : '–'}
-        property={property}
-        summary={summary}
-        overview={overview}
-      />
-      <KpiRow
-        kpi="actualVacancyRate"
-        label="Tats. Leerstandsquote"
-        rawValue={overview.actualVacancyRate}
-        formattedValue={overview.actualVacancyRate !== null ? formatPercent(overview.actualVacancyRate) : '–'}
-        property={property}
-        summary={summary}
-        overview={overview}
-      />
+      <div className="grid grid-cols-1 gap-x-6 sm:grid-cols-2">
+        {kpiColumns.map((column, i) => (
+          <div key={i}>
+            {column.map((row) => (
+              <KpiRow key={row.kpi} {...row} property={property} summary={summary} overview={overview} />
+            ))}
+          </div>
+        ))}
+      </div>
 
       <div className="my-2 h-px bg-black/[0.06]" />
 
