@@ -63,6 +63,21 @@ export function PropertyHeaderCard({
 }) {
   const coldRentPerSqm = property.living_area_sqm > 0 ? property.cold_rent_monthly / property.living_area_sqm : 0;
 
+  const fields: Array<[string, string | number]> = [
+    ['Typ', PROPERTY_TYPE_LABELS[property.property_type]],
+    ['Baujahr', property.year_built ?? '–'],
+    ['Wohnfläche', `${property.living_area_sqm.toLocaleString('de-DE')} m²`],
+    ['Zimmer', property.rooms ?? '–'],
+    ['Kaltmiete/m²', formatCurrency(coldRentPerSqm)],
+    ['Kaufpreis/m²', formatCurrency(purchasePricePerSqm)],
+    ['Energieklasse', property.energy_efficiency_class ? ENERGY_CLASS_LABELS[property.energy_efficiency_class] : '–'],
+    ['Zustand', property.condition ? CONDITION_LABELS[property.condition] : '–'],
+    ['Heizung', property.heating_type ? HEATING_LABELS[property.heating_type] : '–'],
+    ['Stellplatz', PARKING_LABELS[property.parking_type]],
+  ];
+  const half = Math.ceil(fields.length / 2);
+  const fieldColumns = [fields.slice(0, half), fields.slice(half)];
+
   return (
     <GlassCard variant="solid">
       <div className="flex gap-4">
@@ -71,38 +86,17 @@ export function PropertyHeaderCard({
           <p className="text-[15px] font-semibold text-text-primary">
             {property.address}, {property.postal_code} {property.city}
           </p>
-          <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-[13px]">
-            <span className="text-text-secondary">Typ</span>
-            <span className="text-right text-text-primary">{PROPERTY_TYPE_LABELS[property.property_type]}</span>
-
-            <span className="text-text-secondary">Baujahr</span>
-            <span className="text-right text-text-primary">{property.year_built ?? '–'}</span>
-
-            <span className="text-text-secondary">Wohnfläche</span>
-            <span className="text-right text-text-primary">{property.living_area_sqm.toLocaleString('de-DE')} m²</span>
-
-            <span className="text-text-secondary">Zimmer</span>
-            <span className="text-right text-text-primary">{property.rooms ?? '–'}</span>
-
-            <span className="text-text-secondary">Kaltmiete/m²</span>
-            <span className="text-right text-text-primary">{formatCurrency(coldRentPerSqm)}</span>
-
-            <span className="text-text-secondary">Kaufpreis/m²</span>
-            <span className="text-right text-text-primary">{formatCurrency(purchasePricePerSqm)}</span>
-
-            <span className="text-text-secondary">Energieklasse</span>
-            <span className="text-right text-text-primary">
-              {property.energy_efficiency_class ? ENERGY_CLASS_LABELS[property.energy_efficiency_class] : '–'}
-            </span>
-
-            <span className="text-text-secondary">Zustand</span>
-            <span className="text-right text-text-primary">{property.condition ? CONDITION_LABELS[property.condition] : '–'}</span>
-
-            <span className="text-text-secondary">Heizung</span>
-            <span className="text-right text-text-primary">{property.heating_type ? HEATING_LABELS[property.heating_type] : '–'}</span>
-
-            <span className="text-text-secondary">Stellplatz</span>
-            <span className="text-right text-text-primary">{PARKING_LABELS[property.parking_type]}</span>
+          <div className="mt-2 grid grid-cols-2 gap-x-8 text-[13px]">
+            {fieldColumns.map((column, i) => (
+              <div key={i} className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
+                {column.map(([label, value]) => (
+                  <div className="contents" key={label}>
+                    <span className="text-text-secondary">{label}</span>
+                    <span className="text-right text-text-primary">{value}</span>
+                  </div>
+                ))}
+              </div>
+            ))}
           </div>
         </div>
       </div>

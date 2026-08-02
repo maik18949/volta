@@ -33,8 +33,8 @@ export function PhotoCarousel({ photos, propertyType }: { photos: PropertyPhotoW
   if (photos.length === 0) {
     const Icon = PLACEHOLDER_ICONS[propertyType];
     return (
-      <div className="flex h-[120px] w-[120px] flex-shrink-0 items-center justify-center rounded-[14px] bg-gradient-to-br from-slate-200 to-slate-300">
-        <Icon size={40} className="text-slate-400" />
+      <div className="flex h-[168px] w-[168px] flex-shrink-0 items-center justify-center rounded-[16px] bg-gradient-to-br from-slate-200 to-slate-300">
+        <Icon size={56} className="text-slate-400" />
       </div>
     );
   }
@@ -46,7 +46,7 @@ export function PhotoCarousel({ photos, propertyType }: { photos: PropertyPhotoW
   }
 
   return (
-    <div className="relative h-[120px] w-[120px] flex-shrink-0 overflow-hidden rounded-[14px]">
+    <div className="relative h-[168px] w-[168px] flex-shrink-0 overflow-hidden rounded-[16px]">
       <div
         ref={scrollRef}
         onScroll={handleScroll}
