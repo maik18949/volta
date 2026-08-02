@@ -21,7 +21,7 @@ export function CurrentYearSection({
       </div>
 
       {result.transferInFuture && (
-        <p className="mb-2 text-xs text-text-dim">Besitzübergang am {formatDate(economicTransferDate)} — Werte ab diesem Datum.</p>
+        <p className="mb-2 text-xs text-text-secondary">Besitzübergang am {formatDate(economicTransferDate)} — Werte ab diesem Datum.</p>
       )}
 
       <Row label="Einnahmen" value={lineItems.income} positive />

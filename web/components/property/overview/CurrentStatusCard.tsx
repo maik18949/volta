@@ -27,7 +27,7 @@ export function CurrentStatusCard({
 
       <div className="flex items-center gap-2">
         <StatusBadge status={summary.currentStatus} />
-        {latestStatusDate && <span className="text-xs text-text-dim">seit {formatDate(latestStatusDate)}</span>}
+        {latestStatusDate && <span className="text-xs text-text-secondary">seit {formatDate(latestStatusDate)}</span>}
       </div>
 
       {!hasStatusHistory ? (
@@ -52,7 +52,7 @@ export function CurrentStatusCard({
             <span className="text-text-primary">{formatCurrency(-runningCostsMonthly)}</span>
           </div>
           {summary.runningCostsBreakdown.map((item) => (
-            <div key={item.label} className="flex justify-between border-l-2 border-black/[0.06] py-0.5 pl-2.5 text-xs text-text-dim">
+            <div key={item.label} className="flex justify-between border-l-2 border-black/[0.06] py-0.5 pl-2.5 text-xs text-text-secondary">
               <span>{item.label}</span>
               <span>{formatCurrency(-item.amountMonthly)}</span>
             </div>

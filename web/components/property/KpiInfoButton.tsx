@@ -43,7 +43,7 @@ export function KpiInfoButton({
       <Modal open={open} onClose={() => setOpen(false)} title={info.name} overlay={false}>
         <div className="space-y-4 text-sm">
           <div className="rounded-lg bg-black/[0.03] p-3">
-            <p className="mb-1.5 text-[11px] font-bold uppercase tracking-wide text-text-dim">Formel</p>
+            <p className="mb-1.5 text-[11px] font-bold uppercase tracking-wide text-text-secondary">Formel</p>
             <p className="whitespace-pre-line font-mono text-[13px] text-text-secondary">{info.formula}</p>
             {calculation && (
               <div className="mt-2.5 border-t border-dashed border-black/10 pt-2.5">
@@ -65,7 +65,7 @@ export function KpiInfoButton({
           {info.einordnung && (
             <div className="border-t border-black/[0.06] pt-3">
               <p className="mb-1 text-sm font-bold text-text-primary">Einordnung</p>
-              <p className="text-xs text-text-dim">{info.einordnung}</p>
+              <p className="text-xs text-text-secondary">{info.einordnung}</p>
             </div>
           )}
         </div>

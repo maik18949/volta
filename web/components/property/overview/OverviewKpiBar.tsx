@@ -11,7 +11,7 @@ export function OverviewKpiBar({ summary, overview }: { summary: PropertySummary
       <div className="bg-white px-3 py-2">
         <p className="text-[10px] font-bold uppercase text-text-secondary">CF nach Steuern</p>
         <p className={`text-[18px] font-extrabold ${cfColor}`}>{formatCurrency(summary.cashflowAfterTaxMonthly)}</p>
-        <p className="text-[11px] text-text-dim">vor St.: {formatCurrency(summary.cashflowBeforeTaxMonthly)}</p>
+        <p className="text-[11px] text-text-secondary">vor St.: {formatCurrency(summary.cashflowBeforeTaxMonthly)}</p>
       </div>
       <div className="bg-white px-3 py-2">
         <p className="text-[10px] font-bold uppercase text-text-secondary">Nettorendite</p>

@@ -46,7 +46,7 @@ export function KpiScale({ kpi, value, showAxis = false }: { kpi: BenchmarkKpi; 
         </div>
       </div>
       {showAxis && (
-        <div className="mt-1.5 flex justify-between text-[10.5px] text-text-dim">
+        <div className="mt-1.5 flex justify-between text-[10.5px] text-text-secondary">
           {axisValues.map((axisValue, i) => (
             <span key={i}>{format(axisValue)}</span>
           ))}
