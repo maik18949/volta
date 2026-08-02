@@ -56,5 +56,5 @@ function Row({ label, value }: { label: string; value: number }) {
 }
 
 function SectionDivider({ label }: { label: string }) {
-  return <p className="pt-2 text-[10px] font-bold uppercase tracking-wide text-text-dim">{label}</p>;
+  return <p className="pt-2 text-[10px] font-bold uppercase tracking-wide text-text-secondary">{label}</p>;
 }
