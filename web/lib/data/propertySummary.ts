@@ -11,6 +11,14 @@ import { netYield as computeNetYield, totalInvestment as computeTotalInvestment,
 type PropertyRow = Database['public']['Tables']['properties']['Row'];
 type StatusEntryRow = Database['public']['Tables']['status_entries']['Row'];
 
+/** Filter out near-zero cost items (floating-point noise), not genuinely tiny real costs. */
+const ZERO_AMOUNT_EPSILON_EUR = 0.005;
+
+export interface RunningCostBreakdownItem {
+  label: string;
+  amountMonthly: number;
+}
+
 export interface PropertySummary {
   totalInvestment: number;
   totalPurchasePrice: number;
@@ -24,6 +32,7 @@ export interface PropertySummary {
   cashflowBeforeTaxMonthly: number;
   taxEffectMonthly: number;
   taxEffectYearly: number;
+  runningCostsBreakdown: RunningCostBreakdownItem[];
 }
 
 export function toStatusHistory(rows: StatusEntryRow[]): StatusEntry[] {
@@ -99,6 +108,28 @@ export function computePropertySummary(
     property.hoa_fee_recoverable_monthly,
     property.property_tax_annual
   );
+
+  // Keep in sync with the cost terms cashflowBeforeTax() subtracts (see CashflowBeforeTaxInput
+  // in cashflowCalculator.ts) — these are the same values, regrouped by display label instead of
+  // tax-deductibility bucket.
+  const runningCostsBreakdown: RunningCostBreakdownItem[] = [
+    { label: 'Hausgeld (nicht umlagefähig)', amountMonthly: hoaFeeNonRecoverableMonthly },
+    { label: 'Instandhaltungsrücklage', amountMonthly: property.hoa_fee_maintenance_reserve_monthly },
+    { label: 'Hausverwaltung', amountMonthly: property.property_management_annual / 12 },
+    { label: 'Gebäudeversicherung', amountMonthly: property.property_insurance_annual / 12 },
+    { label: 'Sonstige Kosten', amountMonthly: property.other_costs_monthly },
+    {
+      // Stellplatz-Kosten bundles all 4 parking cost components into one display line
+      // (deliberate UI simplification, not a calculation grouping).
+      label: 'Stellplatz-Kosten',
+      amountMonthly:
+        hoaFeeParkingNonRecoverableMonthly +
+        property.hoa_fee_parking_maintenance_reserve_monthly +
+        property.hoa_fee_parking_recoverable_monthly +
+        property.property_tax_parking_annual / 12,
+    },
+    { label: 'Umlagefähige Kosten während Leerstand', amountMonthly: ownerBorneRecoverableWEMonthly },
+  ].filter((item) => Math.abs(item.amountMonthly) > ZERO_AMOUNT_EPSILON_EUR);
 
   const incomeThisMonth = incomeForMonth(
     currentMonth,
@@ -181,5 +212,6 @@ export function computePropertySummary(
     cashflowBeforeTaxMonthly: cashflowBeforeTaxThisMonth,
     taxEffectMonthly: taxEffectThisMonth,
     taxEffectYearly: taxEffectYear,
+    runningCostsBreakdown,
   };
 }

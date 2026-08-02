@@ -12,6 +12,8 @@ import {
   actualVacancyRate,
   benchmarkColor,
   hoaNonRecoverableMonthly,
+  scalePosition,
+  benchmarkThreshold,
 } from '@/lib/calculations/kpiCalculator';
 
 describe('kpiCalculator', () => {
@@ -150,5 +152,38 @@ describe('kpiCalculator', () => {
     expect(benchmarkColor('actualVacancyRate', 0.02)).toBe('green');
     expect(benchmarkColor('actualVacancyRate', 0.05)).toBe('orange');
     expect(benchmarkColor('actualVacancyRate', 0.1)).toBe('red');
+  });
+
+  it('scalePosition: grossYield (higherIsBetter, domain 0–0.10) — midpoint value sits at 0.5', () => {
+    expect(scalePosition('grossYield', 0.05)).toBeCloseTo(0.5, 4);
+  });
+
+  it('scalePosition: grossYield — value at domainMin sits at 0, value above domainMax clamps to 1', () => {
+    expect(scalePosition('grossYield', 0)).toBeCloseTo(0, 4);
+    expect(scalePosition('grossYield', 0.5)).toBe(1);
+  });
+
+  it('scalePosition: grossYield — negative value (below domainMin) clamps to 0', () => {
+    expect(scalePosition('grossYield', -0.05)).toBe(0);
+  });
+
+  it('scalePosition: ltv (lowerIsBetter, domain 0–1.10) — low (good) value sits near 1, high (bad) value sits near 0', () => {
+    expect(scalePosition('ltv', 0)).toBeCloseTo(1, 4);
+    expect(scalePosition('ltv', 1.1)).toBeCloseTo(0, 4);
+  });
+
+  it('scalePosition: ltv — value above domainMax clamps to 0, not negative', () => {
+    expect(scalePosition('ltv', 2)).toBe(0);
+  });
+
+  it('scalePosition: kaufpreisfaktor (lowerIsBetter, domain 10–35) — low value sits at 1, high value sits at 0', () => {
+    expect(scalePosition('kaufpreisfaktor', 10)).toBeCloseTo(1, 4);
+    expect(scalePosition('kaufpreisfaktor', 35)).toBeCloseTo(0, 4);
+    expect(scalePosition('kaufpreisfaktor', 5)).toBe(1); // below domainMin clamps to the "good" end
+  });
+
+  it('benchmarkThreshold: exposes direction/green/orange/domain for a KPI', () => {
+    const t = benchmarkThreshold('dscr');
+    expect(t).toEqual({ direction: 'higherIsBetter', green: 1.25, orange: 1.0, domainMin: 0, domainMax: 2.0 });
   });
 });

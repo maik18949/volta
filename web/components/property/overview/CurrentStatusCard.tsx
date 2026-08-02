@@ -18,15 +18,7 @@ export function CurrentStatusCard({
   hasStatusHistory: boolean;
   latestStatusDate: Date | null;
 }) {
-  // cashflowBeforeTax = income - mortgage - runningCosts, so this is the exact algebraic
-  // inverse — no new intermediate needs exposing on PropertySummary for it.
-  // NOTE: this only reads correctly as "Laufende Kosten" because computePropertySummary
-  // (propertySummary.ts) hardcodes extraordinaryCostsThisMonth: 0 for the current month's
-  // cashflowBeforeTax call — cashflowBeforeTax() itself sums 7 cost terms, including
-  // extraordinaryCostsThisMonth. If that upstream assumption ever changes (e.g. a real
-  // current-month extraordinary cost gets threaded in), this derived value will silently
-  // absorb one-time costs into the "running costs" label.
-  const runningCostsMonthly = summary.incomeActualMonthly - monthlyMortgage - summary.cashflowBeforeTaxMonthly;
+  const runningCostsMonthly = summary.runningCostsBreakdown.reduce((sum, item) => sum + item.amountMonthly, 0);
   const cashflowAfterColor = summary.cashflowAfterTaxMonthly >= 0 ? 'text-positive' : 'text-negative';
 
   return (
@@ -35,7 +27,7 @@ export function CurrentStatusCard({
 
       <div className="flex items-center gap-2">
         <StatusBadge status={summary.currentStatus} />
-        {latestStatusDate && <span className="text-xs text-text-dim">seit {formatDate(latestStatusDate)}</span>}
+        {latestStatusDate && <span className="text-xs text-text-secondary">seit {formatDate(latestStatusDate)}</span>}
       </div>
 
       {!hasStatusHistory ? (
@@ -59,6 +51,12 @@ export function CurrentStatusCard({
             <span className="text-text-secondary">Laufende Kosten</span>
             <span className="text-text-primary">{formatCurrency(-runningCostsMonthly)}</span>
           </div>
+          {summary.runningCostsBreakdown.map((item) => (
+            <div key={item.label} className="flex justify-between border-l-2 border-black/[0.06] py-0.5 pl-2.5 text-xs text-text-secondary">
+              <span>{item.label}</span>
+              <span>{formatCurrency(-item.amountMonthly)}</span>
+            </div>
+          ))}
           <div className="flex justify-between border-t border-black/[0.06] pt-1.5 font-bold">
             <span className="text-text-primary">Cashflow vor Steuern</span>
             <span className="text-text-primary">{formatCurrency(summary.cashflowBeforeTaxMonthly)}</span>

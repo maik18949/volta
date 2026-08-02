@@ -28,6 +28,18 @@ export interface OverviewMetrics {
   dscr: number | null;
   ltv: number | null;
   actualVacancyRate: number | null;
+  /** Pre-tax annual cashflow — the numerator cashOnCash was computed from. */
+  cashflowBeforeTaxYear: number;
+  /** The numerator eigenkapitalrendite was computed from. */
+  eigenkapitalrenditeNumerator: number;
+  /**
+   * Raw day counts actualVacancyRate was computed from. When there's no status history,
+   * leerstandDays equals ownershipDays (every day defaults to 'leerstand', i.e. 100% vacant) —
+   * they are not 0/0. actualVacancyRate is null in that case via a separate explicit guard
+   * (statusHistory.length === 0) below, not because these counts are zero.
+   */
+  leerstandDaysSinceTransfer: number;
+  ownershipDaysSinceTransfer: number;
   breakEvenRentMonthly: number;
   /** Real equity_contributed + broker_commission_agreement once either is set, else the theoretical totalInvestment - loanAmount. */
   equityUsed: number;
@@ -153,6 +165,10 @@ export function computeOverviewMetrics(
     dscr: dscrValue,
     ltv: ltvValue,
     actualVacancyRate: actualVacancyRateValue,
+    cashflowBeforeTaxYear,
+    eigenkapitalrenditeNumerator,
+    leerstandDaysSinceTransfer: leerstandDays,
+    ownershipDaysSinceTransfer: ownershipDays,
     breakEvenRentMonthly: breakEvenRentMonthlyValue,
     // Same resolved value as the Cash-on-Cash denominator (real contributed equity when
     // entered, else the theoretical totalInvestment-minus-loan estimate) — the "Eigenkapital"

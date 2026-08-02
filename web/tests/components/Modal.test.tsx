@@ -82,4 +82,20 @@ describe('Modal focus trap', () => {
 
     unmount();
   });
+
+  it('applies the dark backdrop by default, and omits it when overlay={false}', () => {
+    const { container, rerender } = render(
+      <Modal open onClose={() => {}} title="Overlay test">
+        <button type="button">Action</button>
+      </Modal>
+    );
+    expect(container.firstElementChild?.className).toContain('bg-black/40');
+
+    rerender(
+      <Modal open onClose={() => {}} title="Overlay test" overlay={false}>
+        <button type="button">Action</button>
+      </Modal>
+    );
+    expect(container.firstElementChild?.className).not.toContain('bg-black/40');
+  });
 });

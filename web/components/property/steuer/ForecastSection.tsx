@@ -10,17 +10,21 @@ export function ForecastSection({ result, hasParking }: { result: TaxForecastYea
       <Row label="Einnahmen" value={lineItems.income} positive />
       <Row label="Zinsen" value={-lineItems.interest} />
       <Row label="AfA" value={-lineItems.depreciation} />
-      <Row label="Nicht umlagef. Kosten Wohnung" value={-lineItems.hoaNonRecoverableWE} />
+
+      <SectionDivider label="Kosten Wohnung" />
+      <Row label="Nicht umlagefähige Kosten" value={-lineItems.hoaNonRecoverableWE} />
       {lineItems.insuranceWE > 0 && <Row label="Gebäudeversicherung" value={-lineItems.insuranceWE} />}
       <Row label="Hausverwaltung" value={-lineItems.managementWE} />
       {lineItems.otherCostsWE > 0 && <Row label="Sonstige Kosten" value={-lineItems.otherCostsWE} />}
-      {lineItems.hoaRecoverableWE > 0 && <Row label="Umlagef. Kosten Wohnung" value={-lineItems.hoaRecoverableWE} />}
-      {lineItems.propertyTaxWE > 0 && <Row label="Grundsteuer Wohnung" value={-lineItems.propertyTaxWE} />}
+      {lineItems.hoaRecoverableWE > 0 && <Row label="Umlagefähige Kosten" value={-lineItems.hoaRecoverableWE} />}
+      {lineItems.propertyTaxWE > 0 && <Row label="Grundsteuer" value={-lineItems.propertyTaxWE} />}
+
       {hasParking && (
         <>
-          <Row label="Nicht umlagef. Kosten Stellplatz" value={-lineItems.hoaNonRecoverableTE} />
-          <Row label="Umlagef. Kosten Stellplatz" value={-lineItems.hoaRecoverableTE} />
-          <Row label="Grundsteuer Stellplatz" value={-lineItems.propertyTaxTE} />
+          <SectionDivider label="Kosten Stellplatz" />
+          <Row label="Nicht umlagefähige Kosten" value={-lineItems.hoaNonRecoverableTE} />
+          <Row label="Umlagefähige Kosten" value={-lineItems.hoaRecoverableTE} />
+          <Row label="Grundsteuer" value={-lineItems.propertyTaxTE} />
         </>
       )}
 
@@ -44,4 +48,8 @@ function Row({ label, value, positive = false }: { label: string; value: number;
       <span className="font-mono">{formatCurrency(value)}</span>
     </div>
   );
+}
+
+function SectionDivider({ label }: { label: string }) {
+  return <p className="pt-2 text-[10px] font-bold uppercase tracking-wide text-text-secondary">{label}</p>;
 }

@@ -100,6 +100,19 @@ export function leerstandDayFraction(month: Date, statusHistory: StatusEntry[], 
 }
 
 /**
+ * Sum of day-fractions in the month where the status is genuinely 'leerstand' —
+ * unlike leerstandDayFraction, this excludes 'mietgarantie' (guaranteed rent still
+ * flows during that status, so it isn't vacancy in the sense the "Tatsächliche
+ * Leerstandsquote" KPI means). Only feeds that KPI; owner-cost-bearing calculations
+ * elsewhere (cashflow/tax) correctly keep using leerstandDayFraction instead.
+ */
+export function genuineVacancyDayFraction(month: Date, statusHistory: StatusEntry[], today: Date): number {
+  return segments(month, statusHistory, today)
+    .filter((seg) => seg.status === 'leerstand')
+    .reduce((sum, seg) => sum + seg.dayFraction, 0);
+}
+
+/**
  * Fraction of the month owned: 0 before acquisition, 1 for full months,
  * partial for the acquisition month itself.
  */
@@ -122,11 +135,13 @@ export interface OwnershipVacancyDays {
 }
 
 /**
- * Cumulative ownership days and (ownership-weighted) leerstand days from
+ * Cumulative ownership days and (ownership-weighted) genuine-leerstand days from
  * economicTransferDate's month through today's month — feeds
  * kpiCalculator.actualVacancyRate. Uses the same ownerFraction-weighting as
  * taxCalculator.annualTaxableIncome so a mid-month acquisition month doesn't
- * overcount leerstand for days before the transfer.
+ * overcount leerstand for days before the transfer. Deliberately uses
+ * genuineVacancyDayFraction (not leerstandDayFraction) — 'mietgarantie' periods
+ * have guaranteed rent flowing and shouldn't inflate this KPI's vacancy rate.
  */
 export function ownershipAndVacancyDaysSinceTransfer(
   statusHistory: StatusEntry[],
@@ -141,7 +156,7 @@ export function ownershipAndVacancyDaysSinceTransfer(
   while (month.getTime() <= lastMonth.getTime()) {
     const totalDays = daysInMonth(month);
     const ownerFraction = ownershipDayFraction(month, economicTransferDate);
-    const vacancyFraction = leerstandDayFraction(month, statusHistory, today);
+    const vacancyFraction = genuineVacancyDayFraction(month, statusHistory, today);
     ownershipDays += ownerFraction * totalDays;
     leerstandDays += ownerFraction * vacancyFraction * totalDays;
     month = addMonths(month, 1);
