@@ -11,7 +11,7 @@ export function ForecastMonthCard({ result, hasParking }: { result: CashflowFore
       <Row label="Kreditrate" value={-lineItems.mortgage} />
 
       <SectionDivider label="Kosten Wohnung" />
-      <Row label="Nicht umlagefähiges Hausgeld" value={-lineItems.hoaNonRecoverableWE} />
+      <Row label="Nicht umlagefähige Kosten" value={-lineItems.hoaNonRecoverableWE} />
       <Row label="Instandhaltungsrücklage" value={-lineItems.maintenanceReserveWE} />
       {lineItems.insuranceWE > 0 && <Row label="Gebäudeversicherung" value={-lineItems.insuranceWE} />}
       <Row label="Verwaltung" value={-lineItems.managementWE} />
@@ -22,7 +22,7 @@ export function ForecastMonthCard({ result, hasParking }: { result: CashflowFore
       {hasParking && (
         <>
           <SectionDivider label="Kosten Stellplatz" />
-          <Row label="Nicht umlagefähiges Hausgeld" value={-lineItems.hoaNonRecoverableTE} />
+          <Row label="Nicht umlagefähige Kosten" value={-lineItems.hoaNonRecoverableTE} />
           <Row label="Instandhaltungsrücklage" value={-lineItems.maintenanceReserveTE} />
           <Row label="Umlagefähige Kosten" value={-lineItems.hoaRecoverableTE} />
           <Row label="Grundsteuer" value={-lineItems.propertyTaxTE} />
