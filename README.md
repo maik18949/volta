@@ -13,6 +13,8 @@ Web-App zur Verwaltung vermieteter Immobilien: Rendite-KPIs, Cashflow Soll/Ist u
 - **Tilgungsplan** — dynamische Restschuld, LTV-Kurve über Zeit
 - **Investment-Rechner** — Objekte vor dem Kauf durchrechnen, bei Kauf direkt übernehmen
 
+https://volta-jade.vercel.app/
+
 ## Vorgehen
 
 Volta ist ein Solo-Projekt. Architektur, Datenmodell und Produktentscheidungen werden selbst getätigt und durch Claude validiert. Implementierung liegt komplett bei Claude.
