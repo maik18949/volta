@@ -15,6 +15,31 @@ Web-App zur Verwaltung vermieteter Immobilien: Rendite-KPIs, Cashflow Soll/Ist u
 
 https://volta-jade.vercel.app/
 
+## Roadmap
+
+Der aktuelle Stand deckt Portfolio-Übersicht, Rendite-KPIs, Cashflow, Steuer und den Investment-Rechner ab. Geplante Ausbaustufen:
+
+**Mieterverwaltung**
+Mieter einer Immobilie zuordnen.
+
+**Dokumente & Automatisierung**
+Zentrale Dokumentenverwaltung pro Immobilie — Kaufverträge, Mietverträge, Energieausweise, Rechnungen, Finanzierungs- und Steuerunterlagen, Gutachten — mit automatischer Kategorisierung. Perspektivisch: KI-Auswertung von Dokumenten, automatische Übernahme relevanter Daten (z. B. Kaufpreis, Mietbeginn) direkt ins Datenmodell.
+
+**KI-Analyse**
+Analyse einzelner Immobilien und des Gesamtportfolios — Auffälligkeiten, Kostenentwicklung, Mietsteigerungspotenzial, Renditeentwicklung, Objektvergleich. Fragen in natürlicher Sprache ("Welche Immobilie hat aktuell die beste Rendite?", "Wo verliere ich am meisten Cashflow?"). Perspektivisch: Investment-Simulationen.
+
+**Reporting & Export**
+PDF-Auswertungen (Portfolio- und Objektberichte), Excel/CSV-Export, automatisch generierte Jahresberichte.
+
+**Benachrichtigungen**
+Proaktive Hinweise zu auslaufenden Mietverträgen und Finanzierungen, lange nicht angepasster Miete, fehlenden Dokumenten, ungewöhnlichen Kosten- oder Einnahmenveränderungen, Fristen sowie Wartungs- und Versicherungsterminen.
+
+**Markt & Bewertung**
+Nebenkostenabrechnung, Einbindung von Verkaufs-/Marktdaten zur Wertermittlung, Unterstützung bei der Due Diligence vor dem Kauf.
+
+**Vision: Makler-Portal**
+Eigenes Portal, über das Makler ihre Objekte einpflegen und Interessenten diese direkt einsehen können — eine mögliche Erweiterung über die private Portfolioverwaltung hinaus.
+
 ## Vorgehen
 
 Volta ist ein Solo-Projekt. Architektur, Datenmodell und Produktentscheidungen werden selbst getätigt und durch Claude validiert. Implementierung liegt komplett bei Claude.
