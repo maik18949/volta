@@ -2,7 +2,7 @@
 
 Web-App zur Verwaltung vermieteter Immobilien: Rendite-KPIs, Cashflow Soll/Ist und steuerliche Auswirkungen auf einen Blick — statt verstreuter Excel-Tabellen.
 
-🚧 **Aktiv in Entwicklung seit Juli 2026** — Solo-Projekt, laufend um weitere Features ergänzt.
+🚧 **Aktiv in Entwicklung seit Juni 2026** — Solo-Projekt, laufend um weitere Features ergänzt.
 
 ## Was die App kann
 
