@@ -186,6 +186,34 @@ export function annualTaxableIncome(input: AnnualTaxableIncomeInput): number {
   return annualTaxableIncomeBreakdown({ ...input, extraordinaryCostsDeductibleYearly: 0 }).taxableIncome;
 }
 
+/**
+ * Lineare Interpolation zwischen einem Vollvermietungs- und einem Leerstand-Szenario
+ * für dieselbe (Jahr, Property)-Kombination. Exakt statt approximiert, weil sich beide
+ * Szenarien in taxLineItemsForScenario nur bei `income`, `hoaRecoverableWE` und
+ * `propertyTaxWE` unterscheiden — alle anderen Felder sind identisch und bleiben durch
+ * die Interpolation unverändert. `quote` ist die angenommene Leerstandsquote (0 = immer
+ * vollvermietet, 1 = immer leerstand).
+ */
+export function blendTaxLineItems(vollvermietung: TaxLineItems, leerstand: TaxLineItems, quote: number): TaxLineItems {
+  const p = quote;
+  return {
+    income: vollvermietung.income * (1 - p) + leerstand.income * p,
+    interest: vollvermietung.interest,
+    depreciation: vollvermietung.depreciation,
+    hoaNonRecoverableWE: vollvermietung.hoaNonRecoverableWE,
+    insuranceWE: vollvermietung.insuranceWE,
+    managementWE: vollvermietung.managementWE,
+    otherCostsWE: vollvermietung.otherCostsWE,
+    hoaRecoverableWE: vollvermietung.hoaRecoverableWE * (1 - p) + leerstand.hoaRecoverableWE * p,
+    propertyTaxWE: vollvermietung.propertyTaxWE * (1 - p) + leerstand.propertyTaxWE * p,
+    hoaNonRecoverableTE: vollvermietung.hoaNonRecoverableTE,
+    hoaRecoverableTE: vollvermietung.hoaRecoverableTE,
+    propertyTaxTE: vollvermietung.propertyTaxTE,
+    extraordinaryCostsDeductible: vollvermietung.extraordinaryCostsDeductible,
+    taxableIncome: vollvermietung.taxableIncome * (1 - p) + leerstand.taxableIncome * p,
+  };
+}
+
 /** Jährlicher Steuereffekt: negatives Ergebnis (Verlust) × Grenzsteuersatz = Erstattung. */
 export function taxEffectYearly(taxableIncomeVV: number, marginalTaxRate: number): number {
   return taxableIncomeVV * marginalTaxRate * -1;

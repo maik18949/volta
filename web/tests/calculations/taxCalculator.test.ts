@@ -5,7 +5,7 @@ import { interestForCalendarYear } from '@/lib/calculations/amortizationCalculat
 import type { StatusEntry } from '@/lib/calculations/statusPeriodCalculator';
 import { annualTaxableIncome, taxEffectYearly, taxEffectMonthly } from '@/lib/calculations/taxCalculator';
 import { annualTaxableIncomeBreakdown } from '@/lib/calculations/taxCalculator';
-import { taxLineItemsForScenario, type TaxScenarioInput } from '@/lib/calculations/taxCalculator';
+import { taxLineItemsForScenario, blendTaxLineItems, type TaxScenarioInput } from '@/lib/calculations/taxCalculator';
 
 const baseInput = {
   economicTransferDate: f.economicTransferDate,
@@ -256,5 +256,57 @@ describe('taxCalculator.taxLineItemsForScenario', () => {
   it('AfA is never prorated (no acquisition-year discount in a scenario forecast)', () => {
     const result = taxLineItemsForScenario({ ...scenarioBaseInput, scenario: 'vollvermietung', year: 2030 });
     expect(result.depreciation).toBeCloseTo(f.afaBasis * f.depreciationRate, 2);
+  });
+});
+
+describe('taxCalculator.blendTaxLineItems', () => {
+  const scenarioBaseInput: Omit<TaxScenarioInput, 'scenario' | 'year'> = {
+    coldRentMonthly: 800,
+    parkingRentMonthly: 0,
+    loanStartDate: makeDate(2020, 1, 1),
+    loanAmount: 200000,
+    interestRate: 0.03,
+    monthlyMortgage: 900,
+    afaBasis: 160000,
+    depreciationRate: 0.02,
+    hoaUnitNonRecoverableMonthly: 100,
+    hoaUnitRecoverableMonthly: 80,
+    hoaParkingNonRecoverableMonthly: 0,
+    hoaParkingRecoverableMonthly: 0,
+    propertyTaxUnitMonthly: 30,
+    propertyTaxParkingMonthly: 0,
+    propertyManagementMonthly: 20,
+    propertyInsuranceMonthly: 0,
+    otherCostsMonthly: 0,
+  };
+
+  it('quote 0 equals the pure vollvermietung scenario', () => {
+    const voll = taxLineItemsForScenario({ ...scenarioBaseInput, scenario: 'vollvermietung', year: 2027 });
+    const leer = taxLineItemsForScenario({ ...scenarioBaseInput, scenario: 'leerstand', year: 2027 });
+    const blended = blendTaxLineItems(voll, leer, 0);
+    expect(blended.taxableIncome).toBeCloseTo(voll.taxableIncome, 6);
+    expect(blended.income).toBeCloseTo(voll.income, 6);
+  });
+
+  it('quote 1 equals the pure leerstand scenario', () => {
+    const voll = taxLineItemsForScenario({ ...scenarioBaseInput, scenario: 'vollvermietung', year: 2027 });
+    const leer = taxLineItemsForScenario({ ...scenarioBaseInput, scenario: 'leerstand', year: 2027 });
+    const blended = blendTaxLineItems(voll, leer, 1);
+    expect(blended.taxableIncome).toBeCloseTo(leer.taxableIncome, 6);
+    expect(blended.hoaRecoverableWE).toBeCloseTo(leer.hoaRecoverableWE, 6);
+    expect(blended.propertyTaxWE).toBeCloseTo(leer.propertyTaxWE, 6);
+  });
+
+  it('quote 0.2 linearly interpolates income and leerstand-only cost lines, leaves scenario-invariant lines untouched', () => {
+    const voll = taxLineItemsForScenario({ ...scenarioBaseInput, scenario: 'vollvermietung', year: 2027 });
+    const leer = taxLineItemsForScenario({ ...scenarioBaseInput, scenario: 'leerstand', year: 2027 });
+    const blended = blendTaxLineItems(voll, leer, 0.2);
+    expect(blended.income).toBeCloseTo(voll.income * 0.8, 6);
+    expect(blended.hoaRecoverableWE).toBeCloseTo(leer.hoaRecoverableWE * 0.2, 6);
+    expect(blended.propertyTaxWE).toBeCloseTo(leer.propertyTaxWE * 0.2, 6);
+    expect(blended.interest).toBe(voll.interest);
+    expect(blended.depreciation).toBe(voll.depreciation);
+    expect(blended.hoaNonRecoverableWE).toBe(voll.hoaNonRecoverableWE);
+    expect(blended.taxableIncome).toBeCloseTo(voll.taxableIncome * 0.8 + leer.taxableIncome * 0.2, 6);
   });
 });
