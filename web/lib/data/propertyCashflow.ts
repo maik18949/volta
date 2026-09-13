@@ -16,8 +16,6 @@ type PropertyRow = Database['public']['Tables']['properties']['Row'];
 type StatusEntryRow = Database['public']['Tables']['status_entries']['Row'];
 type ExtraordinaryCostRow = Database['public']['Tables']['extraordinary_costs']['Row'];
 
-export type CashflowScenario = 'vollvermietung' | 'leerstand';
-
 export interface CashflowForecastMonthResult {
   leerstandQuote: number;
   lineItems: CashflowLineItems;

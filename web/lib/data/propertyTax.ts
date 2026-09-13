@@ -17,9 +17,6 @@ type PropertyRow = Database['public']['Tables']['properties']['Row'];
 type StatusEntryRow = Database['public']['Tables']['status_entries']['Row'];
 type ExtraordinaryCostRow = Database['public']['Tables']['extraordinary_costs']['Row'];
 
-/** Steuer tab Section 2 scenario toggle — stands in for status history when projecting a future year. */
-export type TaxScenarioChoice = 'vollvermietung' | 'leerstand';
-
 function deductibleExtraordinaryCostsForYear(extraordinaryCostRows: ExtraordinaryCostRow[], year: number): number {
   return extraordinaryCostRows
     .filter((row) => row.is_deductible && row.cost_month.slice(0, 4) === String(year))
