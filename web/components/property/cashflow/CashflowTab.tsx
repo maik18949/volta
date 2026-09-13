@@ -43,7 +43,14 @@ export function CashflowTab({
   const parsedLeerstandParam = leerstandParam !== null ? Number(leerstandParam) : NaN;
   const quote = Number.isFinite(parsedLeerstandParam) ? Math.min(100, Math.max(0, parsedLeerstandParam)) : defaultQuote;
 
-  const forecast = computeCashflowForecastMonth(property, statusEntries, extraordinaryCosts, quote / 100, today);
+  const forecast = computeCashflowForecastMonth(
+    property,
+    statusEntries,
+    extraordinaryCosts,
+    quote / 100,
+    defaultQuote / 100,
+    today
+  );
   const economicTransferDate = new Date(property.economic_transfer_date + 'T00:00:00Z');
   const minYear = economicTransferDate.getUTCFullYear();
   const yearTable = computeCashflowYearTable(property, statusEntries, extraordinaryCosts, year, today);

@@ -36,9 +36,14 @@ export interface TaxCurrentYearResult {
 /**
  * Steuer tab Section 1 ("Laufendes Jahr") — Ist + Projektion for the current
  * calendar year. Also the shared source of truth for "current year tax
- * effect": the Cashflow tab's Card 1 and Card 2 must show this exact value
- * (spec-cashflow-tab.md requires them to agree), so propertyCashflow.ts
- * (Task 9/10) calls this function rather than recomputing it.
+ * effect": the Cashflow tab's Card 2 always calls this with no override, and
+ * Card 1 (propertyCashflow.ts, computeCashflowForecastMonth) calls it the
+ * same way — with no override — whenever its Leerstandsquote slider sits at
+ * its computed default, so all three cards agree exactly on an untouched
+ * page load (spec-cashflow-tab.md requires them to agree). Card 1
+ * intentionally diverges, via the `leerstandQuoteOverride` parameter below,
+ * once the user actually moves that slider away from the default, to show a
+ * genuine what-if scenario.
  */
 export function computeTaxCurrentYear(
   property: PropertyRow,
@@ -124,7 +129,6 @@ export function computeTaxCurrentYear(
 
 export interface TaxForecastYearResult {
   year: number;
-  leerstandQuote: number;
   lineItems: TaxLineItems;
   taxEffectYearly: number;
   taxEffectMonthly: number;
@@ -182,5 +186,5 @@ export function computeTaxForecastYear(property: PropertyRow, year: number, leer
   const taxEffectYear = taxEffectYearly(lineItems.taxableIncome, property.marginal_tax_rate);
   const taxEffectMonth = computeTaxEffectMonthly(taxEffectYear, 12);
 
-  return { year, leerstandQuote, lineItems, taxEffectYearly: taxEffectYear, taxEffectMonthly: taxEffectMonth };
+  return { year, lineItems, taxEffectYearly: taxEffectYear, taxEffectMonthly: taxEffectMonth };
 }

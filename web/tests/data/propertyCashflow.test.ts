@@ -123,31 +123,34 @@ describe('computeCashflowForecastMonth', () => {
   const today = makeDate(2026, 6, 15);
 
   it('leerstandQuote 0: full income, no owner-borne recoverable WE costs', () => {
-    const result = computeCashflowForecastMonth(property, statusEntries, [], 0, today);
+    const result = computeCashflowForecastMonth(property, statusEntries, [], 0, 0, today);
     expect(result.lineItems.income).toBeCloseTo(f.coldRentMonthly + f.parkingRentMonthly, 2);
     expect(result.lineItems.hoaRecoverableWE).toBe(0);
   });
 
   it('leerstandQuote 1: zero income, full owner-borne recoverable WE costs', () => {
-    const result = computeCashflowForecastMonth(property, statusEntries, [], 1, today);
+    const result = computeCashflowForecastMonth(property, statusEntries, [], 1, 0, today);
     expect(result.lineItems.income).toBe(0);
     expect(result.lineItems.hoaRecoverableWE).toBeCloseTo(f.hoaFeeRecoverableMonthly, 2);
   });
 
-  it('taxEffectMonthly matches computeTaxCurrentYear with the same leerstandQuoteOverride', () => {
-    const result = computeCashflowForecastMonth(property, statusEntries, [], 0, today);
+  it('taxEffectMonthly forwards the override to computeTaxCurrentYear once leerstandQuote differs from the default', () => {
+    // defaultLeerstandQuote (0.5) deliberately differs from leerstandQuote (0) here so this
+    // exercises the override-forwarding branch specifically — see the dedicated "agree at the
+    // default" / "diverge away from the default" tests below for the new default-matching logic.
+    const result = computeCashflowForecastMonth(property, statusEntries, [], 0, 0.5, today);
     const direct = computeTaxCurrentYear(property, statusEntries, [], today, 0);
     expect(result.taxEffectMonthly).toBeCloseTo(direct.taxEffectMonthly, 6);
   });
 
   it('cashflowAfterTax = cashflowBeforeTax + taxEffectMonthly', () => {
-    const result = computeCashflowForecastMonth(property, statusEntries, [], 1, today);
+    const result = computeCashflowForecastMonth(property, statusEntries, [], 1, 0, today);
     expect(result.cashflowAfterTax).toBeCloseTo(result.lineItems.cashflowBeforeTax + result.taxEffectMonthly, 6);
   });
 
   it('Card 1 never includes an actual extraordinary cost (it is a hypothetical typical month)', () => {
     const cost = makeExtraordinaryCost({ cost_month: today.toISOString().slice(0, 10) });
-    const result = computeCashflowForecastMonth(property, statusEntries, [cost], 0, today);
+    const result = computeCashflowForecastMonth(property, statusEntries, [cost], 0, 0, today);
     expect(result.lineItems.extraordinaryCosts).toBe(0);
   });
 
@@ -167,7 +170,7 @@ describe('computeCashflowForecastMonth', () => {
       hoa_fee_parking_maintenance_reserve_monthly: 3,
       property_tax_parking_annual: 60, // /12 = 5/mo
     });
-    const result = computeCashflowForecastMonth(withExtras, statusEntries, [], 0, today);
+    const result = computeCashflowForecastMonth(withExtras, statusEntries, [], 0, 0, today);
 
     expect(result.lineItems.insuranceWE).toBeCloseTo(20, 2);
     expect(result.lineItems.otherCostsWE).toBeCloseTo(15, 2);
@@ -184,6 +187,41 @@ describe('computeCashflowForecastMonth', () => {
     expect(result.lineItems.propertyTaxTE).toBeCloseTo(5, 2);
     expect(result.lineItems.propertyTaxWE).toBe(0);
     expect(result.lineItems.hoaRecoverableWE).toBe(0);
+  });
+});
+
+describe('computeCashflowForecastMonth — default-quote tax-effect consistency (regression: 3-way divergence bug)', () => {
+  // Mirrors the reported bug scenario: vacant Jan-Feb, re-rented since March, "today" in
+  // September — a property whose computed default Leerstandsquote for the year is nonzero
+  // because of vacancy earlier in the year that has since ended.
+  const vacancyProperty = makeProperty({ economic_transfer_date: '2025-10-01' });
+  const vacancyStatusEntries = [
+    makeStatusEntry({ id: 'status-vacant', date: '2026-01-01', status: 'leerstand' }),
+    makeStatusEntry({ id: 'status-rented', date: '2026-03-01', status: 'vermietet' }),
+  ];
+  const today = makeDate(2026, 9, 12);
+  const defaultQuote = 0.22; // representative nonzero default (~actualVacancyRateYear for this fixture)
+
+  it('agrees exactly with computeTaxCurrentYear (no override) when leerstandQuote equals the default — this is what Card 2 and the Steuer tab show on an untouched page load', () => {
+    const result = computeCashflowForecastMonth(vacancyProperty, vacancyStatusEntries, [], defaultQuote, defaultQuote, today);
+    const direct = computeTaxCurrentYear(vacancyProperty, vacancyStatusEntries, [], today);
+    expect(result.taxEffectMonthly).toBeCloseTo(direct.taxEffectMonthly, 6);
+  });
+
+  it('diverges (deliberately) once leerstandQuote differs from the default, matching computeTaxCurrentYear WITH that override', () => {
+    const divergentQuote = 1;
+    const result = computeCashflowForecastMonth(
+      vacancyProperty,
+      vacancyStatusEntries,
+      [],
+      divergentQuote,
+      defaultQuote,
+      today
+    );
+    const withOverride = computeTaxCurrentYear(vacancyProperty, vacancyStatusEntries, [], today, divergentQuote);
+    const withoutOverride = computeTaxCurrentYear(vacancyProperty, vacancyStatusEntries, [], today);
+    expect(result.taxEffectMonthly).toBeCloseTo(withOverride.taxEffectMonthly, 6);
+    expect(result.taxEffectMonthly).not.toBeCloseTo(withoutOverride.taxEffectMonthly, 2);
   });
 });
 

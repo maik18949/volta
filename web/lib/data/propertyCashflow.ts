@@ -17,7 +17,6 @@ type StatusEntryRow = Database['public']['Tables']['status_entries']['Row'];
 type ExtraordinaryCostRow = Database['public']['Tables']['extraordinary_costs']['Row'];
 
 export interface CashflowForecastMonthResult {
-  leerstandQuote: number;
   lineItems: CashflowLineItems;
   taxEffectMonthly: number;
   cashflowAfterTax: number;
@@ -27,13 +26,25 @@ export interface CashflowForecastMonthResult {
  * Cashflow tab Card 1 ("Prognose / Monat") — a settings-only typical month
  * blended between a full vollvermietung and a full leerstand scenario by
  * `leerstandQuote` (0 = vollvermietung, 1 = leerstand), per
- * blendCashflowLineItems. taxEffectMonthly comes from computeTaxCurrentYear's
- * `leerstandQuoteOverride` mechanism (Task 6): elapsed months of the current
- * year stay real Ist data, and the remaining months are recomputed as if
- * they had this exact vacancy quote. That is deliberately different from
- * both (a) always using the real Ist-based number regardless of the chosen
- * quote — which would keep showing the real (usually vollvermietung-based)
- * tax refund even while the line items above simulate a vacancy — and
+ * blendCashflowLineItems. That blend always applies to the line items above,
+ * regardless of where the slider sits, since it is meant to show "what a
+ * typical month looks like at this quote."
+ *
+ * taxEffectMonthly is different: it must agree EXACTLY with Card 2 and the
+ * Steuer tab's "Laufendes Jahr" card (both of which call computeTaxCurrentYear
+ * with no override) whenever the slider sits at its computed default — three
+ * cards on one screen must not disagree about "this year's tax effect" on an
+ * untouched page load. So the override is applied conditionally: at the
+ * default (`leerstandQuote === defaultLeerstandQuote`), this calls
+ * computeTaxCurrentYear with no override, bit-identical to Card 2/Steuer tab.
+ * Only once the user actually moves the slider away from the default does it
+ * switch to computeTaxCurrentYear's `leerstandQuoteOverride` mechanism (Task
+ * 6): elapsed months of the current year stay real Ist data, and the
+ * remaining months are recomputed as if they had this exact vacancy quote —
+ * a genuine "what if" scenario. That is deliberately different from both
+ * (a) always using the real Ist-based number regardless of the chosen quote
+ * — which would keep showing the real (usually vollvermietung-based) tax
+ * refund even while the line items above simulate a vacancy — and
  * (b) computeTaxForecastYear, which represents a fully hypothetical year
  * with no Ist data at all and would be a mismatch for a "current year,
  * right now" forecast card.
@@ -43,6 +54,7 @@ export function computeCashflowForecastMonth(
   statusEntryRows: StatusEntryRow[],
   extraordinaryCostRows: ExtraordinaryCostRow[],
   leerstandQuote: number,
+  defaultLeerstandQuote: number,
   today: Date = new Date()
 ): CashflowForecastMonthResult {
   const hoaFeeNonRecoverableMonthly = hoaNonRecoverableMonthly(
@@ -79,10 +91,12 @@ export function computeCashflowForecastMonth(
   const leerstandLineItems = cashflowLineItemsForScenario({ scenario: 'leerstand', ...scenarioInputBase });
   const lineItems = blendCashflowLineItems(vollvermietungLineItems, leerstandLineItems, leerstandQuote);
 
-  const { taxEffectMonthly } = computeTaxCurrentYear(property, statusEntryRows, extraordinaryCostRows, today, leerstandQuote);
+  const { taxEffectMonthly } =
+    leerstandQuote === defaultLeerstandQuote
+      ? computeTaxCurrentYear(property, statusEntryRows, extraordinaryCostRows, today)
+      : computeTaxCurrentYear(property, statusEntryRows, extraordinaryCostRows, today, leerstandQuote);
 
   return {
-    leerstandQuote,
     lineItems,
     taxEffectMonthly,
     cashflowAfterTax: lineItems.cashflowBeforeTax + taxEffectMonthly,
