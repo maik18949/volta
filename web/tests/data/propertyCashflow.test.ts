@@ -122,32 +122,32 @@ describe('computeCashflowForecastMonth', () => {
   const statusEntries = [makeStatusEntry()];
   const today = makeDate(2026, 6, 15);
 
-  it('vollvermietung: full income, no owner-borne recoverable WE costs', () => {
-    const result = computeCashflowForecastMonth(property, statusEntries, [], 'vollvermietung', today);
+  it('leerstandQuote 0: full income, no owner-borne recoverable WE costs', () => {
+    const result = computeCashflowForecastMonth(property, statusEntries, [], 0, today);
     expect(result.lineItems.income).toBeCloseTo(f.coldRentMonthly + f.parkingRentMonthly, 2);
     expect(result.lineItems.hoaRecoverableWE).toBe(0);
   });
 
-  it('leerstand: zero income, full owner-borne recoverable WE costs', () => {
-    const result = computeCashflowForecastMonth(property, statusEntries, [], 'leerstand', today);
+  it('leerstandQuote 1: zero income, full owner-borne recoverable WE costs', () => {
+    const result = computeCashflowForecastMonth(property, statusEntries, [], 1, today);
     expect(result.lineItems.income).toBe(0);
     expect(result.lineItems.hoaRecoverableWE).toBeCloseTo(f.hoaFeeRecoverableMonthly, 2);
   });
 
-  it('taxEffectMonthly matches computeTaxCurrentYear exactly (spec requires the two tabs to agree)', () => {
-    const result = computeCashflowForecastMonth(property, statusEntries, [], 'vollvermietung', today);
-    const taxResult = computeTaxCurrentYear(property, statusEntries, [], today);
-    expect(result.taxEffectMonthly).toBe(taxResult.taxEffectMonthly);
+  it('taxEffectMonthly matches computeTaxCurrentYear with the same leerstandQuoteOverride', () => {
+    const result = computeCashflowForecastMonth(property, statusEntries, [], 0, today);
+    const direct = computeTaxCurrentYear(property, statusEntries, [], today, 0);
+    expect(result.taxEffectMonthly).toBeCloseTo(direct.taxEffectMonthly, 6);
   });
 
   it('cashflowAfterTax = cashflowBeforeTax + taxEffectMonthly', () => {
-    const result = computeCashflowForecastMonth(property, statusEntries, [], 'leerstand', today);
+    const result = computeCashflowForecastMonth(property, statusEntries, [], 1, today);
     expect(result.cashflowAfterTax).toBeCloseTo(result.lineItems.cashflowBeforeTax + result.taxEffectMonthly, 6);
   });
 
   it('Card 1 never includes an actual extraordinary cost (it is a hypothetical typical month)', () => {
     const cost = makeExtraordinaryCost({ cost_month: today.toISOString().slice(0, 10) });
-    const result = computeCashflowForecastMonth(property, statusEntries, [cost], 'vollvermietung', today);
+    const result = computeCashflowForecastMonth(property, statusEntries, [cost], 0, today);
     expect(result.lineItems.extraordinaryCosts).toBe(0);
   });
 
@@ -167,7 +167,7 @@ describe('computeCashflowForecastMonth', () => {
       hoa_fee_parking_maintenance_reserve_monthly: 3,
       property_tax_parking_annual: 60, // /12 = 5/mo
     });
-    const result = computeCashflowForecastMonth(withExtras, statusEntries, [], 'vollvermietung', today);
+    const result = computeCashflowForecastMonth(withExtras, statusEntries, [], 0, today);
 
     expect(result.lineItems.insuranceWE).toBeCloseTo(20, 2);
     expect(result.lineItems.otherCostsWE).toBeCloseTo(15, 2);

@@ -6,6 +6,7 @@ import type { StatusEntry, PropertyStatus } from '@/lib/calculations/statusPerio
 import {
   cashflowLineItemsForScenario,
   cashflowLineItemsForActualMonth,
+  blendCashflowLineItems,
   type CashflowLineItems,
 } from '@/lib/calculations/cashflowCalculator';
 import { hoaNonRecoverableMonthly } from '@/lib/calculations/kpiCalculator';
@@ -18,7 +19,7 @@ type ExtraordinaryCostRow = Database['public']['Tables']['extraordinary_costs'][
 export type CashflowScenario = 'vollvermietung' | 'leerstand';
 
 export interface CashflowForecastMonthResult {
-  scenario: CashflowScenario;
+  leerstandQuote: number;
   lineItems: CashflowLineItems;
   taxEffectMonthly: number;
   cashflowAfterTax: number;
@@ -26,15 +27,24 @@ export interface CashflowForecastMonthResult {
 
 /**
  * Cashflow tab Card 1 ("Prognose / Monat") — a settings-only typical month
- * for the chosen scenario. taxEffectMonthly comes from computeTaxCurrentYear
- * (propertyTax.ts) so it's guaranteed to match the Steuer tab and Card 2's
- * "Steuererstattung Ø/Mon" row exactly, per spec-cashflow-tab.md.
+ * blended between a full vollvermietung and a full leerstand scenario by
+ * `leerstandQuote` (0 = vollvermietung, 1 = leerstand), per
+ * blendCashflowLineItems. taxEffectMonthly comes from computeTaxCurrentYear's
+ * `leerstandQuoteOverride` mechanism (Task 6): elapsed months of the current
+ * year stay real Ist data, and the remaining months are recomputed as if
+ * they had this exact vacancy quote. That is deliberately different from
+ * both (a) always using the real Ist-based number regardless of the chosen
+ * quote — which would keep showing the real (usually vollvermietung-based)
+ * tax refund even while the line items above simulate a vacancy — and
+ * (b) computeTaxForecastYear, which represents a fully hypothetical year
+ * with no Ist data at all and would be a mismatch for a "current year,
+ * right now" forecast card.
  */
 export function computeCashflowForecastMonth(
   property: PropertyRow,
   statusEntryRows: StatusEntryRow[],
   extraordinaryCostRows: ExtraordinaryCostRow[],
-  scenario: CashflowScenario,
+  leerstandQuote: number,
   today: Date = new Date()
 ): CashflowForecastMonthResult {
   const hoaFeeNonRecoverableMonthly = hoaNonRecoverableMonthly(
@@ -48,8 +58,7 @@ export function computeCashflowForecastMonth(
     property.hoa_fee_parking_maintenance_reserve_monthly
   );
 
-  const lineItems = cashflowLineItemsForScenario({
-    scenario,
+  const scenarioInputBase = {
     coldRentMonthly: property.cold_rent_monthly,
     parkingRentMonthly: property.parking_rent_monthly,
     otherIncomeMonthly: property.other_income_monthly,
@@ -66,11 +75,20 @@ export function computeCashflowForecastMonth(
     hoaFeeParkingRecoverableMonthly: property.hoa_fee_parking_recoverable_monthly,
     propertyTaxParkingAnnual: property.property_tax_parking_annual,
     extraordinaryCostsThisMonth: 0,
-  });
+  };
 
-  const { taxEffectMonthly } = computeTaxCurrentYear(property, statusEntryRows, extraordinaryCostRows, today);
+  const vollvermietungLineItems = cashflowLineItemsForScenario({ scenario: 'vollvermietung', ...scenarioInputBase });
+  const leerstandLineItems = cashflowLineItemsForScenario({ scenario: 'leerstand', ...scenarioInputBase });
+  const lineItems = blendCashflowLineItems(vollvermietungLineItems, leerstandLineItems, leerstandQuote);
 
-  return { scenario, lineItems, taxEffectMonthly, cashflowAfterTax: lineItems.cashflowBeforeTax + taxEffectMonthly };
+  const { taxEffectMonthly } = computeTaxCurrentYear(property, statusEntryRows, extraordinaryCostRows, today, leerstandQuote);
+
+  return {
+    leerstandQuote,
+    lineItems,
+    taxEffectMonthly,
+    cashflowAfterTax: lineItems.cashflowBeforeTax + taxEffectMonthly,
+  };
 }
 
 const ZERO_LINE_ITEMS: CashflowLineItems = {
