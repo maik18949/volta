@@ -165,6 +165,41 @@ describe('computeOverviewMetrics', () => {
     expect(withoutHistory.actualVacancyRate).toBeNull();
   });
 
+  it('actualVacancyRateYear only counts leerstand days within the current calendar year', () => {
+    const todayYear = makeDate(2026, 9, 12);
+    const propertyYear = makeProperty({ economic_transfer_date: '2023-01-01' });
+    // Ganzes Jahr 2026 bis heute leerstand, alle Vorjahre vermietet.
+    const statusEntriesYear = [
+      makeStatusEntry({ date: '2023-01-01', status: 'vermietet' }),
+      makeStatusEntry({ date: '2026-01-01', status: 'leerstand' }),
+    ];
+    const summaryYear = computePropertySummary(propertyYear, statusEntriesYear, todayYear);
+    const resultYear = computeOverviewMetrics(propertyYear, statusEntriesYear, extraordinaryCosts, summaryYear, todayYear);
+    // 2026: 1. Jan - 12. Sep = 255 Tage, alle leerstand -> Quote nahe 1.0
+    expect(resultYear.actualVacancyRateYear).not.toBeNull();
+    expect(resultYear.actualVacancyRateYear!).toBeCloseTo(1.0, 2);
+    // Gesamtquote (seit 2023) bleibt klein, weil die Vorjahre vermietet waren.
+    expect(resultYear.actualVacancyRate!).toBeLessThan(0.3);
+  });
+
+  it('actualVacancyRateYear is null when there is no status history', () => {
+    const todayYear = makeDate(2026, 9, 12);
+    const propertyYear = makeProperty({ economic_transfer_date: '2023-01-01' });
+    const summaryYear = computePropertySummary(propertyYear, [], todayYear);
+    const resultYear = computeOverviewMetrics(propertyYear, [], extraordinaryCosts, summaryYear, todayYear);
+    expect(resultYear.actualVacancyRateYear).toBeNull();
+  });
+
+  it('actualVacancyRateYear clamps its window to economicTransferDate when acquired mid-year', () => {
+    const todayYear = makeDate(2026, 9, 12);
+    // Kauf erst im Juni 2026 -> Fenster beginnt am Kaufdatum, nicht am 1. Januar.
+    const propertyYear = makeProperty({ economic_transfer_date: '2026-06-01' });
+    const statusEntriesYear = [makeStatusEntry({ date: '2026-06-01', status: 'vermietet' })];
+    const summaryYear = computePropertySummary(propertyYear, statusEntriesYear, todayYear);
+    const resultYear = computeOverviewMetrics(propertyYear, statusEntriesYear, extraordinaryCosts, summaryYear, todayYear);
+    expect(resultYear.actualVacancyRateYear).toBeCloseTo(0, 4);
+  });
+
   it('cashOnCash matches annualCashflowBeforeTax(...) PRE-tax, divided by equityUsed (equityContributed is 0)', () => {
     const hoaFeeNonRecoverableMonthly =
       property.hoa_fee_total_monthly - property.hoa_fee_recoverable_monthly - property.hoa_fee_maintenance_reserve_monthly;

@@ -40,6 +40,11 @@ export interface OverviewMetrics {
    */
   leerstandDaysSinceTransfer: number;
   ownershipDaysSinceTransfer: number;
+  /** Wie actualVacancyRateYear, aber die Roh-Tageszahlen für die Berechnung-Anzeige im KPI-Info-Modal. */
+  leerstandDaysThisYear: number;
+  ownershipDaysThisYear: number;
+  /** Tatsächliche Leerstandsquote nur für das laufende Kalenderjahr (ab 1. Januar oder Kaufdatum, falls später). */
+  actualVacancyRateYear: number | null;
   breakEvenRentMonthly: number;
   /** Real equity_contributed + broker_commission_agreement once either is set, else the theoretical totalInvestment - loanAmount. */
   equityUsed: number;
@@ -75,6 +80,15 @@ export function computeOverviewMetrics(
 
   const { ownershipDays, leerstandDays } = ownershipAndVacancyDaysSinceTransfer(statusHistory, economicTransferDate, today);
   const actualVacancyRateValue = statusHistory.length === 0 ? null : actualVacancyRate(leerstandDays, ownershipDays);
+
+  const startOfCurrentYear = new Date(Date.UTC(today.getUTCFullYear(), 0, 1));
+  const yearWindowStart = economicTransferDate.getTime() > startOfCurrentYear.getTime() ? economicTransferDate : startOfCurrentYear;
+  const { ownershipDays: ownershipDaysThisYear, leerstandDays: leerstandDaysThisYear } = ownershipAndVacancyDaysSinceTransfer(
+    statusHistory,
+    yearWindowStart,
+    today
+  );
+  const actualVacancyRateYearValue = statusHistory.length === 0 ? null : actualVacancyRate(leerstandDaysThisYear, ownershipDaysThisYear);
 
   const hoaFeeNonRecoverableMonthly =
     property.hoa_fee_total_monthly - property.hoa_fee_recoverable_monthly - property.hoa_fee_maintenance_reserve_monthly;
@@ -169,6 +183,9 @@ export function computeOverviewMetrics(
     eigenkapitalrenditeNumerator,
     leerstandDaysSinceTransfer: leerstandDays,
     ownershipDaysSinceTransfer: ownershipDays,
+    leerstandDaysThisYear,
+    ownershipDaysThisYear,
+    actualVacancyRateYear: actualVacancyRateYearValue,
     breakEvenRentMonthly: breakEvenRentMonthlyValue,
     // Same resolved value as the Cash-on-Cash denominator (real contributed equity when
     // entered, else the theoretical totalInvestment-minus-loan estimate) — the "Eigenkapital"
