@@ -22,6 +22,7 @@ const AXIS_FORMAT: Record<BenchmarkKpi, (value: number) => string> = {
   dscr: (value) => formatNumber(value, 2),
   ltv: formatPercent,
   actualVacancyRate: formatPercent,
+  actualVacancyRateYear: formatPercent,
 };
 
 /**

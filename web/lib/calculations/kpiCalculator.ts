@@ -107,7 +107,8 @@ export type BenchmarkKpi =
   | 'kaufpreisfaktor'
   | 'dscr'
   | 'ltv'
-  | 'actualVacancyRate';
+  | 'actualVacancyRate'
+  | 'actualVacancyRateYear';
 export type BenchmarkColor = 'green' | 'orange' | 'red';
 
 interface BenchmarkThreshold {
@@ -134,6 +135,7 @@ const BENCHMARK_THRESHOLDS: Record<BenchmarkKpi, BenchmarkThreshold> = {
   dscr: { direction: 'higherIsBetter', green: 1.25, orange: 1.0, domainMin: 0, domainMax: 2.0 },
   ltv: { direction: 'lowerIsBetter', green: 0.7, orange: 0.8, domainMin: 0, domainMax: 1.1 },
   actualVacancyRate: { direction: 'lowerIsBetter', green: 0.03, orange: 0.08, domainMin: 0, domainMax: 0.2 },
+  actualVacancyRateYear: { direction: 'lowerIsBetter', green: 0.03, orange: 0.08, domainMin: 0, domainMax: 0.2 },
 };
 
 /** Chip color for a KPI value. null value (no data yet) -> null (no chip rendered). */

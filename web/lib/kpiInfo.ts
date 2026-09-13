@@ -87,4 +87,11 @@ export const KPI_INFO: Record<BenchmarkKpi, KpiInfo> = {
     goodWhen: 'Unter 3 % ist der Leerstand gering. Über 8 % liegt deutlich über dem, was die meisten Kalkulationen einplanen.',
     einordnung: 'Nationaler Markt-Leerstand Ende 2024 bei ~2,2 %. In strukturschwachen Regionen reale Leerstandsquoten von 10–15 %+.',
   },
+  actualVacancyRateYear: {
+    name: 'Tats. Leerstandsquote (Jahr)',
+    formula: 'Leerstandstage im laufenden Jahr\n÷ Eigentumstage im laufenden Jahr',
+    purpose:
+      'Wie "Tatsächliche Leerstandsquote", aber nur für das laufende Kalenderjahr statt die gesamte Haltedauer — zeigt, wie dieses Jahr bisher konkret lief, unabhängig vom Durchschnitt vergangener Jahre. Speist den Leerstandsquote-Regler im Steuer-Tab.',
+    goodWhen: 'Unter 3 % ist der Leerstand dieses Jahr gering. Über 8 % liegt deutlich über dem, was die meisten Kalkulationen einplanen.',
+  },
 };
