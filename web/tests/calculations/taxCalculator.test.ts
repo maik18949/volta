@@ -209,6 +209,76 @@ describe('taxCalculator.annualTaxableIncomeBreakdown', () => {
     expect(breakdown.income).toBe(0);
     expect(breakdown.extraordinaryCostsDeductible).toBe(0);
   });
+
+  it('without leerstandQuoteOverride, behaves exactly as before (regression guard)', () => {
+    const input = {
+      year: 2026,
+      statusHistory: [{ date: makeDate(2026, 1, 1), status: 'vermietet' as const, incomeActualMonthly: null }],
+      economicTransferDate: makeDate(2023, 1, 1),
+      loanStartDate: makeDate(2020, 1, 1),
+      loanAmount: 200000,
+      interestRate: 0.03,
+      monthlyMortgage: 900,
+      afaBasis: 160000,
+      depreciationRate: 0.02,
+      hoaUnitNonRecoverableMonthly: 100,
+      hoaUnitRecoverableMonthly: 80,
+      hoaParkingNonRecoverableMonthly: 0,
+      hoaParkingRecoverableMonthly: 0,
+      propertyTaxUnitMonthly: 30,
+      propertyTaxParkingMonthly: 0,
+      propertyManagementMonthly: 20,
+      propertyInsuranceMonthly: 0,
+      otherCostsMonthly: 0,
+      coldRentMonthly: 800,
+      parkingRentMonthly: 0,
+      otherIncomeMonthly: 0,
+      today: makeDate(2026, 9, 12),
+      extraordinaryCostsDeductibleYearly: 0,
+    };
+    const withoutOverride = annualTaxableIncomeBreakdown(input);
+    const withUndefinedOverride = annualTaxableIncomeBreakdown({ ...input, leerstandQuoteOverride: undefined });
+    expect(withUndefinedOverride).toEqual(withoutOverride);
+  });
+
+  it('leerstandQuoteOverride blends only months from the given month onward, leaves earlier months as real Ist', () => {
+    const input = {
+      year: 2026,
+      statusHistory: [{ date: makeDate(2026, 1, 1), status: 'vermietet' as const, incomeActualMonthly: null }],
+      economicTransferDate: makeDate(2023, 1, 1),
+      loanStartDate: makeDate(2020, 1, 1),
+      loanAmount: 200000,
+      interestRate: 0.03,
+      monthlyMortgage: 900,
+      afaBasis: 160000,
+      depreciationRate: 0.02,
+      hoaUnitNonRecoverableMonthly: 100,
+      hoaUnitRecoverableMonthly: 80,
+      hoaParkingNonRecoverableMonthly: 0,
+      hoaParkingRecoverableMonthly: 0,
+      propertyTaxUnitMonthly: 30,
+      propertyTaxParkingMonthly: 0,
+      propertyManagementMonthly: 20,
+      propertyInsuranceMonthly: 0,
+      otherCostsMonthly: 0,
+      coldRentMonthly: 800,
+      parkingRentMonthly: 0,
+      otherIncomeMonthly: 0,
+      today: makeDate(2026, 9, 12),
+      extraordinaryCostsDeductibleYearly: 0,
+    };
+    const naive = annualTaxableIncomeBreakdown(input);
+    const overridden = annualTaxableIncomeBreakdown({
+      ...input,
+      leerstandQuoteOverride: { fromMonth: makeDate(2026, 9, 1), quote: 1 }, // volle Leerstand-Annahme ab September
+    });
+    // Ab September (4 Monate: Sep-Dez) fällt die Miete komplett weg -> weniger Einnahmen als naiv (weiterhin vermietet).
+    expect(overridden.income).toBeLessThan(naive.income);
+    expect(overridden.income).toBeCloseTo(naive.income - 800 * 4, 2);
+    // Zinsen/AfA sind vom Override unberührt.
+    expect(overridden.interest).toBe(naive.interest);
+    expect(overridden.depreciation).toBe(naive.depreciation);
+  });
 });
 
 describe('taxCalculator.taxLineItemsForScenario', () => {

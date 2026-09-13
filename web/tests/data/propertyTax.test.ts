@@ -191,6 +191,18 @@ describe('computeTaxCurrentYear', () => {
     expect(result.lineItems.hoaRecoverableTE).toBeCloseTo(12 * 11, 2); // 132
     expect(result.lineItems.propertyTaxTE).toBeCloseTo(5 * 11, 2); // 55
   });
+
+  it('leerstandQuoteOverride, when passed, changes the result vs. the default call', () => {
+    const withoutOverride = computeTaxCurrentYear(property, statusEntries, [], today);
+    const withOverride = computeTaxCurrentYear(property, statusEntries, [], today, 1);
+    expect(withOverride.taxEffectMonthly).not.toBeCloseTo(withoutOverride.taxEffectMonthly, 2);
+  });
+
+  it('omitting leerstandQuoteOverride keeps the exact previous behavior', () => {
+    const a = computeTaxCurrentYear(property, statusEntries, [], today);
+    const b = computeTaxCurrentYear(property, statusEntries, [], today);
+    expect(a).toEqual(b);
+  });
 });
 
 describe('computeTaxForecastYear', () => {

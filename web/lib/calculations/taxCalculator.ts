@@ -49,6 +49,14 @@ export interface TaxLineItems {
 export interface AnnualTaxableIncomeBreakdownInput extends AnnualTaxableIncomeInput {
   /** Sum of extraordinary_costs.amount for the year where is_deductible = true. */
   extraordinaryCostsDeductibleYearly: number;
+  /**
+   * Wenn gesetzt: jeder Monat ab (einschließlich) `fromMonth` verwendet `quote` als
+   * Leerstandsanteil statt der echten Status-Historie — für "was wäre, wenn der Rest
+   * des Jahres X % Leerstand hätte" statt der naiven Fortschreibung des letzten
+   * bekannten Status. Monate davor bleiben unverändert Ist-basiert. Ohne dieses Feld
+   * ist das Verhalten byte-identisch zu vorher.
+   */
+  leerstandQuoteOverride?: { fromMonth: Date; quote: number };
 }
 
 const ZERO_TAX_LINE_ITEMS: TaxLineItems = {
@@ -107,7 +115,13 @@ export function annualTaxableIncomeBreakdown(input: AnnualTaxableIncomeBreakdown
     const ownerFraction = ownershipDayFraction(month, input.economicTransferDate);
     ownershipMonthEquivalent += ownerFraction;
 
-    const leerstandFraction = leerstandDayFraction(month, input.statusHistory, input.today);
+    const useOverride =
+      input.leerstandQuoteOverride !== undefined && month.getTime() >= input.leerstandQuoteOverride.fromMonth.getTime();
+    const overrideQuote = input.leerstandQuoteOverride?.quote;
+
+    const leerstandFraction = useOverride
+      ? overrideQuote!
+      : leerstandDayFraction(month, input.statusHistory, input.today);
     // KNOWN LIMITATION: for a mid-month economicTransferDate, this multiplication
     // is not exact — leerstandFraction is a whole-month fraction from
     // statusPeriodCalculator, which defaults days with no StatusEntry (including
@@ -121,15 +135,18 @@ export function annualTaxableIncomeBreakdown(input: AnnualTaxableIncomeBreakdown
     // in this task.
     leerstandEquivalentMonths += ownerFraction * leerstandFraction;
 
-    totalIncome +=
-      incomeForMonth(
-        month,
-        input.statusHistory,
-        input.today,
-        input.coldRentMonthly,
-        input.parkingRentMonthly,
-        input.otherIncomeMonthly
-      ) * ownerFraction;
+    const monthIncome = useOverride
+      ? (input.coldRentMonthly + input.parkingRentMonthly + input.otherIncomeMonthly) * (1 - overrideQuote!)
+      : incomeForMonth(
+          month,
+          input.statusHistory,
+          input.today,
+          input.coldRentMonthly,
+          input.parkingRentMonthly,
+          input.otherIncomeMonthly
+        );
+
+    totalIncome += monthIncome * ownerFraction;
   }
 
   const hoaNonRecoverableWE = input.hoaUnitNonRecoverableMonthly * ownershipMonthEquivalent;

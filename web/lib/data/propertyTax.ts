@@ -47,7 +47,8 @@ export function computeTaxCurrentYear(
   property: PropertyRow,
   statusEntryRows: StatusEntryRow[],
   extraordinaryCostRows: ExtraordinaryCostRow[],
-  today: Date = new Date()
+  today: Date = new Date(),
+  leerstandQuoteOverride?: number
 ): TaxCurrentYearResult {
   const statusHistory = toStatusHistory(statusEntryRows);
   const economicTransferDate = new Date(property.economic_transfer_date + 'T00:00:00Z');
@@ -99,6 +100,10 @@ export function computeTaxCurrentYear(
     otherIncomeMonthly: property.other_income_monthly,
     today,
     extraordinaryCostsDeductibleYearly: deductibleExtraordinaryCostsForYear(extraordinaryCostRows, year),
+    leerstandQuoteOverride:
+      leerstandQuoteOverride !== undefined
+        ? { fromMonth: makeDate(today.getUTCFullYear(), today.getUTCMonth() + 1, 1), quote: leerstandQuoteOverride }
+        : undefined,
   });
 
   let ownershipMonthsThisYear = 0;
