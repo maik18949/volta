@@ -5,6 +5,7 @@ import { ownershipDayFraction } from '@/lib/calculations/statusPeriodCalculator'
 import {
   annualTaxableIncomeBreakdown,
   taxLineItemsForScenario,
+  blendTaxLineItems,
   taxEffectYearly,
   taxEffectMonthly as computeTaxEffectMonthly,
   type TaxLineItems,
@@ -121,14 +122,14 @@ export function computeTaxCurrentYear(
 
 export interface TaxForecastYearResult {
   year: number;
-  scenario: TaxScenarioChoice;
+  leerstandQuote: number;
   lineItems: TaxLineItems;
   taxEffectYearly: number;
   taxEffectMonthly: number;
 }
 
-/** Steuer tab Section 2 ("Prognose") — a chosen year + scenario, no status history. */
-export function computeTaxForecastYear(property: PropertyRow, year: number, scenario: TaxScenarioChoice): TaxForecastYearResult {
+/** Steuer tab Section 2 ("Prognose") — a chosen year + Leerstandsquote, no status history. */
+export function computeTaxForecastYear(property: PropertyRow, year: number, leerstandQuote: number): TaxForecastYearResult {
   const loanStartDate = new Date(property.loan_start_date + 'T00:00:00Z');
 
   const hoaFeeNonRecoverableMonthly = hoaNonRecoverableMonthly(
@@ -152,8 +153,7 @@ export function computeTaxForecastYear(property: PropertyRow, year: number, scen
   );
   const basis = computeAfaBasis(property.building_value, closingCosts, totalPurchasePrice, property.renovation_afa_eligible);
 
-  const lineItems = taxLineItemsForScenario({
-    scenario,
+  const sharedInput = {
     year,
     coldRentMonthly: property.cold_rent_monthly,
     parkingRentMonthly: property.parking_rent_monthly,
@@ -172,10 +172,13 @@ export function computeTaxForecastYear(property: PropertyRow, year: number, scen
     propertyManagementMonthly: property.property_management_annual / 12,
     propertyInsuranceMonthly: property.property_insurance_annual / 12,
     otherCostsMonthly: property.other_costs_monthly,
-  });
+  };
+  const vollvermietung = taxLineItemsForScenario({ ...sharedInput, scenario: 'vollvermietung' });
+  const leerstand = taxLineItemsForScenario({ ...sharedInput, scenario: 'leerstand' });
+  const lineItems = blendTaxLineItems(vollvermietung, leerstand, leerstandQuote);
 
   const taxEffectYear = taxEffectYearly(lineItems.taxableIncome, property.marginal_tax_rate);
   const taxEffectMonth = computeTaxEffectMonthly(taxEffectYear, 12);
 
-  return { year, scenario, lineItems, taxEffectYearly: taxEffectYear, taxEffectMonthly: taxEffectMonth };
+  return { year, leerstandQuote, lineItems, taxEffectYearly: taxEffectYear, taxEffectMonthly: taxEffectMonth };
 }
