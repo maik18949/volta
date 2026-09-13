@@ -1,12 +1,33 @@
-import { formatCurrency } from '@/lib/formatters';
+import Link from 'next/link';
+import { formatCurrency, formatPercent } from '@/lib/formatters';
 import type { CashflowForecastMonthResult } from '@/lib/data/propertyCashflow';
 
-export function ForecastMonthCard({ result, hasParking }: { result: CashflowForecastMonthResult; hasParking: boolean }) {
+export function ForecastMonthCard({
+  result,
+  hasParking,
+  quote,
+  propertyId,
+}: {
+  result: CashflowForecastMonthResult;
+  hasParking: boolean;
+  quote: number;
+  propertyId: string;
+}) {
   const { lineItems } = result;
   const cfColor = result.cashflowAfterTax >= 0 ? 'text-positive' : 'text-negative';
 
   return (
     <div className="space-y-1 text-sm">
+      <div className="mb-2 flex items-center justify-between rounded-lg bg-blue-50/50 px-3 py-2">
+        <div>
+          <span className="text-xs text-text-secondary">Leerstandsquote</span>{' '}
+          <span className="font-mono text-base font-extrabold text-accent">{formatPercent(quote / 100)}</span>
+        </div>
+        <Link href={`/properties/${propertyId}/steuer`} className="text-xs font-semibold text-accent underline underline-offset-2">
+          im Steuer-Tab anpassen →
+        </Link>
+      </div>
+
       <Row label="Einnahmen" value={lineItems.income} />
       <Row label="Kreditrate" value={-lineItems.mortgage} />
 
