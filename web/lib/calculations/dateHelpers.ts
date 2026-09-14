@@ -41,3 +41,8 @@ export function monthsBetween(start: Date, end: Date): number {
   const endTotal = yearOf(end) * 12 + (monthOf(end) - 1);
   return endTotal - startTotal + 1;
 }
+
+/** Whole days from `start` to `end` (exclusive of `end`) — add 1 for an inclusive day count. */
+export function daysBetween(start: Date, end: Date): number {
+  return Math.round((end.getTime() - start.getTime()) / 86_400_000);
+}

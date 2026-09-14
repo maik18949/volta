@@ -486,6 +486,8 @@ export type Database = {
           date: string
           id: string
           income_actual_monthly: number | null
+          income_is_fixed_amount: boolean
+          income_period_end_date: string | null
           notes: string
           property_id: string
           status: Database["public"]["Enums"]["property_status"]
@@ -495,6 +497,8 @@ export type Database = {
           date?: string
           id?: string
           income_actual_monthly?: number | null
+          income_is_fixed_amount?: boolean
+          income_period_end_date?: string | null
           notes?: string
           property_id: string
           status?: Database["public"]["Enums"]["property_status"]
@@ -504,6 +508,8 @@ export type Database = {
           date?: string
           id?: string
           income_actual_monthly?: number | null
+          income_is_fixed_amount?: boolean
+          income_period_end_date?: string | null
           notes?: string
           property_id?: string
           status?: Database["public"]["Enums"]["property_status"]
