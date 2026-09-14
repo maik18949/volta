@@ -99,6 +99,12 @@ export function ReturnsCard({
       rawValue: overview.actualVacancyRate,
       formattedValue: overview.actualVacancyRate !== null ? formatPercent(overview.actualVacancyRate) : '–',
     },
+    {
+      kpi: 'actualVacancyRateYear',
+      label: 'Tats. Leerstandsquote (Jahr)',
+      rawValue: overview.actualVacancyRateYear,
+      formattedValue: overview.actualVacancyRateYear !== null ? formatPercent(overview.actualVacancyRateYear) : '–',
+    },
   ];
   const half = Math.ceil(kpiRows.length / 2);
   const kpiColumns = [kpiRows.slice(0, half), kpiRows.slice(half)];

@@ -154,6 +154,12 @@ describe('kpiCalculator', () => {
     expect(benchmarkColor('actualVacancyRate', 0.1)).toBe('red');
   });
 
+  it('benchmarkColor: actualVacancyRateYear thresholds', () => {
+    expect(benchmarkColor('actualVacancyRateYear', 0.02)).toBe('green');
+    expect(benchmarkColor('actualVacancyRateYear', 0.05)).toBe('orange');
+    expect(benchmarkColor('actualVacancyRateYear', 0.1)).toBe('red');
+  });
+
   it('scalePosition: grossYield (higherIsBetter, domain 0–0.10) — midpoint value sits at 0.5', () => {
     expect(scalePosition('grossYield', 0.05)).toBeCloseTo(0.5, 4);
   });

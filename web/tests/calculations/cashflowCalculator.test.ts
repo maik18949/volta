@@ -12,6 +12,7 @@ import {
   type CashflowScenarioInput,
   cashflowLineItemsForActualMonth,
   type CashflowActualMonthInput,
+  blendCashflowLineItems,
 } from '@/lib/calculations/cashflowCalculator';
 
 function statusEntry(status: StatusEntry['status'], y: number, m: number, d = 1): StatusEntry {
@@ -353,5 +354,72 @@ describe('cashflowLineItemsForActualMonth', () => {
     expect(result.mortgage).toBe(f.monthlyMortgage);
     expect(result.hoaNonRecoverableWE).toBe(f.hoaFeeNonRecoverableMonthly);
     expect(result.maintenanceReserveWE).toBe(f.maintenanceReserveMonthly);
+  });
+});
+
+describe('cashflowCalculator.blendCashflowLineItems', () => {
+  const scenarioBaseInput: Omit<CashflowScenarioInput, 'scenario'> = {
+    coldRentMonthly: 800,
+    parkingRentMonthly: 0,
+    otherIncomeMonthly: 0,
+    monthlyMortgage: 480,
+    hoaFeeNonRecoverableMonthly: 100,
+    hoaFeeMaintenanceReserveMonthly: 0,
+    hoaFeeRecoverableMonthly: 80,
+    propertyTaxAnnual: 360,
+    propertyInsuranceAnnual: 0,
+    propertyManagementAnnual: 240,
+    otherCostsMonthly: 0,
+    hoaFeeParkingNonRecoverableMonthly: 0,
+    hoaFeeParkingMaintenanceReserveMonthly: 0,
+    hoaFeeParkingRecoverableMonthly: 0,
+    propertyTaxParkingAnnual: 0,
+    extraordinaryCostsThisMonth: 0,
+  };
+
+  it('quote 0 equals the pure vollvermietung scenario', () => {
+    const voll = cashflowLineItemsForScenario({ ...scenarioBaseInput, scenario: 'vollvermietung' });
+    const leer = cashflowLineItemsForScenario({ ...scenarioBaseInput, scenario: 'leerstand' });
+    const blended = blendCashflowLineItems(voll, leer, 0);
+    expect(blended.cashflowBeforeTax).toBeCloseTo(voll.cashflowBeforeTax, 6);
+  });
+
+  it('quote 1 equals the pure leerstand scenario', () => {
+    const voll = cashflowLineItemsForScenario({ ...scenarioBaseInput, scenario: 'vollvermietung' });
+    const leer = cashflowLineItemsForScenario({ ...scenarioBaseInput, scenario: 'leerstand' });
+    const blended = blendCashflowLineItems(voll, leer, 1);
+    expect(blended.cashflowBeforeTax).toBeCloseTo(leer.cashflowBeforeTax, 6);
+  });
+
+  it('quote 0.05 linearly interpolates income and leerstand-only cost lines, recomputes cashflowBeforeTax from the blended lines', () => {
+    const voll = cashflowLineItemsForScenario({ ...scenarioBaseInput, scenario: 'vollvermietung' });
+    const leer = cashflowLineItemsForScenario({ ...scenarioBaseInput, scenario: 'leerstand' });
+    const blended = blendCashflowLineItems(voll, leer, 0.05);
+    expect(blended.income).toBeCloseTo(voll.income * 0.95, 6);
+    expect(blended.hoaRecoverableWE).toBeCloseTo(leer.hoaRecoverableWE * 0.05, 6);
+    expect(blended.mortgage).toBe(voll.mortgage);
+    const expectedCashflow =
+      blended.income -
+      blended.mortgage -
+      blended.hoaNonRecoverableWE -
+      blended.maintenanceReserveWE -
+      blended.insuranceWE -
+      blended.managementWE -
+      blended.otherCostsWE -
+      blended.hoaRecoverableWE -
+      blended.propertyTaxWE -
+      blended.hoaNonRecoverableTE -
+      blended.maintenanceReserveTE -
+      blended.hoaRecoverableTE -
+      blended.propertyTaxTE -
+      blended.extraordinaryCosts;
+    expect(blended.cashflowBeforeTax).toBeCloseTo(expectedCashflow, 6);
+  });
+
+  it('quote 0.05 also correctly blends propertyTaxWE (not just hoaRecoverableWE)', () => {
+    const voll = cashflowLineItemsForScenario({ ...scenarioBaseInput, scenario: 'vollvermietung' });
+    const leer = cashflowLineItemsForScenario({ ...scenarioBaseInput, scenario: 'leerstand' });
+    const blended = blendCashflowLineItems(voll, leer, 0.05);
+    expect(blended.propertyTaxWE).toBeCloseTo(leer.propertyTaxWE * 0.05, 6);
   });
 });

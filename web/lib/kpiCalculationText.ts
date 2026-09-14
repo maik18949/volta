@@ -67,5 +67,11 @@ export function kpiCalculationText(
         overview.actualVacancyRate
       )}`;
     }
+    case 'actualVacancyRateYear': {
+      if (overview.actualVacancyRateYear === null) return null;
+      return `${overview.leerstandDaysThisYear} Tage ÷ ${overview.ownershipDaysThisYear} Tage = ${formatPercent(
+        overview.actualVacancyRateYear
+      )}`;
+    }
   }
 }

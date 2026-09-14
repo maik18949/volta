@@ -191,33 +191,52 @@ describe('computeTaxCurrentYear', () => {
     expect(result.lineItems.hoaRecoverableTE).toBeCloseTo(12 * 11, 2); // 132
     expect(result.lineItems.propertyTaxTE).toBeCloseTo(5 * 11, 2); // 55
   });
+
+  it('leerstandQuoteOverride, when passed, changes the result vs. the default call', () => {
+    const withoutOverride = computeTaxCurrentYear(property, statusEntries, [], today);
+    const withOverride = computeTaxCurrentYear(property, statusEntries, [], today, 1);
+    expect(withOverride.taxEffectMonthly).not.toBeCloseTo(withoutOverride.taxEffectMonthly, 2);
+  });
+
+  it('omitting leerstandQuoteOverride keeps the exact previous behavior', () => {
+    const a = computeTaxCurrentYear(property, statusEntries, [], today);
+    const b = computeTaxCurrentYear(property, statusEntries, [], today);
+    expect(a).toEqual(b);
+  });
 });
 
 describe('computeTaxForecastYear', () => {
   const property = makeProperty();
 
   it('vollvermietung: full annual income, no owner-borne recoverable WE costs', () => {
-    const result = computeTaxForecastYear(property, 2028, 'vollvermietung');
+    const result = computeTaxForecastYear(property, 2028, 0);
     expect(result.year).toBe(2028);
     expect(result.lineItems.income).toBeCloseTo(f.coldRentYearly + f.parkingRentYearly, 2);
     expect(result.lineItems.hoaRecoverableWE).toBe(0);
   });
 
   it('leerstand: zero income, full owner-borne recoverable WE costs', () => {
-    const result = computeTaxForecastYear(property, 2028, 'leerstand');
+    const result = computeTaxForecastYear(property, 2028, 1);
     expect(result.lineItems.income).toBe(0);
     expect(result.lineItems.hoaRecoverableWE).toBeCloseTo(f.hoaFeeRecoverableMonthly * 12, 2);
   });
 
   it('depreciation is never acquisition-year-prorated', () => {
-    const result = computeTaxForecastYear(property, 2035, 'vollvermietung');
+    const result = computeTaxForecastYear(property, 2035, 0);
     const basis = f.buildingValue + f.closingCostsTotal * (f.buildingValue / f.purchasePrice) + f.renovationAfaEligible;
     expect(result.lineItems.depreciation).toBeCloseTo(basis * f.depreciationRate, 0);
   });
 
   it('taxEffectMonthly divides the yearly effect by 12 (always a full year)', () => {
-    const result = computeTaxForecastYear(property, 2028, 'vollvermietung');
+    const result = computeTaxForecastYear(property, 2028, 0);
     expect(result.taxEffectMonthly).toBeCloseTo(result.taxEffectYearly / 12, 4);
+  });
+
+  it('leerstandQuote 0.3 linearly blends between the two extremes', () => {
+    const voll = computeTaxForecastYear(property, 2028, 0);
+    const leer = computeTaxForecastYear(property, 2028, 1);
+    const blended = computeTaxForecastYear(property, 2028, 0.3);
+    expect(blended.taxEffectYearly).toBeCloseTo(voll.taxEffectYearly * 0.7 + leer.taxEffectYearly * 0.3, 2);
   });
 
   it('lineItems fields are individually wired correctly (insurance, other costs, management, and parking all nonzero)', () => {
@@ -236,7 +255,7 @@ describe('computeTaxForecastYear', () => {
       hoa_fee_parking_maintenance_reserve_monthly: 3,
       property_tax_parking_annual: 60, // /12 = 5/mo
     });
-    const result = computeTaxForecastYear(withExtras, 2028, 'vollvermietung');
+    const result = computeTaxForecastYear(withExtras, 2028, 0);
 
     expect(result.lineItems.insuranceWE).toBeCloseTo(20 * 12, 2); // 240
     expect(result.lineItems.otherCostsWE).toBeCloseTo(15 * 12, 2); // 180

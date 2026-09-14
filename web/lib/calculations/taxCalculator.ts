@@ -49,6 +49,14 @@ export interface TaxLineItems {
 export interface AnnualTaxableIncomeBreakdownInput extends AnnualTaxableIncomeInput {
   /** Sum of extraordinary_costs.amount for the year where is_deductible = true. */
   extraordinaryCostsDeductibleYearly: number;
+  /**
+   * Wenn gesetzt: jeder Monat ab (einschließlich) `fromMonth` verwendet `quote` als
+   * Leerstandsanteil statt der echten Status-Historie — für "was wäre, wenn der Rest
+   * des Jahres X % Leerstand hätte" statt der naiven Fortschreibung des letzten
+   * bekannten Status. Monate davor bleiben unverändert Ist-basiert. Ohne dieses Feld
+   * ist das Verhalten byte-identisch zu vorher.
+   */
+  leerstandQuoteOverride?: { fromMonth: Date; quote: number };
 }
 
 const ZERO_TAX_LINE_ITEMS: TaxLineItems = {
@@ -107,7 +115,13 @@ export function annualTaxableIncomeBreakdown(input: AnnualTaxableIncomeBreakdown
     const ownerFraction = ownershipDayFraction(month, input.economicTransferDate);
     ownershipMonthEquivalent += ownerFraction;
 
-    const leerstandFraction = leerstandDayFraction(month, input.statusHistory, input.today);
+    const useOverride =
+      input.leerstandQuoteOverride !== undefined && month.getTime() >= input.leerstandQuoteOverride.fromMonth.getTime();
+    const overrideQuote = input.leerstandQuoteOverride?.quote;
+
+    const leerstandFraction = useOverride
+      ? overrideQuote!
+      : leerstandDayFraction(month, input.statusHistory, input.today);
     // KNOWN LIMITATION: for a mid-month economicTransferDate, this multiplication
     // is not exact — leerstandFraction is a whole-month fraction from
     // statusPeriodCalculator, which defaults days with no StatusEntry (including
@@ -121,15 +135,18 @@ export function annualTaxableIncomeBreakdown(input: AnnualTaxableIncomeBreakdown
     // in this task.
     leerstandEquivalentMonths += ownerFraction * leerstandFraction;
 
-    totalIncome +=
-      incomeForMonth(
-        month,
-        input.statusHistory,
-        input.today,
-        input.coldRentMonthly,
-        input.parkingRentMonthly,
-        input.otherIncomeMonthly
-      ) * ownerFraction;
+    const monthIncome = useOverride
+      ? (input.coldRentMonthly + input.parkingRentMonthly + input.otherIncomeMonthly) * (1 - overrideQuote!)
+      : incomeForMonth(
+          month,
+          input.statusHistory,
+          input.today,
+          input.coldRentMonthly,
+          input.parkingRentMonthly,
+          input.otherIncomeMonthly
+        );
+
+    totalIncome += monthIncome * ownerFraction;
   }
 
   const hoaNonRecoverableWE = input.hoaUnitNonRecoverableMonthly * ownershipMonthEquivalent;
@@ -184,6 +201,34 @@ export function annualTaxableIncomeBreakdown(input: AnnualTaxableIncomeBreakdown
  */
 export function annualTaxableIncome(input: AnnualTaxableIncomeInput): number {
   return annualTaxableIncomeBreakdown({ ...input, extraordinaryCostsDeductibleYearly: 0 }).taxableIncome;
+}
+
+/**
+ * Lineare Interpolation zwischen einem Vollvermietungs- und einem Leerstand-Szenario
+ * für dieselbe (Jahr, Property)-Kombination. Exakt statt approximiert, weil sich beide
+ * Szenarien in taxLineItemsForScenario nur bei `income`, `hoaRecoverableWE` und
+ * `propertyTaxWE` unterscheiden — alle anderen Felder sind identisch und bleiben durch
+ * die Interpolation unverändert. `quote` ist die angenommene Leerstandsquote (0 = immer
+ * vollvermietet, 1 = immer leerstand).
+ */
+export function blendTaxLineItems(vollvermietung: TaxLineItems, leerstand: TaxLineItems, quote: number): TaxLineItems {
+  const p = quote;
+  return {
+    income: vollvermietung.income * (1 - p) + leerstand.income * p,
+    interest: vollvermietung.interest,
+    depreciation: vollvermietung.depreciation,
+    hoaNonRecoverableWE: vollvermietung.hoaNonRecoverableWE,
+    insuranceWE: vollvermietung.insuranceWE,
+    managementWE: vollvermietung.managementWE,
+    otherCostsWE: vollvermietung.otherCostsWE,
+    hoaRecoverableWE: vollvermietung.hoaRecoverableWE * (1 - p) + leerstand.hoaRecoverableWE * p,
+    propertyTaxWE: vollvermietung.propertyTaxWE * (1 - p) + leerstand.propertyTaxWE * p,
+    hoaNonRecoverableTE: vollvermietung.hoaNonRecoverableTE,
+    hoaRecoverableTE: vollvermietung.hoaRecoverableTE,
+    propertyTaxTE: vollvermietung.propertyTaxTE,
+    extraordinaryCostsDeductible: vollvermietung.extraordinaryCostsDeductible,
+    taxableIncome: vollvermietung.taxableIncome * (1 - p) + leerstand.taxableIncome * p,
+  };
 }
 
 /** Jährlicher Steuereffekt: negatives Ergebnis (Verlust) × Grenzsteuersatz = Erstattung. */

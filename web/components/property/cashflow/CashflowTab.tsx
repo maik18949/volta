@@ -1,10 +1,11 @@
 'use client';
 
+import { useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 import { GlassCard } from '@/components/ui/GlassCard';
-import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { YearPicker } from '@/components/ui/YearPicker';
-import { computeCashflowForecastMonth, computeCashflowYearTable, type CashflowScenario } from '@/lib/data/propertyCashflow';
+import { computeCashflowForecastMonth, computeCashflowYearTable } from '@/lib/data/propertyCashflow';
+import type { OverviewMetrics } from '@/lib/data/propertyOverview';
 import { ForecastMonthCard } from './ForecastMonthCard';
 import { CashflowYearTable } from './CashflowYearTable';
 import type { Database } from '@/lib/supabase/types';
@@ -17,18 +18,39 @@ export function CashflowTab({
   property,
   statusEntries,
   extraordinaryCosts,
+  overview,
   today,
 }: {
   property: PropertyRow;
   statusEntries: StatusEntryRow[];
   extraordinaryCosts: ExtraordinaryCostRow[];
+  overview: OverviewMetrics;
   today: Date;
 }) {
-  const [scenario, setScenario] = useState<CashflowScenario>('vollvermietung');
+  const searchParams = useSearchParams();
   const currentYear = today.getUTCFullYear();
   const [year, setYear] = useState(currentYear);
 
-  const forecast = computeCashflowForecastMonth(property, statusEntries, extraordinaryCosts, scenario, today);
+  // Gleicher Default wie der "Laufendes Jahr"-Regler im Steuer-Tab — kein eigener
+  // Regler mehr hier, nur Anzeige. Bewegt der Nutzer den Regler im Steuer-Tab, kommt
+  // der Wert über den ?leerstand=-Parameter mit (siehe PropertyTabNav).
+  const defaultQuote = overview.actualVacancyRateYear !== null ? Math.round(overview.actualVacancyRateYear * 100) : 0;
+  const leerstandParam = searchParams.get('leerstand');
+  // Defensiv parsen: ein manuell editierter/geteilter Link (?leerstand=abc oder ?leerstand=9999)
+  // darf niemals NaN oder einen Wert außerhalb [0, 100] in die Cashflow-Berechnung einspeisen —
+  // ungültige Werte fallen sauber auf den berechneten Default zurück. Gleiches Muster wie in
+  // SteuerTab.tsx.
+  const parsedLeerstandParam = leerstandParam !== null ? Number(leerstandParam) : NaN;
+  const quote = Number.isFinite(parsedLeerstandParam) ? Math.min(100, Math.max(0, parsedLeerstandParam)) : defaultQuote;
+
+  const forecast = computeCashflowForecastMonth(
+    property,
+    statusEntries,
+    extraordinaryCosts,
+    quote / 100,
+    defaultQuote / 100,
+    today
+  );
   const economicTransferDate = new Date(property.economic_transfer_date + 'T00:00:00Z');
   const minYear = economicTransferDate.getUTCFullYear();
   const yearTable = computeCashflowYearTable(property, statusEntries, extraordinaryCosts, year, today);
@@ -37,18 +59,10 @@ export function CashflowTab({
   return (
     <div className="space-y-4">
       <GlassCard>
-        <div className="mb-3 flex items-center justify-between">
+        <div className="mb-3">
           <h2 className="text-sm font-bold uppercase text-text-secondary">Prognose / Monat</h2>
-          <SegmentedControl
-            value={scenario}
-            onChange={setScenario}
-            options={[
-              { value: 'vollvermietung', label: 'Vollvermietung' },
-              { value: 'leerstand', label: 'Leerstand' },
-            ]}
-          />
         </div>
-        <ForecastMonthCard result={forecast} hasParking={hasParking} />
+        <ForecastMonthCard result={forecast} hasParking={hasParking} quote={quote} propertyId={property.id} />
       </GlassCard>
 
       <GlassCard>

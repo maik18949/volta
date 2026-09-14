@@ -5,6 +5,7 @@ import { ownershipDayFraction } from '@/lib/calculations/statusPeriodCalculator'
 import {
   annualTaxableIncomeBreakdown,
   taxLineItemsForScenario,
+  blendTaxLineItems,
   taxEffectYearly,
   taxEffectMonthly as computeTaxEffectMonthly,
   type TaxLineItems,
@@ -15,9 +16,6 @@ import { closingCostsTotal as computeClosingCostsTotal, hoaNonRecoverableMonthly
 type PropertyRow = Database['public']['Tables']['properties']['Row'];
 type StatusEntryRow = Database['public']['Tables']['status_entries']['Row'];
 type ExtraordinaryCostRow = Database['public']['Tables']['extraordinary_costs']['Row'];
-
-/** Steuer tab Section 2 scenario toggle — stands in for status history when projecting a future year. */
-export type TaxScenarioChoice = 'vollvermietung' | 'leerstand';
 
 function deductibleExtraordinaryCostsForYear(extraordinaryCostRows: ExtraordinaryCostRow[], year: number): number {
   return extraordinaryCostRows
@@ -38,15 +36,21 @@ export interface TaxCurrentYearResult {
 /**
  * Steuer tab Section 1 ("Laufendes Jahr") — Ist + Projektion for the current
  * calendar year. Also the shared source of truth for "current year tax
- * effect": the Cashflow tab's Card 1 and Card 2 must show this exact value
- * (spec-cashflow-tab.md requires them to agree), so propertyCashflow.ts
- * (Task 9/10) calls this function rather than recomputing it.
+ * effect": the Cashflow tab's Card 2 always calls this with no override, and
+ * Card 1 (propertyCashflow.ts, computeCashflowForecastMonth) calls it the
+ * same way — with no override — whenever its Leerstandsquote slider sits at
+ * its computed default, so all three cards agree exactly on an untouched
+ * page load (spec-cashflow-tab.md requires them to agree). Card 1
+ * intentionally diverges, via the `leerstandQuoteOverride` parameter below,
+ * once the user actually moves that slider away from the default, to show a
+ * genuine what-if scenario.
  */
 export function computeTaxCurrentYear(
   property: PropertyRow,
   statusEntryRows: StatusEntryRow[],
   extraordinaryCostRows: ExtraordinaryCostRow[],
-  today: Date = new Date()
+  today: Date = new Date(),
+  leerstandQuoteOverride?: number
 ): TaxCurrentYearResult {
   const statusHistory = toStatusHistory(statusEntryRows);
   const economicTransferDate = new Date(property.economic_transfer_date + 'T00:00:00Z');
@@ -98,6 +102,10 @@ export function computeTaxCurrentYear(
     otherIncomeMonthly: property.other_income_monthly,
     today,
     extraordinaryCostsDeductibleYearly: deductibleExtraordinaryCostsForYear(extraordinaryCostRows, year),
+    leerstandQuoteOverride:
+      leerstandQuoteOverride !== undefined
+        ? { fromMonth: makeDate(today.getUTCFullYear(), today.getUTCMonth() + 1, 1), quote: leerstandQuoteOverride }
+        : undefined,
   });
 
   let ownershipMonthsThisYear = 0;
@@ -121,14 +129,13 @@ export function computeTaxCurrentYear(
 
 export interface TaxForecastYearResult {
   year: number;
-  scenario: TaxScenarioChoice;
   lineItems: TaxLineItems;
   taxEffectYearly: number;
   taxEffectMonthly: number;
 }
 
-/** Steuer tab Section 2 ("Prognose") — a chosen year + scenario, no status history. */
-export function computeTaxForecastYear(property: PropertyRow, year: number, scenario: TaxScenarioChoice): TaxForecastYearResult {
+/** Steuer tab Section 2 ("Prognose") — a chosen year + Leerstandsquote, no status history. */
+export function computeTaxForecastYear(property: PropertyRow, year: number, leerstandQuote: number): TaxForecastYearResult {
   const loanStartDate = new Date(property.loan_start_date + 'T00:00:00Z');
 
   const hoaFeeNonRecoverableMonthly = hoaNonRecoverableMonthly(
@@ -152,8 +159,7 @@ export function computeTaxForecastYear(property: PropertyRow, year: number, scen
   );
   const basis = computeAfaBasis(property.building_value, closingCosts, totalPurchasePrice, property.renovation_afa_eligible);
 
-  const lineItems = taxLineItemsForScenario({
-    scenario,
+  const sharedInput = {
     year,
     coldRentMonthly: property.cold_rent_monthly,
     parkingRentMonthly: property.parking_rent_monthly,
@@ -172,10 +178,13 @@ export function computeTaxForecastYear(property: PropertyRow, year: number, scen
     propertyManagementMonthly: property.property_management_annual / 12,
     propertyInsuranceMonthly: property.property_insurance_annual / 12,
     otherCostsMonthly: property.other_costs_monthly,
-  });
+  };
+  const vollvermietung = taxLineItemsForScenario({ ...sharedInput, scenario: 'vollvermietung' });
+  const leerstand = taxLineItemsForScenario({ ...sharedInput, scenario: 'leerstand' });
+  const lineItems = blendTaxLineItems(vollvermietung, leerstand, leerstandQuote);
 
   const taxEffectYear = taxEffectYearly(lineItems.taxableIncome, property.marginal_tax_rate);
   const taxEffectMonth = computeTaxEffectMonthly(taxEffectYear, 12);
 
-  return { year, scenario, lineItems, taxEffectYearly: taxEffectYear, taxEffectMonthly: taxEffectMonth };
+  return { year, lineItems, taxEffectYearly: taxEffectYear, taxEffectMonthly: taxEffectMonth };
 }

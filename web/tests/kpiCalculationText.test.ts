@@ -158,6 +158,17 @@ describe('kpiCalculationText', () => {
     expect(text).toContain(`${overview.ownershipDaysSinceTransfer}`);
   });
 
+  it('actualVacancyRateYear: shows this-year leerstand days over this-year ownership days', () => {
+    const overviewWithYear = { ...overview, actualVacancyRateYear: 0.25, leerstandDaysThisYear: 63, ownershipDaysThisYear: 252 };
+    const text = kpiCalculationText('actualVacancyRateYear', property, summary, overviewWithYear);
+    expect(text).toBe(`63 Tage ÷ 252 Tage = ${formatPercent(0.25)}`);
+  });
+
+  it('actualVacancyRateYear: null when the KPI value itself is null', () => {
+    const overviewWithoutYear = { ...overview, actualVacancyRateYear: null };
+    expect(kpiCalculationText('actualVacancyRateYear', property, summary, overviewWithoutYear)).toBeNull();
+  });
+
   it('cashOnCash: pre-tax annual cashflow over equity used', () => {
     const text = kpiCalculationText('cashOnCash', property, summary, overview);
     expect(text).toContain(formatCurrency(overview.cashflowBeforeTaxYear));

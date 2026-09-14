@@ -253,6 +253,33 @@ export function cashflowLineItemsForScenario(input: CashflowScenarioInput): Cash
   return { ...items, cashflowBeforeTax: cashflowBeforeTaxFromLineItems(items) };
 }
 
+/**
+ * Lineare Interpolation zwischen einem Vollvermietungs- und einem Leerstand-Szenario,
+ * exakt aus demselben Grund wie taxCalculator.blendTaxLineItems: nur `income`,
+ * `hoaRecoverableWE` und `propertyTaxWE` unterscheiden sich zwischen den beiden
+ * Szenarien in cashflowLineItemsForScenario, der Rest ist identisch.
+ */
+export function blendCashflowLineItems(vollvermietung: CashflowLineItems, leerstand: CashflowLineItems, quote: number): CashflowLineItems {
+  const p = quote;
+  const items: Omit<CashflowLineItems, 'cashflowBeforeTax'> = {
+    income: vollvermietung.income * (1 - p) + leerstand.income * p,
+    mortgage: vollvermietung.mortgage,
+    hoaNonRecoverableWE: vollvermietung.hoaNonRecoverableWE,
+    maintenanceReserveWE: vollvermietung.maintenanceReserveWE,
+    insuranceWE: vollvermietung.insuranceWE,
+    managementWE: vollvermietung.managementWE,
+    otherCostsWE: vollvermietung.otherCostsWE,
+    hoaRecoverableWE: vollvermietung.hoaRecoverableWE * (1 - p) + leerstand.hoaRecoverableWE * p,
+    propertyTaxWE: vollvermietung.propertyTaxWE * (1 - p) + leerstand.propertyTaxWE * p,
+    hoaNonRecoverableTE: vollvermietung.hoaNonRecoverableTE,
+    maintenanceReserveTE: vollvermietung.maintenanceReserveTE,
+    hoaRecoverableTE: vollvermietung.hoaRecoverableTE,
+    propertyTaxTE: vollvermietung.propertyTaxTE,
+    extraordinaryCosts: vollvermietung.extraordinaryCosts,
+  };
+  return { ...items, cashflowBeforeTax: cashflowBeforeTaxFromLineItems(items) };
+}
+
 export interface CashflowActualMonthInput {
   month: Date;
   statusHistory: StatusEntry[];
