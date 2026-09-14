@@ -7,7 +7,7 @@ import {
   genuineVacancyDayFraction,
   ownershipDayFraction,
   ownershipAndVacancyDaysSinceTransfer,
-  dominantStatusForMonth,
+  statusesForMonth,
 } from '@/lib/calculations/statusPeriodCalculator';
 
 function entry(status: StatusEntry['status'], y: number, m: number, d = 1, income: number | null = null): StatusEntry {
@@ -201,37 +201,41 @@ describe('ownershipAndVacancyDaysSinceTransfer', () => {
   });
 });
 
-describe('dominantStatusForMonth', () => {
+describe('statusesForMonth', () => {
   const today = makeDate(2026, 12, 31);
 
-  it('returns the status covering the most days in the month', () => {
-    // Jun 1-9 leerstand (9 days), Jun 10-30 vermietet (21 days) -> vermietet wins.
+  it('a mixed month returns every distinct status, in chronological order', () => {
+    // Jun 1-9 leerstand, Jun 10-30 vermietet -> both should show up, leerstand first.
     const history = [entry('leerstand', 2026, 1, 1), entry('vermietet', 2026, 6, 10)];
-    const result = dominantStatusForMonth(makeDate(2026, 6, 1), history, today);
-    expect(result).toBe('vermietet');
+    const result = statusesForMonth(makeDate(2026, 6, 1), history, today);
+    expect(result).toEqual(['leerstand', 'vermietet']);
   });
 
-  it('a fully vermietet month returns vermietet', () => {
+  it('a fully vermietet month returns just vermietet', () => {
     const history = [entry('vermietet', 2026, 2, 1)];
-    const result = dominantStatusForMonth(makeDate(2026, 6, 1), history, today);
-    expect(result).toBe('vermietet');
+    const result = statusesForMonth(makeDate(2026, 6, 1), history, today);
+    expect(result).toEqual(['vermietet']);
   });
 
   it('no status history at all defaults to leerstand (single full-month segment)', () => {
-    const result = dominantStatusForMonth(makeDate(2026, 6, 1), [], today);
-    expect(result).toBe('leerstand');
+    const result = statusesForMonth(makeDate(2026, 6, 1), [], today);
+    expect(result).toEqual(['leerstand']);
   });
 
-  it('sums day-fractions across non-adjacent segments of the same status (not just the largest single segment)', () => {
-    // 30-day June: vermietet days 1-5 (5), leerstand days 6-19 (14), vermietet days 20-30 (11).
-    // vermietet totals 16 days vs leerstand's 14 -> vermietet wins, even though no single
-    // vermietet segment individually exceeds the 14-day leerstand block.
+  it('a status that recurs in non-adjacent segments is only listed once', () => {
+    // 30-day June: vermietet days 1-5, leerstand days 6-19, vermietet days 20-30 again.
     const history = [
       entry('vermietet', 2026, 6, 1),
       entry('leerstand', 2026, 6, 6),
       entry('vermietet', 2026, 6, 20),
     ];
-    const result = dominantStatusForMonth(makeDate(2026, 6, 1), history, today);
-    expect(result).toBe('vermietet');
+    const result = statusesForMonth(makeDate(2026, 6, 1), history, today);
+    expect(result).toEqual(['vermietet', 'leerstand']);
+  });
+
+  it('vermietet transitioning into mietgarantie mid-month returns both, matching the yearly-overview badge requirement', () => {
+    const history = [entry('vermietet', 2026, 5, 1), entry('mietgarantie', 2026, 6, 16, 511.2)];
+    const result = statusesForMonth(makeDate(2026, 6, 1), history, today);
+    expect(result).toEqual(['vermietet', 'mietgarantie']);
   });
 });
