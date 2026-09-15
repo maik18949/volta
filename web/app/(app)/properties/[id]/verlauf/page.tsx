@@ -8,6 +8,11 @@ export default async function VerlaufTabPage({ params }: { params: Promise<{ id:
   if (!detail) notFound();
 
   return (
-    <VerlaufFeed propertyId={id} statusEntries={detail.statusEntries} extraordinaryCosts={detail.extraordinaryCosts} />
+    <VerlaufFeed
+      propertyId={id}
+      hasParking={detail.property.parking_type !== 'nicht_vorhanden'}
+      statusEntries={detail.statusEntries}
+      extraordinaryCosts={detail.extraordinaryCosts}
+    />
   );
 }

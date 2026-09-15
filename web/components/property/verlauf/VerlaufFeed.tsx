@@ -49,10 +49,12 @@ function withoutKey<T>(record: Record<string, T>, key: string): Record<string, T
 
 export function VerlaufFeed({
   propertyId,
+  hasParking,
   statusEntries,
   extraordinaryCosts,
 }: {
   propertyId: string;
+  hasParking: boolean;
   statusEntries: StatusEntryRow[];
   extraordinaryCosts: ExtraordinaryCostRow[];
 }) {
@@ -61,15 +63,18 @@ export function VerlaufFeed({
   const [, startTransition] = useTransition();
   const [pendingIds, setPendingIds] = useState<Record<string, boolean>>({});
   const [deleteErrors, setDeleteErrors] = useState<Record<string, string>>({});
+  const [activeUnit, setActiveUnit] = useState<StatusEntryRow['unit']>('wohnung');
 
-  const ascendingStatus = [...statusEntries].sort((a, b) => a.date.localeCompare(b.date));
+  const unitStatusEntries = hasParking ? statusEntries.filter((e) => e.unit === activeUnit) : statusEntries;
+
+  const ascendingStatus = [...unitStatusEntries].sort((a, b) => a.date.localeCompare(b.date));
   function endDateFor(row: StatusEntryRow): string | null {
     const idx = ascendingStatus.findIndex((e) => e.id === row.id);
     return idx >= 0 && idx + 1 < ascendingStatus.length ? ascendingStatus[idx + 1].date : null;
   }
 
   const items: FeedItem[] = sortFeed([
-    ...statusEntries.map((row): FeedItem => ({ kind: 'status', date: row.date, row })),
+    ...unitStatusEntries.map((row): FeedItem => ({ kind: 'status', date: row.date, row })),
     ...extraordinaryCosts.map((row): FeedItem => ({ kind: 'cost', date: row.cost_month, row })),
   ]);
 
@@ -105,6 +110,29 @@ export function VerlaufFeed({
 
   return (
     <div>
+      {hasParking && (
+        <div className="mb-3 inline-flex rounded-md bg-black/[0.04] p-0.5">
+          <button
+            type="button"
+            onClick={() => setActiveUnit('wohnung')}
+            className={`rounded px-3 py-1 text-sm font-semibold ${
+              activeUnit === 'wohnung' ? 'bg-white shadow-sm text-text-primary' : 'text-text-secondary'
+            }`}
+          >
+            Wohnung
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveUnit('stellplatz')}
+            className={`rounded px-3 py-1 text-sm font-semibold ${
+              activeUnit === 'stellplatz' ? 'bg-white shadow-sm text-text-primary' : 'text-text-secondary'
+            }`}
+          >
+            Stellplatz
+          </button>
+        </div>
+      )}
+
       <div className="mb-3 flex justify-end gap-2">
         <button
           type="button"
@@ -124,7 +152,9 @@ export function VerlaufFeed({
 
       {items.length === 0 ? (
         <div className="glass-card p-4 text-center">
-          <p className="text-sm text-text-secondary">Noch kein Statusverlauf.</p>
+          <p className="text-sm text-text-secondary">
+            {hasParking ? `Noch kein Statusverlauf für ${activeUnit === 'wohnung' ? 'Wohnung' : 'Stellplatz'}.` : 'Noch kein Statusverlauf.'}
+          </p>
           <button
             type="button"
             onClick={() => setStatusModal({ open: true, entry: null })}
@@ -246,6 +276,7 @@ export function VerlaufFeed({
         open={statusModal.open}
         onClose={() => setStatusModal({ open: false, entry: null })}
         propertyId={propertyId}
+        unit={activeUnit}
         entry={statusModal.entry}
       />
       <ExtraordinaryCostModal
