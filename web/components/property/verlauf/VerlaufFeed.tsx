@@ -69,8 +69,9 @@ export function VerlaufFeed({
 
   const ascendingStatus = [...unitStatusEntries].sort((a, b) => a.date.localeCompare(b.date));
   function endDateFor(row: StatusEntryRow): string | null {
-    const idx = ascendingStatus.findIndex((e) => e.id === row.id);
-    return idx >= 0 && idx + 1 < ascendingStatus.length ? ascendingStatus[idx + 1].date : null;
+    const sameUnit = ascendingStatus.filter((e) => e.unit === row.unit);
+    const idx = sameUnit.findIndex((e) => e.id === row.id);
+    return idx >= 0 && idx + 1 < sameUnit.length ? sameUnit[idx + 1].date : null;
   }
 
   const items: FeedItem[] = sortFeed([
