@@ -10,7 +10,7 @@ import {
   canFinish,
   totalSteps,
   mapToPropertyInsert,
-  mapToStatusEntryInsert,
+  mapToStatusEntryInserts,
 } from '@/lib/wizard/wizardLogic';
 import { createProperty } from '@/lib/data/propertyActions';
 import { StepStammdaten } from './steps/StepStammdaten';
@@ -62,10 +62,10 @@ export function PropertyWizard() {
   function handleFinish() {
     setSubmitError(null);
     const propertyInsert = mapToPropertyInsert(values);
-    const statusEntryInsert = mapToStatusEntryInsert(values, today);
+    const statusEntryInserts = mapToStatusEntryInserts(values, today);
     startTransition(async () => {
       try {
-        await createProperty(propertyInsert, statusEntryInsert);
+        await createProperty(propertyInsert, statusEntryInserts);
         router.push('/');
       } catch (err) {
         setSubmitError(err instanceof Error ? err.message : 'Fehler beim Speichern.');

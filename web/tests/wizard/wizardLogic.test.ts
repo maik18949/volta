@@ -7,7 +7,7 @@ import {
   canFinish,
   totalSteps,
   mapToPropertyInsert,
-  mapToStatusEntryInsert,
+  mapToStatusEntryInserts,
   type WizardFormValues,
 } from '@/lib/wizard/wizardLogic';
 
@@ -151,30 +151,41 @@ describe('mapToPropertyInsert', () => {
   });
 });
 
-describe('mapToStatusEntryInsert', () => {
-  it('returns null when the transfer date is in the future (no onboarding step)', () => {
-    expect(mapToStatusEntryInsert(makeValues({ economicTransferDate: '2026-08-01' }), today)).toBeNull();
+describe('mapToStatusEntryInserts', () => {
+  it('returns an empty array when the transfer date is in the future (no onboarding step)', () => {
+    expect(mapToStatusEntryInserts(makeValues({ economicTransferDate: '2026-08-01' }), today)).toEqual([]);
   });
 
-  it('maps the first status entry when the transfer date is in the past', () => {
+  it('maps a single Wohnung entry when the transfer date is in the past and there is no Stellplatz', () => {
     const values = makeValues({
       economicTransferDate: '2026-06-01',
       firstStatusDate: '2026-06-01',
       firstStatus: 'vermietet',
+      parkingType: 'nicht_vorhanden',
     });
-    expect(mapToStatusEntryInsert(values, today)).toEqual({
-      date: '2026-06-01',
-      status: 'vermietet',
-      income_actual_monthly: null,
-      notes: '',
+    expect(mapToStatusEntryInserts(values, today)).toEqual([
+      { date: '2026-06-01', status: 'vermietet', income_actual_monthly: null, notes: '', unit: 'wohnung' },
+    ]);
+  });
+
+  it('maps a matching Stellplatz entry in addition to the Wohnung entry when a Stellplatz exists', () => {
+    const values = makeValues({
+      economicTransferDate: '2026-06-01',
+      firstStatusDate: '2026-06-01',
+      firstStatus: 'vermietet',
+      parkingType: 'tiefgarage',
     });
+    const inserts = mapToStatusEntryInserts(values, today);
+    expect(inserts).toHaveLength(2);
+    expect(inserts[0]).toMatchObject({ unit: 'wohnung', status: 'vermietet', date: '2026-06-01' });
+    expect(inserts[1]).toMatchObject({ unit: 'stellplatz', status: 'vermietet', date: '2026-06-01' });
   });
 
   it('includes income_actual_monthly only when status is mietgarantie', () => {
     const mietgarantie = makeValues({ economicTransferDate: '2026-06-01', firstStatus: 'mietgarantie', firstStatusIncome: 500 });
-    expect(mapToStatusEntryInsert(mietgarantie, today)?.income_actual_monthly).toBe(500);
+    expect(mapToStatusEntryInserts(mietgarantie, today)[0].income_actual_monthly).toBe(500);
 
     const vermietet = makeValues({ economicTransferDate: '2026-06-01', firstStatus: 'vermietet', firstStatusIncome: 500 });
-    expect(mapToStatusEntryInsert(vermietet, today)?.income_actual_monthly).toBeNull();
+    expect(mapToStatusEntryInserts(vermietet, today)[0].income_actual_monthly).toBeNull();
   });
 });
