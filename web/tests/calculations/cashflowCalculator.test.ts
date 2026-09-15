@@ -426,7 +426,7 @@ describe('cashflowCalculator.blendCashflowLineItems', () => {
     expect(blended.hoaRecoverableWE).toBeCloseTo(leer.hoaRecoverableWE * 0.05, 6);
     expect(blended.mortgage).toBe(voll.mortgage);
     const expectedCashflow =
-      blended.incomeWE -
+      blended.incomeWE +
       blended.incomeTE -
       blended.mortgage -
       blended.hoaNonRecoverableWE -

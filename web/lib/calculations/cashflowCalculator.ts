@@ -308,7 +308,7 @@ export interface CashflowActualMonthInput {
 
 /**
  * Card 2 (year table) basis — a real calendar month, day-fraction-weighted
- * by the actual status history (via incomeForMonth / ownerBorneRecoverableWEBreakdown).
+ * by the actual status history (via incomeForUnit / ownerBorneRecoverableWEBreakdown).
  * Past months are Ist, the in-progress month is Ist-to-date + projection,
  * future months project the last known status — all handled by those two
  * functions already.
