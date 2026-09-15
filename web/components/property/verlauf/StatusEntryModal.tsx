@@ -87,7 +87,7 @@ export function StatusEntryModal({
           notes: values.notes,
         };
         if (entry) {
-          await updateStatusEntry(entry.id, propertyId, unit, payload);
+          await updateStatusEntry(entry.id, propertyId, entry.unit, payload);
         } else {
           await createStatusEntry(propertyId, { ...payload, unit });
         }
