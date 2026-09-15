@@ -40,6 +40,8 @@ export function toStatusHistory(rows: StatusEntryRow[]): StatusEntry[] {
     date: new Date(row.date + 'T00:00:00Z'),
     status: row.status as PropertyStatus,
     incomeActualMonthly: row.income_actual_monthly,
+    isFixedAmount: row.income_is_fixed_amount,
+    periodEndDate: row.income_period_end_date ? new Date(row.income_period_end_date + 'T00:00:00Z') : null,
   }));
 }
 

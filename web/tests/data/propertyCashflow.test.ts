@@ -98,6 +98,8 @@ function makeStatusEntry(overrides: Partial<StatusEntryRow> = {}): StatusEntryRo
     date: '2026-02-01',
     status: 'vermietet',
     income_actual_monthly: null,
+    income_is_fixed_amount: false,
+    income_period_end_date: null,
     notes: '',
     created_at: '2026-01-01T00:00:00Z',
     ...overrides,
@@ -240,15 +242,23 @@ describe('computeCashflowYearTable', () => {
     const january = result.months.find((m) => m.month === 1)!;
     expect(january.isOwned).toBe(false);
     expect(january.lineItems.income).toBe(0);
-    expect(january.statusLabel).toBeNull();
+    expect(january.statusLabels).toEqual([]);
   });
 
   it('owned months carry a status label and correct income', () => {
     const result = computeCashflowYearTable(property, statusEntries, [], 2026, today);
     const june = result.months.find((m) => m.month === 6)!;
     expect(june.isOwned).toBe(true);
-    expect(june.statusLabel).toBe('vermietet');
+    expect(june.statusLabels).toEqual(['vermietet']);
     expect(june.lineItems.income).toBeCloseTo(f.coldRentMonthly + f.parkingRentMonthly, 2);
+  });
+
+  it('a month with a mid-month status change lists every status that applied, not just the dominant one', () => {
+    const midMonthSwitch = [makeStatusEntry(), makeStatusEntry({ id: 'status-2', date: '2026-06-16', status: 'mietgarantie', income_actual_monthly: 511.2 })];
+    // today must be past the June 16 transition, or the future-dated entry doesn't take effect yet.
+    const result = computeCashflowYearTable(property, midMonthSwitch, [], 2026, makeDate(2026, 6, 20));
+    const june = result.months.find((m) => m.month === 6)!;
+    expect(june.statusLabels).toEqual(['vermietet', 'mietgarantie']);
   });
 
   it('ownershipMonthCount sums to 11 for a Feb 1 acquisition (Feb-Dec)', () => {
@@ -286,7 +296,7 @@ describe('computeCashflowYearTable', () => {
     const result = computeCashflowYearTable(property, [], [], 2026, today);
     const june = result.months.find((m) => m.month === 6)!;
     expect(june.isOwned).toBe(true);
-    expect(june.statusLabel).toBeNull();
+    expect(june.statusLabels).toEqual([]);
     expect(june.isProjection).toBe(true);
     expect(june.lineItems.income).toBeCloseTo(f.coldRentMonthly + f.parkingRentMonthly, 2);
     expect(june.lineItems.hoaRecoverableWE).toBe(0);

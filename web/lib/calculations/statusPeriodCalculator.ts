@@ -1,4 +1,4 @@
-import { firstDayOfMonth, daysInMonth, dayOfMonth, yearOf, monthOf, makeDate, addMonths } from './dateHelpers';
+import { firstDayOfMonth, daysInMonth, dayOfMonth, yearOf, monthOf, makeDate, addMonths, daysBetween } from './dateHelpers';
 
 export type PropertyStatus = 'vermietet' | 'leerstand' | 'mietgarantie';
 
@@ -6,11 +6,19 @@ export interface StatusEntry {
   date: Date; // start date of this status
   status: PropertyStatus;
   incomeActualMonthly: number | null; // only populated for 'mietgarantie'
+  /**
+   * "Fixbetrag für diesen Zeitraum": incomeActualMonthly is the total for
+   * [date, periodEndDate] (not a monthly rate) — see mietgarantieIncomeEur
+   * below. Defaults to false ("Satz pro Monat", the pre-existing behavior).
+   */
+  isFixedAmount?: boolean;
+  periodEndDate?: Date | null;
 }
 
 interface StatusSegment {
   status: PropertyStatus;
-  incomeActualMonthly: number;
+  /** Euro amount of mietgarantie income already attributed to this segment (not a rate). */
+  mietgarantieIncomeEur: number;
   dayFraction: number;
 }
 
@@ -40,6 +48,14 @@ function segments(month: Date, statusHistory: StatusEntry[], today: Date): Statu
       const d = dayOfMonth(e.date);
       if (d > 1) transitionDays.add(d);
     }
+    // Fixbetrag periods end income mid-status (the status itself carries on
+    // until the next entry) — split the day after periodEndDate off into its
+    // own segment so the "Lücken-Tage" after it can be priced at 0 separately
+    // from the days still inside the fixed period.
+    if (e.isFixedAmount && e.periodEndDate && firstDayOfMonth(e.periodEndDate).getTime() === monthStart.getTime()) {
+      const d = dayOfMonth(e.periodEndDate) + 1;
+      if (d > 1 && d <= totalDays) transitionDays.add(d);
+    }
   }
   if (firstDayOfMonth(today).getTime() === monthStart.getTime()) {
     const tomorrow = dayOfMonth(today) + 1;
@@ -66,9 +82,22 @@ function segments(month: Date, statusHistory: StatusEntry[], today: Date): Statu
 
     const active = mostRecentFirst.find((e) => e.date.getTime() <= lookupDate.getTime());
 
+    let mietgarantieIncomeEur = 0;
+    if (active?.status === 'mietgarantie' && active.incomeActualMonthly != null) {
+      if (active.isFixedAmount && active.periodEndDate) {
+        const pastPeriodEnd = segmentDate.getTime() > active.periodEndDate.getTime();
+        if (!pastPeriodEnd) {
+          const totalPeriodDays = Math.max(1, daysBetween(active.date, active.periodEndDate) + 1);
+          mietgarantieIncomeEur = (active.incomeActualMonthly / totalPeriodDays) * days;
+        }
+      } else {
+        mietgarantieIncomeEur = active.incomeActualMonthly * (days / totalDays);
+      }
+    }
+
     result.push({
       status: active?.status ?? 'leerstand',
-      incomeActualMonthly: active?.incomeActualMonthly ?? 0,
+      mietgarantieIncomeEur,
       dayFraction: days / totalDays,
     });
   }
@@ -87,7 +116,7 @@ export function incomeForMonth(
 ): number {
   return segments(month, statusHistory, today).reduce((sum, seg) => {
     if (seg.status === 'vermietet') return sum + (coldRentMonthly + parkingRentMonthly + otherIncomeMonthly) * seg.dayFraction;
-    if (seg.status === 'mietgarantie') return sum + seg.incomeActualMonthly * seg.dayFraction;
+    if (seg.status === 'mietgarantie') return sum + seg.mietgarantieIncomeEur;
     return sum; // leerstand
   }, 0);
 }
@@ -166,26 +195,21 @@ export function ownershipAndVacancyDaysSinceTransfer(
 }
 
 /**
- * The status with the most cumulative days across all of `month`'s segments
- * (a status can appear in multiple non-adjacent segments within one month) —
- * feeds the Cashflow year table's per-column status badge. Ties keep
- * whichever status was encountered first while summing `monthSegments` in
- * order (the chronologically earliest one), since no explicit tiebreaker is
- * specified.
+ * Every distinct status that occurs across `month`'s segments, in the order
+ * each first appears (chronological) — feeds the Cashflow year table's
+ * per-column status badges. A month can list more than one status (e.g.
+ * "Vermietet" then "Mietgarantie" for a mid-month status change) since all
+ * of them genuinely applied that month, not just whichever covered the most days.
  */
-export function dominantStatusForMonth(month: Date, statusHistory: StatusEntry[], today: Date): PropertyStatus {
+export function statusesForMonth(month: Date, statusHistory: StatusEntry[], today: Date): PropertyStatus[] {
   const monthSegments = segments(month, statusHistory, today);
-  const totalsByStatus = new Map<PropertyStatus, number>();
+  const seen = new Set<PropertyStatus>();
+  const result: PropertyStatus[] = [];
   for (const seg of monthSegments) {
-    totalsByStatus.set(seg.status, (totalsByStatus.get(seg.status) ?? 0) + seg.dayFraction);
-  }
-  let bestStatus: PropertyStatus = monthSegments[0].status;
-  let bestTotal = -1;
-  for (const [status, total] of totalsByStatus) {
-    if (total > bestTotal) {
-      bestStatus = status;
-      bestTotal = total;
+    if (!seen.has(seg.status)) {
+      seen.add(seg.status);
+      result.push(seg.status);
     }
   }
-  return bestStatus;
+  return result;
 }

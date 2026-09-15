@@ -126,9 +126,11 @@ export function CashflowYearTable({ result, hasParking }: { result: CashflowYear
             {result.months.map((col) => (
               <th key={col.month} scope="col" className="w-28 px-1.5 text-right font-normal">
                 <div className={col.isProjection ? 'italic text-text-dim' : 'text-text-primary'}>{MONTH_LABELS[col.month - 1]}</div>
-                {col.statusLabel && (
-                  <div className="mt-0.5 flex justify-end">
-                    <StatusBadge status={col.statusLabel} />
+                {col.statusLabels.length > 0 && (
+                  <div className="mt-0.5 flex flex-wrap justify-end gap-1">
+                    {col.statusLabels.map((status) => (
+                      <StatusBadge key={status} status={status} />
+                    ))}
                   </div>
                 )}
               </th>

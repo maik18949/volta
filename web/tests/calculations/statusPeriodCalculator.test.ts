@@ -7,11 +7,29 @@ import {
   genuineVacancyDayFraction,
   ownershipDayFraction,
   ownershipAndVacancyDaysSinceTransfer,
-  dominantStatusForMonth,
+  statusesForMonth,
 } from '@/lib/calculations/statusPeriodCalculator';
 
 function entry(status: StatusEntry['status'], y: number, m: number, d = 1, income: number | null = null): StatusEntry {
   return { date: makeDate(y, m, d), status, incomeActualMonthly: income };
+}
+
+function fixedEntry(
+  y: number,
+  m: number,
+  d: number,
+  income: number,
+  endY: number,
+  endM: number,
+  endD: number
+): StatusEntry {
+  return {
+    date: makeDate(y, m, d),
+    status: 'mietgarantie',
+    incomeActualMonthly: income,
+    isFixedAmount: true,
+    periodEndDate: makeDate(endY, endM, endD),
+  };
 }
 
 describe('statusPeriodCalculator', () => {
@@ -58,6 +76,38 @@ describe('statusPeriodCalculator', () => {
     const history = [entry('vermietet', 2026, 2)];
     const result = incomeForMonth(makeDate(2026, 12, 1), history, makeDate(2026, 6, 1), 950, 48, 0);
     expect(result).toBeCloseTo(998.0, 2);
+  });
+
+  it('incomeForMonth: Fixbetrag entirely within one month is not re-prorated (regression for the double-shrink bug)', () => {
+    // Mietgarantie starts June 16, Fixbetrag = the already-prorated 511.20 EUR actually
+    // received for the 15 remaining days of June. Must come back exactly, not shrunk again.
+    const history = [fixedEntry(2026, 6, 16, 511.2, 2026, 6, 30)];
+    const result = incomeForMonth(makeDate(2026, 6, 1), history, today, 950, 48, 0);
+    expect(result).toBeCloseTo(511.2, 2);
+  });
+
+  it('incomeForMonth: Fixbetrag spanning two months is split proportionally by days in the period', () => {
+    // Period May 20 - Jun 10 (22 days total): 12 days in May, 10 days in June.
+    const history = [fixedEntry(2026, 5, 20, 600, 2026, 6, 10)];
+    const may = incomeForMonth(makeDate(2026, 5, 1), history, today, 950, 48, 0);
+    const june = incomeForMonth(makeDate(2026, 6, 1), history, today, 950, 48, 0);
+    expect(may).toBeCloseTo(600 * (12 / 22), 2);
+    expect(june).toBeCloseTo(600 * (10 / 22), 2);
+    expect(may + june).toBeCloseTo(600, 2);
+  });
+
+  it('incomeForMonth: days after the Fixbetrag end date count as 0 EUR until a new entry is added', () => {
+    const history = [fixedEntry(2026, 6, 16, 300, 2026, 6, 20)];
+    const june = incomeForMonth(makeDate(2026, 6, 1), history, today, 950, 48, 0);
+    const july = incomeForMonth(makeDate(2026, 7, 1), history, today, 950, 48, 0);
+    expect(june).toBeCloseTo(300, 2); // full Fixbetrag, days 21-30 contribute 0
+    expect(july).toBeCloseTo(0, 2); // fully past the fixed period, no next entry yet
+  });
+
+  it('incomeForMonth: Satz pro Monat (isFixedAmount undefined) keeps the existing day-fraction behavior', () => {
+    const history = [entry('mietgarantie', 2026, 6, 16, 950)];
+    const result = incomeForMonth(makeDate(2026, 6, 1), history, today, 950, 48, 0);
+    expect(result).toBeCloseTo(950 * (15 / 30), 2);
   });
 
   it('leerstandDayFraction: half the month vacant', () => {
@@ -151,37 +201,41 @@ describe('ownershipAndVacancyDaysSinceTransfer', () => {
   });
 });
 
-describe('dominantStatusForMonth', () => {
+describe('statusesForMonth', () => {
   const today = makeDate(2026, 12, 31);
 
-  it('returns the status covering the most days in the month', () => {
-    // Jun 1-9 leerstand (9 days), Jun 10-30 vermietet (21 days) -> vermietet wins.
+  it('a mixed month returns every distinct status, in chronological order', () => {
+    // Jun 1-9 leerstand, Jun 10-30 vermietet -> both should show up, leerstand first.
     const history = [entry('leerstand', 2026, 1, 1), entry('vermietet', 2026, 6, 10)];
-    const result = dominantStatusForMonth(makeDate(2026, 6, 1), history, today);
-    expect(result).toBe('vermietet');
+    const result = statusesForMonth(makeDate(2026, 6, 1), history, today);
+    expect(result).toEqual(['leerstand', 'vermietet']);
   });
 
-  it('a fully vermietet month returns vermietet', () => {
+  it('a fully vermietet month returns just vermietet', () => {
     const history = [entry('vermietet', 2026, 2, 1)];
-    const result = dominantStatusForMonth(makeDate(2026, 6, 1), history, today);
-    expect(result).toBe('vermietet');
+    const result = statusesForMonth(makeDate(2026, 6, 1), history, today);
+    expect(result).toEqual(['vermietet']);
   });
 
   it('no status history at all defaults to leerstand (single full-month segment)', () => {
-    const result = dominantStatusForMonth(makeDate(2026, 6, 1), [], today);
-    expect(result).toBe('leerstand');
+    const result = statusesForMonth(makeDate(2026, 6, 1), [], today);
+    expect(result).toEqual(['leerstand']);
   });
 
-  it('sums day-fractions across non-adjacent segments of the same status (not just the largest single segment)', () => {
-    // 30-day June: vermietet days 1-5 (5), leerstand days 6-19 (14), vermietet days 20-30 (11).
-    // vermietet totals 16 days vs leerstand's 14 -> vermietet wins, even though no single
-    // vermietet segment individually exceeds the 14-day leerstand block.
+  it('a status that recurs in non-adjacent segments is only listed once', () => {
+    // 30-day June: vermietet days 1-5, leerstand days 6-19, vermietet days 20-30 again.
     const history = [
       entry('vermietet', 2026, 6, 1),
       entry('leerstand', 2026, 6, 6),
       entry('vermietet', 2026, 6, 20),
     ];
-    const result = dominantStatusForMonth(makeDate(2026, 6, 1), history, today);
-    expect(result).toBe('vermietet');
+    const result = statusesForMonth(makeDate(2026, 6, 1), history, today);
+    expect(result).toEqual(['vermietet', 'leerstand']);
+  });
+
+  it('vermietet transitioning into mietgarantie mid-month returns both, matching the yearly-overview badge requirement', () => {
+    const history = [entry('vermietet', 2026, 5, 1), entry('mietgarantie', 2026, 6, 16, 511.2)];
+    const result = statusesForMonth(makeDate(2026, 6, 1), history, today);
+    expect(result).toEqual(['vermietet', 'mietgarantie']);
   });
 });

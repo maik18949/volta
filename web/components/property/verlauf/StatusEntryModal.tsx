@@ -15,6 +15,8 @@ interface FormValues {
   date: string;
   status: PropertyStatus;
   incomeActualMonthly: number | null;
+  amountKind: 'rate' | 'fixed';
+  periodEndDate: string;
   notes: string;
 }
 
@@ -59,19 +61,26 @@ export function StatusEntryModal({
       date: entry?.date ?? new Date().toISOString().slice(0, 10),
       status: entry?.status ?? 'vermietet',
       incomeActualMonthly: entry?.income_actual_monthly ?? null,
+      amountKind: entry?.income_is_fixed_amount ? 'fixed' : 'rate',
+      periodEndDate: entry?.income_period_end_date ?? '',
       notes: entry?.notes ?? '',
     },
   });
   const status = watch('status');
+  const isFixedAmount = watch('amountKind') === 'fixed';
 
   function onSubmit(values: FormValues) {
     setSubmitError(null);
     startTransition(async () => {
       try {
+        const isMietgarantie = values.status === 'mietgarantie';
+        const isFixed = isMietgarantie && values.amountKind === 'fixed';
         const payload = {
           date: values.date,
           status: values.status,
-          income_actual_monthly: values.status === 'mietgarantie' ? values.incomeActualMonthly : null,
+          income_actual_monthly: isMietgarantie ? values.incomeActualMonthly : null,
+          income_is_fixed_amount: isFixed,
+          income_period_end_date: isFixed ? values.periodEndDate : null,
           notes: values.notes,
         };
         if (entry) {
@@ -103,7 +112,26 @@ export function StatusEntryModal({
             ))}
           </select>
         </label>
-        {status === 'mietgarantie' && <CurrencyField label="Einnahme/Monat" name="incomeActualMonthly" register={register} />}
+        {status === 'mietgarantie' && (
+          <>
+            <label className="block">
+              <span className="text-[13px] font-medium text-text-secondary">Betragsart</span>
+              <select
+                {...register('amountKind')}
+                className="mt-1 w-full rounded-md border border-black/10 bg-white/90 px-3 py-2 text-sm text-text-primary"
+              >
+                <option value="rate">Satz pro Monat</option>
+                <option value="fixed">Fixbetrag für diesen Zeitraum</option>
+              </select>
+            </label>
+            <CurrencyField
+              label={isFixedAmount ? 'Fixbetrag für diesen Zeitraum' : 'Einnahme/Monat'}
+              name="incomeActualMonthly"
+              register={register}
+            />
+            {isFixedAmount && <TextField label="Enddatum des Zeitraums" name="periodEndDate" register={register} type="date" required />}
+          </>
+        )}
         <TextField label="Notizen" name="notes" register={register} />
         {submitError && (
           <p role="alert" className="text-sm text-negative">

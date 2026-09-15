@@ -1,7 +1,7 @@
 import type { Database } from '@/lib/supabase/types';
 import { toStatusHistory } from '@/lib/data/propertySummary';
 import { makeDate, firstDayOfMonth } from '@/lib/calculations/dateHelpers';
-import { dominantStatusForMonth, ownershipDayFraction } from '@/lib/calculations/statusPeriodCalculator';
+import { statusesForMonth, ownershipDayFraction } from '@/lib/calculations/statusPeriodCalculator';
 import type { StatusEntry, PropertyStatus } from '@/lib/calculations/statusPeriodCalculator';
 import {
   cashflowLineItemsForScenario,
@@ -245,7 +245,7 @@ export interface CashflowMonthColumn {
   month: number;
   isProjection: boolean;
   isOwned: boolean;
-  statusLabel: PropertyStatus | null;
+  statusLabels: PropertyStatus[];
   lineItems: CashflowLineItems;
   extraordinaryCostRows: ExtraordinaryCostRow[];
   cashflowAfterTax: number | null;
@@ -321,7 +321,7 @@ export function computeCashflowYearTable(
         month: m,
         isProjection: monthDate.getTime() > firstDayOfMonth(today).getTime(),
         isOwned: false,
-        statusLabel: null,
+        statusLabels: [],
         lineItems: ZERO_LINE_ITEMS,
         extraordinaryCostRows: monthCostRows,
         cashflowAfterTax: null,
@@ -347,7 +347,7 @@ export function computeCashflowYearTable(
       month: m,
       isProjection: statusHistory.length === 0 || monthDate.getTime() > firstDayOfMonth(today).getTime(),
       isOwned: true,
-      statusLabel: statusHistory.length === 0 ? null : dominantStatusForMonth(monthDate, statusHistory, today),
+      statusLabels: statusHistory.length === 0 ? [] : statusesForMonth(monthDate, statusHistory, today),
       lineItems,
       extraordinaryCostRows: monthCostRows,
       cashflowAfterTax: isFutureYear ? null : lineItems.cashflowBeforeTax + currentYearTaxEffectMonthly,

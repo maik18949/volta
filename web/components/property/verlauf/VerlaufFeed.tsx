@@ -152,7 +152,17 @@ export function VerlaufFeed({
                     );
                   })()}
                   {item.row.status === 'mietgarantie' && item.row.income_actual_monthly !== null && (
-                    <span className="text-sm text-text-dim">{formatCurrency(item.row.income_actual_monthly)}/Monat</span>
+                    <span className="text-sm text-text-dim">
+                      {item.row.income_is_fixed_amount && item.row.income_period_end_date ? (
+                        <>
+                          Fixbetrag: {formatCurrency(item.row.income_actual_monthly)} (
+                          {formatDate(new Date(item.row.date + 'T00:00:00Z'))} –{' '}
+                          {formatDate(new Date(item.row.income_period_end_date + 'T00:00:00Z'))})
+                        </>
+                      ) : (
+                        <>{formatCurrency(item.row.income_actual_monthly)}/Monat</>
+                      )}
+                    </span>
                   )}
                 </div>
                 <div className="flex items-center gap-2">
