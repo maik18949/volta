@@ -491,6 +491,7 @@ export type Database = {
           notes: string
           property_id: string
           status: Database["public"]["Enums"]["property_status"]
+          unit: Database["public"]["Enums"]["property_unit"]
         }
         Insert: {
           created_at?: string
@@ -502,6 +503,7 @@ export type Database = {
           notes?: string
           property_id: string
           status?: Database["public"]["Enums"]["property_status"]
+          unit?: Database["public"]["Enums"]["property_unit"]
         }
         Update: {
           created_at?: string
@@ -513,6 +515,7 @@ export type Database = {
           notes?: string
           property_id?: string
           status?: Database["public"]["Enums"]["property_status"]
+          unit?: Database["public"]["Enums"]["property_unit"]
         }
         Relationships: [
           {
@@ -569,6 +572,7 @@ export type Database = {
         | "renovierungsbedurftig"
         | "sanierungsbedurftig"
       property_status: "vermietet" | "leerstand" | "mietgarantie"
+      property_unit: "wohnung" | "stellplatz"
       property_type:
         | "apartment"
         | "einfamilienhaus"
@@ -738,6 +742,7 @@ export const Constants = {
         "sanierungsbedurftig",
       ],
       property_status: ["vermietet", "leerstand", "mietgarantie"],
+      property_unit: ["wohnung", "stellplatz"],
       property_type: [
         "apartment",
         "einfamilienhaus",
