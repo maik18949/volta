@@ -28,7 +28,7 @@ export function ForecastMonthCard({
         </Link>
       </div>
 
-      <Row label="Einnahmen" value={lineItems.income} />
+      <Row label="Einnahmen" value={lineItems.incomeWE + lineItems.incomeTE} />
       <Row label="Kreditrate" value={-lineItems.mortgage} />
 
       <SectionDivider label="Kosten Wohnung" />
