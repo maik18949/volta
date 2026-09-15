@@ -57,7 +57,15 @@ export function toStatusHistory(rows: StatusEntryRow[], unit: PropertyUnit): Sta
 export function toUnitStatusHistories(rows: StatusEntryRow[]): { wohnung: StatusEntry[]; stellplatz: StatusEntry[] } {
   const wohnung = toStatusHistory(rows, 'wohnung');
   const hasStellplatzRows = rows.some((row) => row.unit === 'stellplatz');
-  return { wohnung, stellplatz: hasStellplatzRows ? toStatusHistory(rows, 'stellplatz') : wohnung };
+  if (hasStellplatzRows) return { wohnung, stellplatz: toStatusHistory(rows, 'stellplatz') };
+  // Mirror Wohnung's status timeline, but never mirror a Mietgarantie amount that was only ever
+  // entered once, for the Wohnung — otherwise both units would independently pay out the full
+  // guaranteed amount (incomeForUnit ignores monthlyAmount during mietgarantie, it uses the
+  // entry's own incomeActualMonthly), doubling the reported income.
+  const stellplatzMirror = wohnung.map((entry) =>
+    entry.status === 'mietgarantie' ? { ...entry, incomeActualMonthly: null, isFixedAmount: false, periodEndDate: null } : entry
+  );
+  return { wohnung, stellplatz: stellplatzMirror };
 }
 
 /**

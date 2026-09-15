@@ -5,8 +5,11 @@ alter table status_entries
 
 insert into status_entries (property_id, date, status, income_actual_monthly,
   income_is_fixed_amount, income_period_end_date, notes, unit)
-select property_id, date, status, income_actual_monthly,
-  income_is_fixed_amount, income_period_end_date, notes, 'stellplatz'
+select property_id, date, status,
+  case when status = 'mietgarantie' then null else income_actual_monthly end,
+  case when status = 'mietgarantie' then false else income_is_fixed_amount end,
+  case when status = 'mietgarantie' then null else income_period_end_date end,
+  notes, 'stellplatz'
 from status_entries se
 where se.unit = 'wohnung'
   and exists (

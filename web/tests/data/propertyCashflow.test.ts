@@ -364,4 +364,12 @@ describe('computeCashflowYearTable', () => {
     expect(june.statusLabelsWE).toEqual(['vermietet']);
     expect(june.statusLabelsTE).toEqual(['leerstand']);
   });
+
+  it('regression: a Mietgarantie property with a Stellplatz but no Stellplatz-tagged rows does not double the guaranteed income', () => {
+    const parkingProperty = makeProperty({ parking_type: 'tiefgarage' });
+    const mietgarantieEntries = [makeStatusEntry({ status: 'mietgarantie', income_actual_monthly: 800 })];
+    const result = computeCashflowYearTable(parkingProperty, mietgarantieEntries, [], 2026, today);
+    const june = result.months.find((m) => m.month === 6)!;
+    expect(june.lineItems.incomeWE + june.lineItems.incomeTE).toBeCloseTo(800, 2);
+  });
 });

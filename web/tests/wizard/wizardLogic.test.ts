@@ -181,6 +181,20 @@ describe('mapToStatusEntryInserts', () => {
     expect(inserts[1]).toMatchObject({ unit: 'stellplatz', status: 'vermietet', date: '2026-06-01' });
   });
 
+  it('does not copy the Mietgarantie amount onto the Stellplatz entry — that would double the guaranteed income', () => {
+    const values = makeValues({
+      economicTransferDate: '2026-06-01',
+      firstStatusDate: '2026-06-01',
+      firstStatus: 'mietgarantie',
+      firstStatusIncome: 800,
+      parkingType: 'tiefgarage',
+    });
+    const inserts = mapToStatusEntryInserts(values, today);
+    expect(inserts).toHaveLength(2);
+    expect(inserts[0]).toMatchObject({ unit: 'wohnung', status: 'mietgarantie', income_actual_monthly: 800 });
+    expect(inserts[1]).toMatchObject({ unit: 'stellplatz', status: 'mietgarantie', income_actual_monthly: null });
+  });
+
   it('includes income_actual_monthly only when status is mietgarantie', () => {
     const mietgarantie = makeValues({ economicTransferDate: '2026-06-01', firstStatus: 'mietgarantie', firstStatusIncome: 500 });
     expect(mapToStatusEntryInserts(mietgarantie, today)[0].income_actual_monthly).toBe(500);

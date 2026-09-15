@@ -331,5 +331,9 @@ export function mapToStatusEntryInserts(
   };
 
   if (values.parkingType === 'nicht_vorhanden') return [wohnungEntry];
-  return [wohnungEntry, { ...wohnungEntry, unit: 'stellplatz' }];
+  const stellplatzEntry: Omit<TablesInsert<'status_entries'>, 'property_id'> =
+    values.firstStatus === 'mietgarantie'
+      ? { ...wohnungEntry, unit: 'stellplatz', income_actual_monthly: null }
+      : { ...wohnungEntry, unit: 'stellplatz' };
+  return [wohnungEntry, stellplatzEntry];
 }

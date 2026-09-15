@@ -65,7 +65,7 @@ export function VerlaufFeed({
   const [deleteErrors, setDeleteErrors] = useState<Record<string, string>>({});
   const [activeUnit, setActiveUnit] = useState<StatusEntryRow['unit']>('wohnung');
 
-  const unitStatusEntries = hasParking ? statusEntries.filter((e) => e.unit === activeUnit) : statusEntries;
+  const unitStatusEntries = statusEntries.filter((e) => e.unit === activeUnit);
 
   const ascendingStatus = [...unitStatusEntries].sort((a, b) => a.date.localeCompare(b.date));
   function endDateFor(row: StatusEntryRow): string | null {

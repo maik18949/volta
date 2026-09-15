@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { fixtures as f } from '../calculations/fixtures';
 import { makeDate } from '@/lib/calculations/dateHelpers';
 import type { Database } from '@/lib/supabase/types';
-import { computePropertySummary } from '@/lib/data/propertySummary';
+import { computePropertySummary, toUnitStatusHistories } from '@/lib/data/propertySummary';
 
 type PropertyRow = Database['public']['Tables']['properties']['Row'];
 type StatusEntryRow = Database['public']['Tables']['status_entries']['Row'];
@@ -337,5 +337,30 @@ describe('computePropertySummary — runningCostsBreakdown', () => {
     const result = computePropertySummary(property, statusHistory, today);
     const parkingItem = result.runningCostsBreakdown.find((item) => item.label === 'Stellplatz-Kosten');
     expect(parkingItem?.amountMonthly).toBeCloseTo(40, 2);
+  });
+});
+
+describe('toUnitStatusHistories', () => {
+  it('mirrors the Wohnung history directly when no Stellplatz rows exist and the status is not Mietgarantie', () => {
+    const rows = [makeStatusEntry({ status: 'vermietet' })];
+    const { wohnung, stellplatz } = toUnitStatusHistories(rows);
+    expect(stellplatz).toEqual(wohnung);
+  });
+
+  it('does not mirror a Mietgarantie amount onto the Stellplatz — it would double the guaranteed income', () => {
+    const rows = [makeStatusEntry({ status: 'mietgarantie', income_actual_monthly: 800 })];
+    const { wohnung, stellplatz } = toUnitStatusHistories(rows);
+    expect(wohnung[0].incomeActualMonthly).toBe(800);
+    expect(stellplatz[0].incomeActualMonthly).toBeNull();
+  });
+
+  it('uses the real Stellplatz rows (including their own independent Mietgarantie amount) once they exist', () => {
+    const rows = [
+      makeStatusEntry({ id: 'we-1', unit: 'wohnung', status: 'mietgarantie', income_actual_monthly: 800 }),
+      makeStatusEntry({ id: 'te-1', unit: 'stellplatz', status: 'mietgarantie', income_actual_monthly: 40 }),
+    ];
+    const { wohnung, stellplatz } = toUnitStatusHistories(rows);
+    expect(wohnung[0].incomeActualMonthly).toBe(800);
+    expect(stellplatz[0].incomeActualMonthly).toBe(40);
   });
 });
