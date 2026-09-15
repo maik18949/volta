@@ -2,8 +2,8 @@ import type { Database } from '@/lib/supabase/types';
 import { makeDate, firstDayOfMonth, monthsBetween } from '@/lib/calculations/dateHelpers';
 import { afaBasis } from '@/lib/calculations/depreciationCalculator';
 import { remainingDebt } from '@/lib/calculations/amortizationCalculator';
-import type { StatusEntry, PropertyStatus } from '@/lib/calculations/statusPeriodCalculator';
-import { incomeForMonth, ownershipDayFraction } from '@/lib/calculations/statusPeriodCalculator';
+import type { StatusEntry, PropertyStatus, PropertyUnit } from '@/lib/calculations/statusPeriodCalculator';
+import { incomeForUnit, ownershipDayFraction } from '@/lib/calculations/statusPeriodCalculator';
 import { cashflowBeforeTax, cashflowAfterTax, ownerBorneRecoverableWEForMonth } from '@/lib/calculations/cashflowCalculator';
 import { annualTaxableIncome, taxEffectYearly, taxEffectMonthly } from '@/lib/calculations/taxCalculator';
 import { netYield as computeNetYield, totalInvestment as computeTotalInvestment, closingCostsTotal as computeClosingCostsTotal } from '@/lib/calculations/kpiCalculator';
@@ -35,14 +35,29 @@ export interface PropertySummary {
   runningCostsBreakdown: RunningCostBreakdownItem[];
 }
 
-export function toStatusHistory(rows: StatusEntryRow[]): StatusEntry[] {
-  return rows.map((row) => ({
-    date: new Date(row.date + 'T00:00:00Z'),
-    status: row.status as PropertyStatus,
-    incomeActualMonthly: row.income_actual_monthly,
-    isFixedAmount: row.income_is_fixed_amount,
-    periodEndDate: row.income_period_end_date ? new Date(row.income_period_end_date + 'T00:00:00Z') : null,
-  }));
+export function toStatusHistory(rows: StatusEntryRow[], unit: PropertyUnit): StatusEntry[] {
+  return rows
+    .filter((row) => row.unit === unit)
+    .map((row) => ({
+      date: new Date(row.date + 'T00:00:00Z'),
+      status: row.status as PropertyStatus,
+      incomeActualMonthly: row.income_actual_monthly,
+      isFixedAmount: row.income_is_fixed_amount,
+      periodEndDate: row.income_period_end_date ? new Date(row.income_period_end_date + 'T00:00:00Z') : null,
+    }));
+}
+
+/**
+ * Wohnung and Stellplatz status histories from one property's raw rows. Falls back to
+ * mirroring the Wohnung history for Stellplatz when no unit='stellplatz' row exists yet
+ * (a property whose Stellplatz was added after its status history was first recorded, or a
+ * pre-migration property that hasn't been backfilled) — matches the migration's own backfill
+ * semantics instead of silently treating an un-backfilled Stellplatz as permanently vacant.
+ */
+export function toUnitStatusHistories(rows: StatusEntryRow[]): { wohnung: StatusEntry[]; stellplatz: StatusEntry[] } {
+  const wohnung = toStatusHistory(rows, 'wohnung');
+  const hasStellplatzRows = rows.some((row) => row.unit === 'stellplatz');
+  return { wohnung, stellplatz: hasStellplatzRows ? toStatusHistory(rows, 'stellplatz') : wohnung };
 }
 
 /**
@@ -55,7 +70,7 @@ export function computePropertySummary(
   statusEntryRows: StatusEntryRow[],
   today: Date = new Date()
 ): PropertySummary {
-  const statusHistory = toStatusHistory(statusEntryRows);
+  const { wohnung: statusHistory, stellplatz: stellplatzStatusHistory } = toUnitStatusHistories(statusEntryRows);
   const economicTransferDate = new Date(property.economic_transfer_date + 'T00:00:00Z');
   const loanStartDate = new Date(property.loan_start_date + 'T00:00:00Z');
 
@@ -133,18 +148,14 @@ export function computePropertySummary(
     { label: 'Umlagefähige Kosten während Leerstand', amountMonthly: ownerBorneRecoverableWEMonthly },
   ].filter((item) => Math.abs(item.amountMonthly) > ZERO_AMOUNT_EPSILON_EUR);
 
-  const incomeThisMonth = incomeForMonth(
-    currentMonth,
-    statusHistory,
-    today,
-    property.cold_rent_monthly,
-    property.parking_rent_monthly,
-    property.other_income_monthly
-  );
+  const incomeThisMonth =
+    incomeForUnit(currentMonth, statusHistory, today, property.cold_rent_monthly + property.other_income_monthly) +
+    incomeForUnit(currentMonth, stellplatzStatusHistory, today, property.parking_rent_monthly);
 
   const taxableIncomeYear = annualTaxableIncome({
     year: currentYear,
     statusHistory,
+    stellplatzStatusHistory,
     economicTransferDate,
     loanStartDate,
     loanAmount: property.loan_amount,

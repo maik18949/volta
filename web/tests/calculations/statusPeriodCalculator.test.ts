@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { makeDate } from '@/lib/calculations/dateHelpers';
 import type { StatusEntry } from '@/lib/calculations/statusPeriodCalculator';
 import {
-  incomeForMonth,
+  incomeForUnit,
   leerstandDayFraction,
   genuineVacancyDayFraction,
   ownershipDayFraction,
@@ -35,78 +35,63 @@ function fixedEntry(
 describe('statusPeriodCalculator', () => {
   const today = makeDate(2026, 12, 1);
 
-  it('incomeForMonth: fully vermietet', () => {
+  it('incomeForUnit: fully vermietet', () => {
     const history = [entry('vermietet', 2026, 2)];
-    const result = incomeForMonth(makeDate(2026, 6, 1), history, today, 950, 48, 0);
+    const result = incomeForUnit(makeDate(2026, 6, 1), history, today, 998);
     expect(result).toBeCloseTo(998.0, 2);
   });
 
-  it('incomeForMonth: includes otherIncomeMonthly while vermietet', () => {
-    const history = [entry('vermietet', 2026, 2)];
-    const result = incomeForMonth(makeDate(2026, 6, 1), history, today, 950, 48, 75);
-    expect(result).toBeCloseTo(998.0 + 75, 2);
-  });
-
-  it('incomeForMonth: otherIncomeMonthly is zero during leerstand', () => {
+  it('incomeForUnit: fully leerstand is zero', () => {
     const history = [entry('leerstand', 2026, 2)];
-    const result = incomeForMonth(makeDate(2026, 6, 1), history, today, 950, 48, 75);
+    const result = incomeForUnit(makeDate(2026, 6, 1), history, today, 998);
     expect(result).toBeCloseTo(0, 2);
   });
 
-  it('incomeForMonth: fully leerstand is zero', () => {
-    const history = [entry('leerstand', 2026, 2)];
-    const result = incomeForMonth(makeDate(2026, 6, 1), history, today, 950, 48, 0);
-    expect(result).toBeCloseTo(0, 2);
-  });
-
-  it('incomeForMonth: mietgarantie uses the entry income, not settings', () => {
+  it('incomeForUnit: mietgarantie uses the entry income, not the monthly amount', () => {
     const history = [entry('mietgarantie', 2026, 2, 1, 999)];
-    const result = incomeForMonth(makeDate(2026, 6, 1), history, today, 950, 48, 0);
+    const result = incomeForUnit(makeDate(2026, 6, 1), history, today, 998);
     expect(result).toBeCloseTo(999.0, 2);
   });
 
-  it('incomeForMonth: mid-month transition leerstand -> vermietet (30-day month)', () => {
+  it('incomeForUnit: mid-month transition leerstand -> vermietet (30-day month)', () => {
     const history = [entry('leerstand', 2026, 2), entry('vermietet', 2026, 6, 16)];
-    const result = incomeForMonth(makeDate(2026, 6, 1), history, today, 950, 48, 0);
+    const result = incomeForUnit(makeDate(2026, 6, 1), history, today, 998);
     // vermietet 15/30 days: 998 * 15/30 = 499.00
     expect(result).toBeCloseTo(998.0 * (15 / 30), 2);
   });
 
-  it('incomeForMonth: future month projects the last known status', () => {
+  it('incomeForUnit: future month projects the last known status', () => {
     const history = [entry('vermietet', 2026, 2)];
-    const result = incomeForMonth(makeDate(2026, 12, 1), history, makeDate(2026, 6, 1), 950, 48, 0);
+    const result = incomeForUnit(makeDate(2026, 12, 1), history, makeDate(2026, 6, 1), 998);
     expect(result).toBeCloseTo(998.0, 2);
   });
 
-  it('incomeForMonth: Fixbetrag entirely within one month is not re-prorated (regression for the double-shrink bug)', () => {
-    // Mietgarantie starts June 16, Fixbetrag = the already-prorated 511.20 EUR actually
-    // received for the 15 remaining days of June. Must come back exactly, not shrunk again.
+  it('incomeForUnit: Fixbetrag entirely within one month is not re-prorated (regression for the double-shrink bug)', () => {
     const history = [fixedEntry(2026, 6, 16, 511.2, 2026, 6, 30)];
-    const result = incomeForMonth(makeDate(2026, 6, 1), history, today, 950, 48, 0);
+    const result = incomeForUnit(makeDate(2026, 6, 1), history, today, 998);
     expect(result).toBeCloseTo(511.2, 2);
   });
 
-  it('incomeForMonth: Fixbetrag spanning two months is split proportionally by days in the period', () => {
-    // Period May 20 - Jun 10 (22 days total): 12 days in May, 10 days in June.
+  it('incomeForUnit: Fixbetrag spanning two months is split proportionally by days in the period', () => {
     const history = [fixedEntry(2026, 5, 20, 600, 2026, 6, 10)];
-    const may = incomeForMonth(makeDate(2026, 5, 1), history, today, 950, 48, 0);
-    const june = incomeForMonth(makeDate(2026, 6, 1), history, today, 950, 48, 0);
+    const may = incomeForUnit(makeDate(2026, 5, 1), history, today, 998);
+    const june = incomeForUnit(makeDate(2026, 6, 1), history, today, 998);
     expect(may).toBeCloseTo(600 * (12 / 22), 2);
     expect(june).toBeCloseTo(600 * (10 / 22), 2);
     expect(may + june).toBeCloseTo(600, 2);
   });
 
-  it('incomeForMonth: days after the Fixbetrag end date count as 0 EUR until a new entry is added', () => {
+  it('incomeForUnit: days after the Fixbetrag end date count as 0 EUR until a new entry is added', () => {
     const history = [fixedEntry(2026, 6, 16, 300, 2026, 6, 20)];
-    const june = incomeForMonth(makeDate(2026, 6, 1), history, today, 950, 48, 0);
-    const july = incomeForMonth(makeDate(2026, 7, 1), history, today, 950, 48, 0);
+    const june = incomeForUnit(makeDate(2026, 6, 1), history, today, 998);
+    const july = incomeForUnit(makeDate(2026, 7, 1), history, today, 998);
     expect(june).toBeCloseTo(300, 2); // full Fixbetrag, days 21-30 contribute 0
     expect(july).toBeCloseTo(0, 2); // fully past the fixed period, no next entry yet
   });
 
-  it('incomeForMonth: Satz pro Monat (isFixedAmount undefined) keeps the existing day-fraction behavior', () => {
+  it('incomeForUnit: Satz pro Monat (isFixedAmount undefined) keeps the existing day-fraction behavior', () => {
     const history = [entry('mietgarantie', 2026, 6, 16, 950)];
-    const result = incomeForMonth(makeDate(2026, 6, 1), history, today, 950, 48, 0);
+    const result = incomeForUnit(makeDate(2026, 6, 1), history, today, 998);
     expect(result).toBeCloseTo(950 * (15 / 30), 2);
   });
 

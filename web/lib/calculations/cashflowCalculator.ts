@@ -1,5 +1,5 @@
 import { makeDate } from './dateHelpers';
-import { leerstandDayFraction, incomeForMonth, ownershipDayFraction } from './statusPeriodCalculator';
+import { leerstandDayFraction, incomeForUnit, ownershipDayFraction } from './statusPeriodCalculator';
 import type { StatusEntry } from './statusPeriodCalculator';
 
 export interface OwnerBorneRecoverableWEBreakdown {
@@ -88,6 +88,8 @@ export function cashflowAfterTax(cashflowBeforeTaxValue: number, taxEffectMonthl
 export interface AnnualCashflowBeforeTaxInput {
   year: number;
   statusHistory: StatusEntry[];
+  /** Defaults to `statusHistory` (mirrors Wohnung) when omitted — see incomeForUnit. */
+  stellplatzStatusHistory?: StatusEntry[];
   economicTransferDate: Date;
   today: Date;
   coldRentMonthly: number;
@@ -116,20 +118,16 @@ export interface AnnualCashflowBeforeTaxInput {
  */
 export function annualCashflowBeforeTax(input: AnnualCashflowBeforeTaxInput): number {
   let total = 0;
+  const stellplatzHistory = input.stellplatzStatusHistory ?? input.statusHistory;
 
   for (let m = 1; m <= 12; m++) {
     const month = makeDate(input.year, m, 1);
     const ownerFraction = ownershipDayFraction(month, input.economicTransferDate);
     if (ownerFraction <= 0) continue;
 
-    const income = incomeForMonth(
-      month,
-      input.statusHistory,
-      input.today,
-      input.coldRentMonthly,
-      input.parkingRentMonthly,
-      input.otherIncomeMonthly
-    );
+    const income =
+      incomeForUnit(month, input.statusHistory, input.today, input.coldRentMonthly + input.otherIncomeMonthly) +
+      incomeForUnit(month, stellplatzHistory, input.today, input.parkingRentMonthly);
     const ownerBorneRecoverableWE = ownerBorneRecoverableWEForMonth(
       month,
       input.statusHistory,
@@ -159,7 +157,8 @@ export function annualCashflowBeforeTax(input: AnnualCashflowBeforeTaxInput): nu
 }
 
 export interface CashflowLineItems {
-  income: number;
+  incomeWE: number;
+  incomeTE: number;
   mortgage: number;
   hoaNonRecoverableWE: number;
   maintenanceReserveWE: number;
@@ -178,7 +177,8 @@ export interface CashflowLineItems {
 
 function cashflowBeforeTaxFromLineItems(items: Omit<CashflowLineItems, 'cashflowBeforeTax'>): number {
   return (
-    items.income -
+    items.incomeWE +
+    items.incomeTE -
     items.mortgage -
     items.hoaNonRecoverableWE -
     items.maintenanceReserveWE -
@@ -228,13 +228,14 @@ export interface CashflowScenarioInput {
  * in both scenarios, per spec-cashflow-tab.md.
  */
 export function cashflowLineItemsForScenario(input: CashflowScenarioInput): CashflowLineItems {
-  const income =
-    input.scenario === 'vollvermietung' ? input.coldRentMonthly + input.parkingRentMonthly + input.otherIncomeMonthly : 0;
+  const incomeWE = input.scenario === 'vollvermietung' ? input.coldRentMonthly + input.otherIncomeMonthly : 0;
+  const incomeTE = input.scenario === 'vollvermietung' ? input.parkingRentMonthly : 0;
   const hoaRecoverableWE = input.scenario === 'leerstand' ? input.hoaFeeRecoverableMonthly : 0;
   const propertyTaxWE = input.scenario === 'leerstand' ? input.propertyTaxAnnual / 12 : 0;
 
   const items: Omit<CashflowLineItems, 'cashflowBeforeTax'> = {
-    income,
+    incomeWE,
+    incomeTE,
     mortgage: input.monthlyMortgage,
     hoaNonRecoverableWE: input.hoaFeeNonRecoverableMonthly,
     maintenanceReserveWE: input.hoaFeeMaintenanceReserveMonthly,
@@ -262,7 +263,8 @@ export function cashflowLineItemsForScenario(input: CashflowScenarioInput): Cash
 export function blendCashflowLineItems(vollvermietung: CashflowLineItems, leerstand: CashflowLineItems, quote: number): CashflowLineItems {
   const p = quote;
   const items: Omit<CashflowLineItems, 'cashflowBeforeTax'> = {
-    income: vollvermietung.income * (1 - p) + leerstand.income * p,
+    incomeWE: vollvermietung.incomeWE * (1 - p) + leerstand.incomeWE * p,
+    incomeTE: vollvermietung.incomeTE * (1 - p) + leerstand.incomeTE * p,
     mortgage: vollvermietung.mortgage,
     hoaNonRecoverableWE: vollvermietung.hoaNonRecoverableWE,
     maintenanceReserveWE: vollvermietung.maintenanceReserveWE,
@@ -283,6 +285,8 @@ export function blendCashflowLineItems(vollvermietung: CashflowLineItems, leerst
 export interface CashflowActualMonthInput {
   month: Date;
   statusHistory: StatusEntry[];
+  /** Defaults to `statusHistory` (mirrors Wohnung) when omitted — see incomeForUnit. */
+  stellplatzStatusHistory?: StatusEntry[];
   today: Date;
   coldRentMonthly: number;
   parkingRentMonthly: number;
@@ -310,14 +314,9 @@ export interface CashflowActualMonthInput {
  * functions already.
  */
 export function cashflowLineItemsForActualMonth(input: CashflowActualMonthInput): CashflowLineItems {
-  const income = incomeForMonth(
-    input.month,
-    input.statusHistory,
-    input.today,
-    input.coldRentMonthly,
-    input.parkingRentMonthly,
-    input.otherIncomeMonthly
-  );
+  const stellplatzHistory = input.stellplatzStatusHistory ?? input.statusHistory;
+  const incomeWE = incomeForUnit(input.month, input.statusHistory, input.today, input.coldRentMonthly + input.otherIncomeMonthly);
+  const incomeTE = incomeForUnit(input.month, stellplatzHistory, input.today, input.parkingRentMonthly);
   const { hoaRecoverable: hoaRecoverableWE, propertyTax: propertyTaxWE } = ownerBorneRecoverableWEBreakdown(
     input.month,
     input.statusHistory,
@@ -327,7 +326,8 @@ export function cashflowLineItemsForActualMonth(input: CashflowActualMonthInput)
   );
 
   const items: Omit<CashflowLineItems, 'cashflowBeforeTax'> = {
-    income,
+    incomeWE,
+    incomeTE,
     mortgage: input.monthlyMortgage,
     hoaNonRecoverableWE: input.hoaFeeNonRecoverableMonthly,
     maintenanceReserveWE: input.hoaFeeMaintenanceReserveMonthly,
