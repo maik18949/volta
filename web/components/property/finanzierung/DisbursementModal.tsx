@@ -71,7 +71,7 @@ export function DisbursementModal({
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
         <TextField label="Bezeichnung" name="label" register={register} />
         <TextField label="Datum" name="date" register={register} type="date" required />
-        <CurrencyField label="Betrag" name="amount" register={register} />
+        <CurrencyField label="Betrag" name="amount" register={register} required />
         <label className="flex items-center gap-2 text-sm text-text-secondary">
           <input type="checkbox" {...register('isDeductible')} />
           Steuerlich abzugsfähig
