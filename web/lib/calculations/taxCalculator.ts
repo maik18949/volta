@@ -264,7 +264,11 @@ export interface TaxScenarioInput {
 /**
  * Steuer tab Section 2 ("Prognose") basis — a full calendar year, no
  * acquisition-year proration (this isn't necessarily the acquisition year),
- * no status history (a scenario toggle stands in for it).
+ * no status history (a scenario toggle stands in for it). Deliberately does
+ * NOT support staged disbursements (unlike annualTaxableIncomeBreakdown) —
+ * forecast interest always uses the full loanAmount from loanStartDate, since
+ * a forecast year is far enough out that any staged-payout period has long
+ * since finished.
  */
 export function taxLineItemsForScenario(input: TaxScenarioInput): TaxLineItems {
   const income = input.scenario === 'vollvermietung' ? (input.coldRentMonthly + input.parkingRentMonthly) * 12 : 0;
