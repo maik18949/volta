@@ -9,6 +9,9 @@ import {
   principalForCalendarYear,
   groupAmortizationScheduleByYear,
   trimAmortizationScheduleToPayoff,
+  stagedAmortizationSchedule,
+  stagedInterestForCalendarYear,
+  toAnnuityRows,
 } from '@/lib/calculations/amortizationCalculator';
 
 describe('amortizationCalculator', () => {
@@ -210,5 +213,82 @@ describe('trimAmortizationScheduleToPayoff', () => {
 
   it('an empty schedule returns an empty array', () => {
     expect(trimAmortizationScheduleToPayoff([])).toEqual([]);
+  });
+});
+
+describe('amortizationCalculator.stagedAmortizationSchedule', () => {
+  const disbursements = [
+    { date: makeDate(2025, 10, 1), amount: 2_734.45, deductible: false },
+    { date: makeDate(2026, 1, 20), amount: 278_665.55, deductible: true },
+  ];
+  const rate = 0.043;
+  const payment = 1_242.85;
+
+  it('first month reflects only the tranche that has landed, not the combined total', () => {
+    const schedule = stagedAmortizationSchedule(disbursements, rate, payment, 1);
+    expect(schedule).toHaveLength(1);
+    // interest: 2734.45 * 0.043/12 = 9.80, principal: 1242.85 - 9.80 = 1233.05
+    expect(schedule[0].interestTotal).toBeCloseTo(9.80, 1);
+    expect(schedule[0].remainingDebtTotal).toBeCloseTo(1_501.40, 1);
+    expect(schedule[0].remainingDebtDeductible).toBe(0);
+  });
+
+  it('balance jumps up when the second tranche lands', () => {
+    // months: Oct25, Nov25, Dec25, Jan26 -> the small tranche is fully repaid
+    // by Dec25, then the main tranche lands in month 4 (Jan26)
+    const schedule = stagedAmortizationSchedule(disbursements, rate, payment, 4);
+    expect(schedule[2].remainingDebtTotal).toBeCloseTo(0, 1);
+    expect(schedule[3].remainingDebtDeductible).toBeGreaterThan(278_000);
+  });
+
+  it('non-deductible balance never goes negative and stays at 0 once repaid', () => {
+    const schedule = stagedAmortizationSchedule(disbursements, rate, payment, 24);
+    for (const row of schedule.slice(3)) {
+      expect(row.remainingDebtNonDeductible).toBe(0);
+      expect(row.interestNonDeductible).toBe(0);
+    }
+  });
+
+  it('empty disbursements produce an empty schedule', () => {
+    expect(stagedAmortizationSchedule([], rate, payment, 12)).toEqual([]);
+  });
+});
+
+describe('amortizationCalculator.stagedInterestForCalendarYear', () => {
+  const disbursements = [
+    { date: makeDate(2025, 10, 1), amount: 2_734.45, deductible: false },
+    { date: makeDate(2026, 1, 20), amount: 278_665.55, deductible: true },
+  ];
+  const rate = 0.043;
+  const payment = 1_242.85;
+
+  it('2026: the non-deductible tranche is already fully repaid, so nonDeductible is 0', () => {
+    const result = stagedInterestForCalendarYear(2026, disbursements, rate, payment);
+    expect(result.nonDeductible).toBe(0);
+    expect(result.deductible).toBeGreaterThan(11_000);
+    expect(result.deductible).toBeLessThan(12_500);
+    expect(result.total).toBeCloseTo(result.deductible + result.nonDeductible, 5);
+  });
+
+  it('2025: interest is entirely non-deductible (only the small tranche has landed)', () => {
+    const result = stagedInterestForCalendarYear(2025, disbursements, rate, payment);
+    expect(result.deductible).toBe(0);
+    expect(result.nonDeductible).toBeGreaterThan(0);
+  });
+});
+
+describe('amortizationCalculator.toAnnuityRows', () => {
+  it('maps a StagedAnnuityRow[] down to plain AnnuityRow[]', () => {
+    const staged = stagedAmortizationSchedule(
+      [{ date: makeDate(2026, 1, 1), amount: 100_000, deductible: true }],
+      0.04,
+      500,
+      2
+    );
+    const rows = toAnnuityRows(staged);
+    expect(rows[0].interest).toBe(staged[0].interestTotal);
+    expect(rows[0].principal).toBe(staged[0].principalTotal);
+    expect(rows[0].payment).toBeCloseTo(staged[0].interestTotal + staged[0].principalTotal, 5);
+    expect(rows[0].remainingDebt).toBe(staged[0].remainingDebtTotal);
   });
 });
