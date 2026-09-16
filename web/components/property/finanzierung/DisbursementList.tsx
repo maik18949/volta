@@ -9,6 +9,12 @@ import type { Database } from '@/lib/supabase/types';
 
 type LoanDisbursementRow = Database['public']['Tables']['loan_disbursements']['Row'];
 
+function withoutKey<T>(record: Record<string, T>, key: string): Record<string, T> {
+  const next = { ...record };
+  delete next[key];
+  return next;
+}
+
 export function DisbursementList({
   propertyId,
   disbursements,
@@ -19,6 +25,8 @@ export function DisbursementList({
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<LoanDisbursementRow | null>(null);
   const [, startTransition] = useTransition();
+  const [pendingIds, setPendingIds] = useState<Record<string, boolean>>({});
+  const [deleteErrors, setDeleteErrors] = useState<Record<string, string>>({});
 
   const sorted = [...disbursements].sort((a, b) => a.date.localeCompare(b.date));
   const total = sorted.reduce((sum, d) => sum + d.amount, 0);
@@ -34,8 +42,17 @@ export function DisbursementList({
   }
 
   function handleDelete(id: string) {
+    if (!window.confirm('Diese Auszahlung löschen?')) return;
+    setDeleteErrors((prev) => withoutKey(prev, id));
+    setPendingIds((prev) => ({ ...prev, [id]: true }));
     startTransition(async () => {
-      await deleteLoanDisbursement(id, propertyId);
+      try {
+        await deleteLoanDisbursement(id, propertyId);
+      } catch {
+        setDeleteErrors((prev) => ({ ...prev, [id]: 'Löschen fehlgeschlagen — bitte erneut versuchen.' }));
+      } finally {
+        setPendingIds((prev) => withoutKey(prev, id));
+      }
     });
   }
 
@@ -68,9 +85,22 @@ export function DisbursementList({
                 <button onClick={() => openEdit(row)} aria-label="Bearbeiten" className="text-text-secondary hover:text-text-primary">
                   <Pencil size={14} />
                 </button>
-                <button onClick={() => handleDelete(row.id)} aria-label="Löschen" className="text-text-secondary hover:text-negative">
-                  <Trash2 size={14} />
-                </button>
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(row.id)}
+                    disabled={!!pendingIds[row.id]}
+                    aria-label="Löschen"
+                    className="text-text-secondary hover:text-negative disabled:opacity-50"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                  {deleteErrors[row.id] && (
+                    <p role="alert" className="absolute right-0 top-full mt-1 whitespace-nowrap text-xs text-negative">
+                      {deleteErrors[row.id]}
+                    </p>
+                  )}
+                </div>
               </div>
             </li>
           ))}
