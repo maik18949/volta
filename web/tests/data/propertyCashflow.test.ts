@@ -416,6 +416,29 @@ describe('computeCashflowForecastMonth / computeCashflowYearTable with disbursem
     expect(forecast.taxEffectMonthly).toBe(taxEffectMonthly);
   });
 
+  it('computeCashflowForecastMonth: with a moved slider (leerstandQuote !== defaultLeerstandQuote), taxEffectMonthly still matches computeTaxCurrentYear called with the same tranches', () => {
+    // Exercises the OTHER branch of the ternary inside computeCashflowForecastMonth
+    // (leerstandQuote passed as the override) — the previous test only covers the
+    // leerstandQuote === defaultLeerstandQuote branch, which would stay green even
+    // if this branch's disbursementRows wiring were accidentally dropped.
+    const property = makeProperty({
+      loan_amount: 281_400,
+      loan_start_date: '2025-12-01',
+      interest_rate: 0.043,
+      amortization_rate: 0.01,
+      monthly_mortgage: 1_242.85,
+      marginal_tax_rate: 0.42,
+    });
+    const disbursements = [
+      makeDisbursement(),
+      makeDisbursement({ id: 'd2', date: '2026-01-20', amount: 278_665.55, is_deductible: true, label: 'Hauptauszahlung' }),
+    ];
+    const today = makeDate(2026, 9, 16);
+    const forecast = computeCashflowForecastMonth(property, [], [], 0.2, 0, today, disbursements);
+    const { taxEffectMonthly } = computeTaxCurrentYear(property, [], [], today, 0.2, disbursements);
+    expect(forecast.taxEffectMonthly).toBe(taxEffectMonthly);
+  });
+
   it('computeCashflowYearTable: empty disbursementRows is byte-identical to today', () => {
     const property = makeProperty();
     const today = makeDate(2026, 9, 16);
