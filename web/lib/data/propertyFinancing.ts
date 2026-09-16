@@ -60,7 +60,11 @@ export function computeFinancingOverview(
     // array) is the only count-to-index conversion needed. Clamped to at
     // least 1 so a lookup date in sortedStart's own month still reads that
     // first row instead of an empty/undefined one.
-    const monthsToToday = Math.max(1, monthsBetween(sortedStart, today));
+    // If today is strictly before the earliest disbursement, nothing has
+    // landed yet, so remainingDebtNow must be 0 rather than reading row 0
+    // (the first disbursement's own month) via the clamp below.
+    const notYetDisbursed = today.getTime() < sortedStart.getTime();
+    const monthsToToday = notYetDisbursed ? 0 : Math.max(1, monthsBetween(sortedStart, today));
     const monthsToFixedRateEnd = Math.max(1, monthsBetween(sortedStart, fixedRateEndDate));
     const schedule = stagedAmortizationSchedule(
       disbursements,
@@ -68,7 +72,7 @@ export function computeFinancingOverview(
       property.monthly_mortgage,
       Math.max(monthsToToday, monthsToFixedRateEnd)
     );
-    remainingDebtNow = schedule[monthsToToday - 1]?.remainingDebtTotal ?? 0;
+    remainingDebtNow = notYetDisbursed ? 0 : (schedule[monthsToToday - 1]?.remainingDebtTotal ?? 0);
     remainingDebtAtFixedRateEnd = schedule[monthsToFixedRateEnd - 1]?.remainingDebtTotal ?? 0;
   } else {
     const monthsSinceLoanStart = monthsBetween(loanStartDate, today) - 1;

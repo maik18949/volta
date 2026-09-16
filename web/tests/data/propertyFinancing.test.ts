@@ -233,6 +233,23 @@ describe('computeFinancingOverview with staged disbursements', () => {
     expect(staged.remainingDebtNow).toBeLessThan(naive.remainingDebtNow);
     expect(staged.remainingDebtNow).toBeCloseTo(276_435, -2);
   });
+
+  it('remainingDebtNow is 0 when today is before the earliest disbursement (nothing has landed yet)', () => {
+    const property = makeProperty({
+      loan_amount: 281_400,
+      loan_start_date: '2025-12-01',
+      interest_rate: 0.043,
+      amortization_rate: 0.01,
+      monthly_mortgage: 1_242.85,
+    });
+    const disbursements = [
+      makeDisbursement({ date: '2026-01-20', amount: 278_665.55, is_deductible: true, label: 'Hauptauszahlung' }),
+    ];
+    const result = computeFinancingOverview(property, makeDate(2025, 12, 1), disbursements);
+    if (!result.hasFinancing) throw new Error('expected hasFinancing: true');
+    expect(result.hasFinancing).toBe(true);
+    expect(result.remainingDebtNow).toBe(0);
+  });
 });
 
 describe('computeAmortizationYearTable with staged disbursements', () => {
