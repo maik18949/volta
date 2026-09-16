@@ -311,6 +311,6 @@ describe('computeTaxCurrentYear with disbursementRows', () => {
     ];
     const naive = computeTaxCurrentYear(property, [], [], makeDate(2026, 9, 16));
     const staged = computeTaxCurrentYear(property, [], [], makeDate(2026, 9, 16), undefined, disbursements);
-    expect(staged.lineItems.interest).toBeLessThanOrEqual(naive.lineItems.interest);
+    expect(staged.lineItems.interest).toBeLessThan(naive.lineItems.interest);
   });
 });

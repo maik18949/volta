@@ -45,6 +45,11 @@ export interface TaxCurrentYearResult {
  * intentionally diverges, via the `leerstandQuoteOverride` parameter below,
  * once the user actually moves that slider away from the default, to show a
  * genuine what-if scenario.
+ *
+ * `disbursementRows` is optional and additive (see loanDisbursements.ts) —
+ * omitted or empty, interest is computed the original way from loanAmount/
+ * loanStartDate; when tranches exist, non-deductible-tranche interest is
+ * excluded from the deducted Werbungskosten-Zinsen.
  */
 export function computeTaxCurrentYear(
   property: PropertyRow,
