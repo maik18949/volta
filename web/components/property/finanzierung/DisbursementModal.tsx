@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useTransition } from 'react';
+import { useState, useTransition } from 'react';
 import { useForm } from 'react-hook-form';
 import { Modal } from '@/components/ui/Modal';
 import { TextField } from '@/components/ui/TextField';
@@ -31,9 +31,15 @@ export function DisbursementModal({
   const [isPending, startTransition] = useTransition();
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  useEffect(() => {
+  // Clear a stale error the moment the modal transitions to open — adjusted
+  // during render (React's recommended pattern for "reset state when a prop
+  // changes") rather than in an effect, so it happens in the same render
+  // instead of triggering an extra one.
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
     if (open) setSubmitError(null);
-  }, [open]);
+  }
 
   const { register, handleSubmit } = useForm<FormValues>({
     values: {
