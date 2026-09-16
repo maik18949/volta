@@ -220,7 +220,8 @@ describe('cashflowLineItemsForScenario', () => {
 
   it('vollvermietung: full income, no owner-borne recoverable WE costs', () => {
     const result = cashflowLineItemsForScenario(baseInput);
-    expect(result.income).toBeCloseTo(998, 2); // coldRent 950 + parkingRent 48
+    expect(result.incomeWE).toBeCloseTo(950, 2);
+    expect(result.incomeTE).toBeCloseTo(48, 2);
     expect(result.mortgage).toBe(f.monthlyMortgage);
     expect(result.hoaNonRecoverableWE).toBe(f.hoaFeeNonRecoverableMonthly);
     expect(result.maintenanceReserveWE).toBe(f.maintenanceReserveMonthly);
@@ -234,7 +235,8 @@ describe('cashflowLineItemsForScenario', () => {
 
   it('leerstand: zero income, full owner-borne recoverable WE costs', () => {
     const result = cashflowLineItemsForScenario({ ...baseInput, scenario: 'leerstand' });
-    expect(result.income).toBe(0);
+    expect(result.incomeWE).toBe(0);
+    expect(result.incomeTE).toBe(0);
     expect(result.hoaRecoverableWE).toBeCloseTo(f.hoaFeeRecoverableMonthly, 2);
     expect(result.propertyTaxWE).toBeCloseTo(f.propertyTaxMonthly, 4);
     expect(result.cashflowBeforeTax).toBeCloseTo(-1744.69, 1);
@@ -289,7 +291,8 @@ describe('cashflowLineItemsForActualMonth', () => {
   it('fully vermietet since before this month matches the vollvermietung scenario result', () => {
     const history: StatusEntry[] = [{ date: makeDate(2026, 2, 1), status: 'vermietet', incomeActualMonthly: null }];
     const result = cashflowLineItemsForActualMonth({ ...baseInput, month: makeDate(2026, 6, 1), statusHistory: history, today });
-    expect(result.income).toBeCloseTo(998, 2);
+    expect(result.incomeWE).toBeCloseTo(950, 2);
+    expect(result.incomeTE).toBeCloseTo(48, 2);
     expect(result.hoaRecoverableWE).toBe(0);
     expect(result.cashflowBeforeTax).toBeCloseTo(-437.61, 1);
   });
@@ -299,13 +302,14 @@ describe('cashflowLineItemsForActualMonth', () => {
     const input = { ...baseInput, month: makeDate(2026, 6, 1), statusHistory: history, today, otherIncomeMonthly: 75 };
     const before = cashflowLineItemsForActualMonth({ ...input, otherIncomeMonthly: 0 });
     const after = cashflowLineItemsForActualMonth(input);
-    expect(after.income).toBeCloseTo(before.income + 75, 2);
+    expect(after.incomeWE).toBeCloseTo(before.incomeWE + 75, 2);
   });
 
   it('fully leerstand since before this month matches the leerstand scenario result', () => {
     const history: StatusEntry[] = [{ date: makeDate(2026, 2, 1), status: 'leerstand', incomeActualMonthly: null }];
     const result = cashflowLineItemsForActualMonth({ ...baseInput, month: makeDate(2026, 6, 1), statusHistory: history, today });
-    expect(result.income).toBe(0);
+    expect(result.incomeWE).toBe(0);
+    expect(result.incomeTE).toBe(0);
     expect(result.hoaRecoverableWE).toBeCloseTo(f.hoaFeeRecoverableMonthly, 2);
     expect(result.cashflowBeforeTax).toBeCloseTo(-1744.69, 1);
   });
@@ -317,7 +321,8 @@ describe('cashflowLineItemsForActualMonth', () => {
       { date: makeDate(2026, 6, 16), status: 'vermietet', incomeActualMonthly: null },
     ];
     const result = cashflowLineItemsForActualMonth({ ...baseInput, month: makeDate(2026, 6, 1), statusHistory: history, today });
-    expect(result.income).toBeCloseTo(998 * 0.5, 2);
+    expect(result.incomeWE).toBeCloseTo(950 * 0.5, 2);
+    expect(result.incomeTE).toBeCloseTo(48 * 0.5, 2);
     expect(result.hoaRecoverableWE).toBeCloseTo(f.hoaFeeRecoverableMonthly * 0.5, 2);
     expect(result.propertyTaxWE).toBeCloseTo(f.propertyTaxMonthly * 0.5, 2);
   });
@@ -354,6 +359,27 @@ describe('cashflowLineItemsForActualMonth', () => {
     expect(result.mortgage).toBe(f.monthlyMortgage);
     expect(result.hoaNonRecoverableWE).toBe(f.hoaFeeNonRecoverableMonthly);
     expect(result.maintenanceReserveWE).toBe(f.maintenanceReserveMonthly);
+  });
+
+  it('Wohnung and Stellplatz can be in different statuses at the same time', () => {
+    const wohnungHistory: StatusEntry[] = [{ date: makeDate(2026, 2, 1), status: 'vermietet', incomeActualMonthly: null }];
+    const stellplatzHistory: StatusEntry[] = [{ date: makeDate(2026, 2, 1), status: 'leerstand', incomeActualMonthly: null }];
+    const result = cashflowLineItemsForActualMonth({
+      ...baseInput,
+      month: makeDate(2026, 6, 1),
+      statusHistory: wohnungHistory,
+      stellplatzStatusHistory: stellplatzHistory,
+      today,
+    });
+    expect(result.incomeWE).toBeCloseTo(f.coldRentMonthly, 2);
+    expect(result.incomeTE).toBe(0); // Stellplatz is leerstand — its rent doesn't flow even though the Wohnung is vermietet
+  });
+
+  it('omitting stellplatzStatusHistory defaults it to mirror the Wohnung history', () => {
+    const history: StatusEntry[] = [{ date: makeDate(2026, 2, 1), status: 'leerstand', incomeActualMonthly: null }];
+    const result = cashflowLineItemsForActualMonth({ ...baseInput, month: makeDate(2026, 6, 1), statusHistory: history, today });
+    expect(result.incomeWE).toBe(0);
+    expect(result.incomeTE).toBe(0); // mirrors the leerstand Wohnung history, not the vollvermietung default
   });
 });
 
@@ -395,11 +421,13 @@ describe('cashflowCalculator.blendCashflowLineItems', () => {
     const voll = cashflowLineItemsForScenario({ ...scenarioBaseInput, scenario: 'vollvermietung' });
     const leer = cashflowLineItemsForScenario({ ...scenarioBaseInput, scenario: 'leerstand' });
     const blended = blendCashflowLineItems(voll, leer, 0.05);
-    expect(blended.income).toBeCloseTo(voll.income * 0.95, 6);
+    expect(blended.incomeWE).toBeCloseTo(voll.incomeWE * 0.95, 6);
+    expect(blended.incomeTE).toBe(0); // scenarioBaseInput has parkingRentMonthly: 0
     expect(blended.hoaRecoverableWE).toBeCloseTo(leer.hoaRecoverableWE * 0.05, 6);
     expect(blended.mortgage).toBe(voll.mortgage);
     const expectedCashflow =
-      blended.income -
+      blended.incomeWE +
+      blended.incomeTE -
       blended.mortgage -
       blended.hoaNonRecoverableWE -
       blended.maintenanceReserveWE -

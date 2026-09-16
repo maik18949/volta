@@ -100,6 +100,7 @@ function makeStatusEntry(overrides: Partial<StatusEntryRow> = {}): StatusEntryRo
     income_is_fixed_amount: false,
     income_period_end_date: null,
     notes: '',
+    unit: 'wohnung',
     created_at: '2026-01-01T00:00:00Z',
     ...overrides,
   };

@@ -2,6 +2,7 @@ import { formatCurrency, formatDate } from '@/lib/formatters';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import type { CashflowMonthColumn, CashflowYearTableResult } from '@/lib/data/propertyCashflow';
 import type { CashflowLineItems } from '@/lib/calculations/cashflowCalculator';
+import type { PropertyStatus } from '@/lib/calculations/statusPeriodCalculator';
 
 const MONTH_LABELS = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
 
@@ -26,10 +27,7 @@ function buildRowGroups(options: {
 }): { top: RowDef[]; wohnung: RowDef[]; stellplatz: RowDef[] } {
   const { hasParking, hasInsurance, hasOtherCosts, hasLeerstandCosts } = options;
 
-  const top: RowDef[] = [
-    { label: 'Einnahmen', select: (i) => i.income, sign: 1 },
-    { label: 'Kreditrate', select: (i) => i.mortgage, sign: -1 },
-  ];
+  const top: RowDef[] = [{ label: 'Kreditrate', select: (i) => i.mortgage, sign: -1 }];
 
   const wohnung: RowDef[] = [
     { label: 'Nicht umlagefähige Kosten', select: (i) => i.hoaNonRecoverableWE, sign: -1 },
@@ -105,6 +103,48 @@ function DataRow({
   );
 }
 
+function IncomeRow({
+  months,
+  avgColumn,
+  totalColumn,
+  select,
+  statusLabelsFor,
+}: {
+  months: CashflowMonthColumn[];
+  avgColumn: CashflowLineItems | null;
+  totalColumn: CashflowLineItems | null;
+  select: (items: CashflowLineItems) => number;
+  statusLabelsFor: (col: CashflowMonthColumn) => PropertyStatus[];
+}) {
+  return (
+    <tr className="border-t border-black/[0.04]">
+      <td className="whitespace-nowrap py-1.5 text-text-secondary">Einnahmen</td>
+      {months.map((col) => {
+        const value = select(col.lineItems);
+        const labels = statusLabelsFor(col);
+        return (
+          <td key={col.month} className={`px-1.5 text-right font-mono ${col.isOwned ? amountColorClass(value) : 'text-text-dim'}`}>
+            <div>{col.isOwned ? formatCurrency(value) : '–'}</div>
+            {labels.length > 0 && (
+              <div className="mt-0.5 flex flex-wrap justify-end gap-1">
+                {labels.map((status) => (
+                  <StatusBadge key={status} status={status} />
+                ))}
+              </div>
+            )}
+          </td>
+        );
+      })}
+      <td className={`bg-blue-50/50 px-1.5 text-right font-mono ${avgColumn ? amountColorClass(select(avgColumn)) : 'text-text-dim'}`}>
+        {avgColumn ? formatCurrency(select(avgColumn)) : '–'}
+      </td>
+      <td className={`bg-blue-50/50 px-1.5 text-right font-mono ${totalColumn ? amountColorClass(select(totalColumn)) : 'text-text-dim'}`}>
+        {totalColumn ? formatCurrency(select(totalColumn)) : '–'}
+      </td>
+    </tr>
+  );
+}
+
 export function CashflowYearTable({ result, hasParking }: { result: CashflowYearTableResult; hasParking: boolean }) {
   const anyMonthHasInsurance = result.months.some((m) => m.lineItems.insuranceWE > 0);
   const anyMonthHasOtherCosts = result.months.some((m) => m.lineItems.otherCostsWE > 0);
@@ -126,13 +166,6 @@ export function CashflowYearTable({ result, hasParking }: { result: CashflowYear
             {result.months.map((col) => (
               <th key={col.month} scope="col" className="w-28 px-1.5 text-right font-normal">
                 <div className={col.isProjection ? 'italic text-text-dim' : 'text-text-primary'}>{MONTH_LABELS[col.month - 1]}</div>
-                {col.statusLabels.length > 0 && (
-                  <div className="mt-0.5 flex flex-wrap justify-end gap-1">
-                    {col.statusLabels.map((status) => (
-                      <StatusBadge key={status} status={status} />
-                    ))}
-                  </div>
-                )}
               </th>
             ))}
             <th scope="col" className="w-24 bg-blue-50/50 px-1.5 text-right font-normal text-text-secondary">Ø Mon</th>
@@ -144,14 +177,28 @@ export function CashflowYearTable({ result, hasParking }: { result: CashflowYear
             <DataRow key={`top-${row.label}`} row={row} months={result.months} avgColumn={result.avgColumn} totalColumn={result.totalColumn} />
           ))}
 
-          <CategoryDivider label="Kosten Wohnung" columnCount={columnCount} />
+          <CategoryDivider label="Wohnung" columnCount={columnCount} />
+          <IncomeRow
+            months={result.months}
+            avgColumn={result.avgColumn}
+            totalColumn={result.totalColumn}
+            select={(i) => i.incomeWE}
+            statusLabelsFor={(col) => col.statusLabelsWE}
+          />
           {wohnung.map((row) => (
             <DataRow key={`we-${row.label}`} row={row} months={result.months} avgColumn={result.avgColumn} totalColumn={result.totalColumn} />
           ))}
 
           {hasParking && (
             <>
-              <CategoryDivider label="Kosten Stellplatz" columnCount={columnCount} />
+              <CategoryDivider label="Stellplatz" columnCount={columnCount} />
+              <IncomeRow
+                months={result.months}
+                avgColumn={result.avgColumn}
+                totalColumn={result.totalColumn}
+                select={(i) => i.incomeTE}
+                statusLabelsFor={(col) => col.statusLabelsTE}
+              />
               {stellplatz.map((row) => (
                 <DataRow
                   key={`te-${row.label}`}

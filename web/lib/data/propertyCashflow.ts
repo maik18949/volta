@@ -1,5 +1,5 @@
 import type { Database } from '@/lib/supabase/types';
-import { toStatusHistory } from '@/lib/data/propertySummary';
+import { toUnitStatusHistories } from '@/lib/data/propertySummary';
 import { makeDate, firstDayOfMonth } from '@/lib/calculations/dateHelpers';
 import { statusesForMonth, ownershipDayFraction } from '@/lib/calculations/statusPeriodCalculator';
 import type { StatusEntry, PropertyStatus } from '@/lib/calculations/statusPeriodCalculator';
@@ -104,7 +104,8 @@ export function computeCashflowForecastMonth(
 }
 
 const ZERO_LINE_ITEMS: CashflowLineItems = {
-  income: 0,
+  incomeWE: 0,
+  incomeTE: 0,
   mortgage: 0,
   hoaNonRecoverableWE: 0,
   maintenanceReserveWE: 0,
@@ -123,7 +124,8 @@ const ZERO_LINE_ITEMS: CashflowLineItems = {
 
 function addLineItems(a: CashflowLineItems, b: CashflowLineItems): CashflowLineItems {
   return {
-    income: a.income + b.income,
+    incomeWE: a.incomeWE + b.incomeWE,
+    incomeTE: a.incomeTE + b.incomeTE,
     mortgage: a.mortgage + b.mortgage,
     hoaNonRecoverableWE: a.hoaNonRecoverableWE + b.hoaNonRecoverableWE,
     maintenanceReserveWE: a.maintenanceReserveWE + b.maintenanceReserveWE,
@@ -143,7 +145,8 @@ function addLineItems(a: CashflowLineItems, b: CashflowLineItems): CashflowLineI
 
 function divideLineItems(a: CashflowLineItems, n: number): CashflowLineItems {
   return {
-    income: a.income / n,
+    incomeWE: a.incomeWE / n,
+    incomeTE: a.incomeTE / n,
     mortgage: a.mortgage / n,
     hoaNonRecoverableWE: a.hoaNonRecoverableWE / n,
     maintenanceReserveWE: a.maintenanceReserveWE / n,
@@ -163,7 +166,8 @@ function divideLineItems(a: CashflowLineItems, n: number): CashflowLineItems {
 
 function scaleLineItems(a: CashflowLineItems, factor: number): CashflowLineItems {
   return {
-    income: a.income * factor,
+    incomeWE: a.incomeWE * factor,
+    incomeTE: a.incomeTE * factor,
     mortgage: a.mortgage * factor,
     hoaNonRecoverableWE: a.hoaNonRecoverableWE * factor,
     maintenanceReserveWE: a.maintenanceReserveWE * factor,
@@ -191,6 +195,7 @@ function scaleLineItems(a: CashflowLineItems, factor: number): CashflowLineItems
 function lineItemsForMonth(
   property: PropertyRow,
   statusHistory: StatusEntry[],
+  stellplatzStatusHistory: StatusEntry[],
   monthDate: Date,
   today: Date,
   extraordinaryCostsThisMonth: number,
@@ -221,6 +226,7 @@ function lineItemsForMonth(
   return cashflowLineItemsForActualMonth({
     month: monthDate,
     statusHistory,
+    stellplatzStatusHistory,
     today,
     coldRentMonthly: property.cold_rent_monthly,
     parkingRentMonthly: property.parking_rent_monthly,
@@ -245,7 +251,8 @@ export interface CashflowMonthColumn {
   month: number;
   isProjection: boolean;
   isOwned: boolean;
-  statusLabels: PropertyStatus[];
+  statusLabelsWE: PropertyStatus[];
+  statusLabelsTE: PropertyStatus[];
   lineItems: CashflowLineItems;
   extraordinaryCostRows: ExtraordinaryCostRow[];
   cashflowAfterTax: number | null;
@@ -274,7 +281,7 @@ export function computeCashflowYearTable(
   year: number,
   today: Date = new Date()
 ): CashflowYearTableResult {
-  const statusHistory = toStatusHistory(statusEntryRows);
+  const { wohnung: statusHistory, stellplatz: stellplatzStatusHistory } = toUnitStatusHistories(statusEntryRows);
   const economicTransferDate = new Date(property.economic_transfer_date + 'T00:00:00Z');
   const currentYear = today.getUTCFullYear();
   const isFutureYear = year > currentYear;
@@ -321,7 +328,8 @@ export function computeCashflowYearTable(
         month: m,
         isProjection: monthDate.getTime() > firstDayOfMonth(today).getTime(),
         isOwned: false,
-        statusLabels: [],
+        statusLabelsWE: [],
+        statusLabelsTE: [],
         lineItems: ZERO_LINE_ITEMS,
         extraordinaryCostRows: monthCostRows,
         cashflowAfterTax: null,
@@ -332,6 +340,7 @@ export function computeCashflowYearTable(
     const rawLineItems = lineItemsForMonth(
       property,
       statusHistory,
+      stellplatzStatusHistory,
       monthDate,
       today,
       extraordinaryCostsThisMonth,
@@ -347,7 +356,8 @@ export function computeCashflowYearTable(
       month: m,
       isProjection: statusHistory.length === 0 || monthDate.getTime() > firstDayOfMonth(today).getTime(),
       isOwned: true,
-      statusLabels: statusHistory.length === 0 ? [] : statusesForMonth(monthDate, statusHistory, today),
+      statusLabelsWE: statusHistory.length === 0 ? [] : statusesForMonth(monthDate, statusHistory, today),
+      statusLabelsTE: stellplatzStatusHistory.length === 0 ? [] : statusesForMonth(monthDate, stellplatzStatusHistory, today),
       lineItems,
       extraordinaryCostRows: monthCostRows,
       cashflowAfterTax: isFutureYear ? null : lineItems.cashflowBeforeTax + currentYearTaxEffectMonthly,

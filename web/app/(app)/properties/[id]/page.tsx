@@ -17,8 +17,10 @@ export default async function PropertyOverviewPage({ params }: { params: Promise
   const summary = computePropertySummary(detail.property, detail.statusEntries, today);
   const overview = computeOverviewMetrics(detail.property, detail.statusEntries, detail.extraordinaryCosts, summary, today);
 
-  const sortedHistory = [...detail.statusEntries].sort((a, b) => a.date.localeCompare(b.date));
-  const latestEntry = sortedHistory.length > 0 ? sortedHistory[sortedHistory.length - 1] : null;
+  const wohnungHistory = [...detail.statusEntries]
+    .filter((e) => e.unit === 'wohnung')
+    .sort((a, b) => a.date.localeCompare(b.date));
+  const latestEntry = wohnungHistory.length > 0 ? wohnungHistory[wohnungHistory.length - 1] : null;
 
   return (
     <div className="space-y-4">

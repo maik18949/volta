@@ -2,17 +2,20 @@
 
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
-import type { TablesInsert, TablesUpdate } from '@/lib/supabase/types';
+import type { TablesInsert, TablesUpdate, Database } from '@/lib/supabase/types';
 
 type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
+
+type PropertyUnit = Database['public']['Enums']['property_unit'];
 
 async function assertNoDuplicateDate(
   supabase: SupabaseClient,
   propertyId: string,
+  unit: PropertyUnit,
   date: string,
   excludeId?: string
 ): Promise<void> {
-  let query = supabase.from('status_entries').select('id').eq('property_id', propertyId).eq('date', date);
+  let query = supabase.from('status_entries').select('id').eq('property_id', propertyId).eq('unit', unit).eq('date', date);
   if (excludeId) query = query.neq('id', excludeId);
   const { data, error } = await query;
   if (error) throw error;
@@ -47,6 +50,7 @@ function addDaysIso(iso: string, days: number): string {
 async function assertFixedAmountPeriodConsistency(
   supabase: SupabaseClient,
   propertyId: string,
+  unit: PropertyUnit,
   date: string,
   isFixedAmount: boolean,
   periodEndDate: string | null,
@@ -59,7 +63,8 @@ async function assertFixedAmountPeriodConsistency(
   let query = supabase
     .from('status_entries')
     .select('id, date, income_is_fixed_amount, income_period_end_date')
-    .eq('property_id', propertyId);
+    .eq('property_id', propertyId)
+    .eq('unit', unit);
   if (excludeId) query = query.neq('id', excludeId);
   const { data, error } = await query;
   if (error) throw error;
@@ -89,12 +94,14 @@ export async function createStatusEntry(
   const supabase = await createClient();
   const date = input.date;
   if (!date) throw new Error('Datum ist erforderlich.');
+  const unit: PropertyUnit = input.unit ?? 'wohnung';
 
-  await assertNoDuplicateDate(supabase, propertyId, date);
+  await assertNoDuplicateDate(supabase, propertyId, unit, date);
   await assertNotBeforeTransfer(supabase, propertyId, date);
   await assertFixedAmountPeriodConsistency(
     supabase,
     propertyId,
+    unit,
     date,
     input.income_is_fixed_amount ?? false,
     input.income_period_end_date ?? null
@@ -109,16 +116,18 @@ export async function createStatusEntry(
 export async function updateStatusEntry(
   id: string,
   propertyId: string,
-  patch: Omit<TablesUpdate<'status_entries'>, 'property_id' | 'id'>
+  unit: PropertyUnit,
+  patch: Omit<TablesUpdate<'status_entries'>, 'property_id' | 'id' | 'unit'>
 ): Promise<void> {
   const supabase = await createClient();
 
   if (patch.date) {
-    await assertNoDuplicateDate(supabase, propertyId, patch.date, id);
+    await assertNoDuplicateDate(supabase, propertyId, unit, patch.date, id);
     await assertNotBeforeTransfer(supabase, propertyId, patch.date);
     await assertFixedAmountPeriodConsistency(
       supabase,
       propertyId,
+      unit,
       patch.date,
       patch.income_is_fixed_amount ?? false,
       patch.income_period_end_date ?? null,

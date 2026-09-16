@@ -309,17 +309,31 @@ export function mapToPropertyInsert(values: WizardFormValues): Omit<TablesInsert
   };
 }
 
-/** Returns null when the conditional Status-Onboarding step doesn't apply — no status_entries row is created. */
-export function mapToStatusEntryInsert(
+/**
+ * Returns an empty array when the conditional Status-Onboarding step doesn't apply — no
+ * status_entries rows are created. Returns one row (Wohnung) or two (Wohnung + an identical
+ * Stellplatz row) depending on parkingType — mirrors the migration's own backfill semantics
+ * so a brand-new property with a Stellplatz starts with matching histories, exactly like an
+ * existing property does after the 2026-09-15 migration.
+ */
+export function mapToStatusEntryInserts(
   values: WizardFormValues,
   today: Date
-): Omit<TablesInsert<'status_entries'>, 'property_id'> | null {
-  if (!requiresStatusOnboarding(values, today)) return null;
+): Array<Omit<TablesInsert<'status_entries'>, 'property_id'>> {
+  if (!requiresStatusOnboarding(values, today)) return [];
 
-  return {
+  const wohnungEntry: Omit<TablesInsert<'status_entries'>, 'property_id'> = {
     date: values.firstStatusDate,
     status: values.firstStatus,
     income_actual_monthly: values.firstStatus === 'mietgarantie' ? nOrNull(values.firstStatusIncome) : null,
     notes: values.firstStatusNotes,
+    unit: 'wohnung',
   };
+
+  if (values.parkingType === 'nicht_vorhanden') return [wohnungEntry];
+  const stellplatzEntry: Omit<TablesInsert<'status_entries'>, 'property_id'> =
+    values.firstStatus === 'mietgarantie'
+      ? { ...wohnungEntry, unit: 'stellplatz', income_actual_monthly: null }
+      : { ...wohnungEntry, unit: 'stellplatz' };
+  return [wohnungEntry, stellplatzEntry];
 }

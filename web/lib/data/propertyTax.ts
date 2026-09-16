@@ -1,5 +1,5 @@
 import type { Database } from '@/lib/supabase/types';
-import { toStatusHistory } from '@/lib/data/propertySummary';
+import { toUnitStatusHistories } from '@/lib/data/propertySummary';
 import { makeDate } from '@/lib/calculations/dateHelpers';
 import { ownershipDayFraction } from '@/lib/calculations/statusPeriodCalculator';
 import {
@@ -52,7 +52,7 @@ export function computeTaxCurrentYear(
   today: Date = new Date(),
   leerstandQuoteOverride?: number
 ): TaxCurrentYearResult {
-  const statusHistory = toStatusHistory(statusEntryRows);
+  const { wohnung: statusHistory, stellplatz: stellplatzStatusHistory } = toUnitStatusHistories(statusEntryRows);
   const economicTransferDate = new Date(property.economic_transfer_date + 'T00:00:00Z');
   const loanStartDate = new Date(property.loan_start_date + 'T00:00:00Z');
   const year = today.getUTCFullYear();
@@ -81,6 +81,7 @@ export function computeTaxCurrentYear(
   const lineItems = annualTaxableIncomeBreakdown({
     year,
     statusHistory,
+    stellplatzStatusHistory,
     economicTransferDate,
     loanStartDate,
     loanAmount: property.loan_amount,

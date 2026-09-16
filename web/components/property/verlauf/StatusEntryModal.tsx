@@ -10,6 +10,7 @@ import type { Database } from '@/lib/supabase/types';
 
 type StatusEntryRow = Database['public']['Tables']['status_entries']['Row'];
 type PropertyStatus = Database['public']['Enums']['property_status'];
+type PropertyUnit = Database['public']['Enums']['property_unit'];
 
 interface FormValues {
   date: string;
@@ -30,11 +31,13 @@ export function StatusEntryModal({
   open,
   onClose,
   propertyId,
+  unit,
   entry,
 }: {
   open: boolean;
   onClose: () => void;
   propertyId: string;
+  unit: PropertyUnit;
   entry: StatusEntryRow | null;
 }) {
   const [isPending, startTransition] = useTransition();
@@ -84,9 +87,9 @@ export function StatusEntryModal({
           notes: values.notes,
         };
         if (entry) {
-          await updateStatusEntry(entry.id, propertyId, payload);
+          await updateStatusEntry(entry.id, propertyId, entry.unit, payload);
         } else {
-          await createStatusEntry(propertyId, payload);
+          await createStatusEntry(propertyId, { ...payload, unit });
         }
         onClose();
       } catch (err) {

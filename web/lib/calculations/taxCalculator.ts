@@ -1,12 +1,14 @@
 import { makeDate } from './dateHelpers';
 import { interestForCalendarYear } from './amortizationCalculator';
-import { ownershipDayFraction, leerstandDayFraction, incomeForMonth } from './statusPeriodCalculator';
+import { ownershipDayFraction, leerstandDayFraction, incomeForUnit } from './statusPeriodCalculator';
 import type { StatusEntry } from './statusPeriodCalculator';
 import { depreciationYearly } from './depreciationCalculator';
 
 export interface AnnualTaxableIncomeInput {
   year: number;
   statusHistory: StatusEntry[];
+  /** Defaults to `statusHistory` (mirrors Wohnung) when omitted — see incomeForUnit. */
+  stellplatzStatusHistory?: StatusEntry[];
   economicTransferDate: Date;
   loanStartDate: Date;
   loanAmount: number;
@@ -94,6 +96,7 @@ export function annualTaxableIncomeBreakdown(input: AnnualTaxableIncomeBreakdown
     }
   }
   if (ownershipMonths.length === 0) return ZERO_TAX_LINE_ITEMS;
+  const stellplatzHistory = input.stellplatzStatusHistory ?? input.statusHistory;
 
   const interestYear = interestForCalendarYear(
     input.year,
@@ -137,14 +140,8 @@ export function annualTaxableIncomeBreakdown(input: AnnualTaxableIncomeBreakdown
 
     const monthIncome = useOverride
       ? (input.coldRentMonthly + input.parkingRentMonthly + input.otherIncomeMonthly) * (1 - overrideQuote!)
-      : incomeForMonth(
-          month,
-          input.statusHistory,
-          input.today,
-          input.coldRentMonthly,
-          input.parkingRentMonthly,
-          input.otherIncomeMonthly
-        );
+      : incomeForUnit(month, input.statusHistory, input.today, input.coldRentMonthly + input.otherIncomeMonthly) +
+        incomeForUnit(month, stellplatzHistory, input.today, input.parkingRentMonthly);
 
     totalIncome += monthIncome * ownerFraction;
   }

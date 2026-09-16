@@ -17,7 +17,7 @@ export async function deleteProperty(propertyId: string): Promise<void> {
  */
 export async function createProperty(
   propertyInsert: Omit<TablesInsert<'properties'>, 'user_id'>,
-  statusEntryInsert: Omit<TablesInsert<'status_entries'>, 'property_id'> | null
+  statusEntryInserts: Array<Omit<TablesInsert<'status_entries'>, 'property_id'>>
 ): Promise<string> {
   const supabase = await createClient();
 
@@ -34,10 +34,10 @@ export async function createProperty(
 
   if (propertyError) throw propertyError;
 
-  if (statusEntryInsert) {
+  if (statusEntryInserts.length > 0) {
     const { error: statusError } = await supabase
       .from('status_entries')
-      .insert({ ...statusEntryInsert, property_id: property.id });
+      .insert(statusEntryInserts.map((entry) => ({ ...entry, property_id: property.id })));
     if (statusError) throw statusError;
   }
 

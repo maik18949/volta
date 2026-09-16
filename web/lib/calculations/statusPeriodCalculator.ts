@@ -105,17 +105,19 @@ function segments(month: Date, statusHistory: StatusEntry[], today: Date): Statu
   return result;
 }
 
-/** Monthly income from all status segments (day-accurate). otherIncomeMonthly counts only while vermietet — matches cashflowLineItemsForScenario's treatment of it as occupancy-tied. */
-export function incomeForMonth(
-  month: Date,
-  statusHistory: StatusEntry[],
-  today: Date,
-  coldRentMonthly: number,
-  parkingRentMonthly: number,
-  otherIncomeMonthly: number
-): number {
+export type PropertyUnit = 'wohnung' | 'stellplatz';
+
+/**
+ * Monthly income for a single unit (Wohnung or Stellplatz), day-accurate. `monthlyAmount`
+ * is whatever that unit contributes while vermietet — the caller combines coldRentMonthly +
+ * otherIncomeMonthly for Wohnung, or passes parkingRentMonthly alone for Stellplatz. Each
+ * unit carries its own independent status history (see docs/superpowers/specs/2026-09-15-
+ * stellplatz-unabhaengiger-status-design.md) — Wohnung and Stellplatz vermietet/leerstand/
+ * mietgarantie no longer have to move together.
+ */
+export function incomeForUnit(month: Date, statusHistory: StatusEntry[], today: Date, monthlyAmount: number): number {
   return segments(month, statusHistory, today).reduce((sum, seg) => {
-    if (seg.status === 'vermietet') return sum + (coldRentMonthly + parkingRentMonthly + otherIncomeMonthly) * seg.dayFraction;
+    if (seg.status === 'vermietet') return sum + monthlyAmount * seg.dayFraction;
     if (seg.status === 'mietgarantie') return sum + seg.mietgarantieIncomeEur;
     return sum; // leerstand
   }, 0);

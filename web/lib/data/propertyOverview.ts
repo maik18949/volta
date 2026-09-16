@@ -1,5 +1,5 @@
 import type { Database } from '@/lib/supabase/types';
-import { toStatusHistory, type PropertySummary } from '@/lib/data/propertySummary';
+import { toUnitStatusHistories, type PropertySummary } from '@/lib/data/propertySummary';
 import { ownershipAndVacancyDaysSinceTransfer } from '@/lib/calculations/statusPeriodCalculator';
 import { annualCashflowBeforeTax } from '@/lib/calculations/cashflowCalculator';
 import { principalForCalendarYear } from '@/lib/calculations/amortizationCalculator';
@@ -65,7 +65,7 @@ export function computeOverviewMetrics(
   summary: PropertySummary,
   today: Date = new Date()
 ): OverviewMetrics {
-  const statusHistory = toStatusHistory(statusEntryRows);
+  const { wohnung: statusHistory, stellplatz: stellplatzStatusHistory } = toUnitStatusHistories(statusEntryRows);
   const economicTransferDate = new Date(property.economic_transfer_date + 'T00:00:00Z');
 
   const coldRentYearly = property.cold_rent_monthly * 12;
@@ -122,6 +122,7 @@ export function computeOverviewMetrics(
   const cashflowBeforeTaxYear = annualCashflowBeforeTax({
     year: currentYear,
     statusHistory,
+    stellplatzStatusHistory,
     economicTransferDate,
     today,
     coldRentMonthly: property.cold_rent_monthly,

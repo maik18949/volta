@@ -51,6 +51,7 @@ async function main() {
       economic_transfer_date: '2026-02-01',
       purchase_price_unit: 263_600,
       purchase_price_parking: 15_000,
+      parking_type: 'tiefgarage',
       land_transfer_tax: 15_323,
       notary_costs: 3_631.96,
       land_registry_costs: 1_180,
@@ -78,11 +79,10 @@ async function main() {
 
   if (insertError) throw insertError;
 
-  const { error: statusError } = await admin.from('status_entries').insert({
-    property_id: property.id,
-    date: '2026-02-01',
-    status: 'vermietet',
-  });
+  const { error: statusError } = await admin.from('status_entries').insert([
+    { property_id: property.id, date: '2026-02-01', status: 'vermietet', unit: 'wohnung' },
+    { property_id: property.id, date: '2026-02-01', status: 'leerstand', unit: 'stellplatz' },
+  ]);
 
   if (statusError) throw statusError;
 

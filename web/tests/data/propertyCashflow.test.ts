@@ -101,6 +101,7 @@ function makeStatusEntry(overrides: Partial<StatusEntryRow> = {}): StatusEntryRo
     income_is_fixed_amount: false,
     income_period_end_date: null,
     notes: '',
+    unit: 'wohnung',
     created_at: '2026-01-01T00:00:00Z',
     ...overrides,
   };
@@ -126,13 +127,15 @@ describe('computeCashflowForecastMonth', () => {
 
   it('leerstandQuote 0: full income, no owner-borne recoverable WE costs', () => {
     const result = computeCashflowForecastMonth(property, statusEntries, [], 0, 0, today);
-    expect(result.lineItems.income).toBeCloseTo(f.coldRentMonthly + f.parkingRentMonthly, 2);
+    expect(result.lineItems.incomeWE).toBeCloseTo(f.coldRentMonthly, 2);
+    expect(result.lineItems.incomeTE).toBeCloseTo(f.parkingRentMonthly, 2);
     expect(result.lineItems.hoaRecoverableWE).toBe(0);
   });
 
   it('leerstandQuote 1: zero income, full owner-borne recoverable WE costs', () => {
     const result = computeCashflowForecastMonth(property, statusEntries, [], 1, 0, today);
-    expect(result.lineItems.income).toBe(0);
+    expect(result.lineItems.incomeWE).toBe(0);
+    expect(result.lineItems.incomeTE).toBe(0);
     expect(result.lineItems.hoaRecoverableWE).toBeCloseTo(f.hoaFeeRecoverableMonthly, 2);
   });
 
@@ -241,16 +244,20 @@ describe('computeCashflowYearTable', () => {
     const result = computeCashflowYearTable(property, statusEntries, [], 2026, today);
     const january = result.months.find((m) => m.month === 1)!;
     expect(january.isOwned).toBe(false);
-    expect(january.lineItems.income).toBe(0);
-    expect(january.statusLabels).toEqual([]);
+    expect(january.lineItems.incomeWE).toBe(0);
+    expect(january.lineItems.incomeTE).toBe(0);
+    expect(january.statusLabelsWE).toEqual([]);
+    expect(january.statusLabelsTE).toEqual([]);
   });
 
   it('owned months carry a status label and correct income', () => {
     const result = computeCashflowYearTable(property, statusEntries, [], 2026, today);
     const june = result.months.find((m) => m.month === 6)!;
     expect(june.isOwned).toBe(true);
-    expect(june.statusLabels).toEqual(['vermietet']);
-    expect(june.lineItems.income).toBeCloseTo(f.coldRentMonthly + f.parkingRentMonthly, 2);
+    expect(june.statusLabelsWE).toEqual(['vermietet']);
+    expect(june.statusLabelsTE).toEqual(['vermietet']);
+    expect(june.lineItems.incomeWE).toBeCloseTo(f.coldRentMonthly, 2);
+    expect(june.lineItems.incomeTE).toBeCloseTo(f.parkingRentMonthly, 2);
   });
 
   it('a month with a mid-month status change lists every status that applied, not just the dominant one', () => {
@@ -258,7 +265,8 @@ describe('computeCashflowYearTable', () => {
     // today must be past the June 16 transition, or the future-dated entry doesn't take effect yet.
     const result = computeCashflowYearTable(property, midMonthSwitch, [], 2026, makeDate(2026, 6, 20));
     const june = result.months.find((m) => m.month === 6)!;
-    expect(june.statusLabels).toEqual(['vermietet', 'mietgarantie']);
+    expect(june.statusLabelsWE).toEqual(['vermietet', 'mietgarantie']);
+    expect(june.statusLabelsTE).toEqual(['vermietet', 'mietgarantie']);
   });
 
   it('ownershipMonthCount sums to 11 for a Feb 1 acquisition (Feb-Dec)', () => {
@@ -296,9 +304,11 @@ describe('computeCashflowYearTable', () => {
     const result = computeCashflowYearTable(property, [], [], 2026, today);
     const june = result.months.find((m) => m.month === 6)!;
     expect(june.isOwned).toBe(true);
-    expect(june.statusLabels).toEqual([]);
+    expect(june.statusLabelsWE).toEqual([]);
+    expect(june.statusLabelsTE).toEqual([]);
     expect(june.isProjection).toBe(true);
-    expect(june.lineItems.income).toBeCloseTo(f.coldRentMonthly + f.parkingRentMonthly, 2);
+    expect(june.lineItems.incomeWE).toBeCloseTo(f.coldRentMonthly, 2);
+    expect(june.lineItems.incomeTE).toBeCloseTo(f.parkingRentMonthly, 2);
     expect(june.lineItems.hoaRecoverableWE).toBe(0);
   });
 
@@ -338,5 +348,28 @@ describe('computeCashflowYearTable', () => {
     const fullJune = fullResult.months.find((m) => m.month === 6)!;
 
     expect(midJune.lineItems.mortgage).toBeCloseTo(fullJune.lineItems.mortgage * ownerFraction, 4);
+  });
+
+  it('Wohnung and Stellplatz with independently-tagged status entries produce independent income', () => {
+    const wohnungOnly = [makeStatusEntry({ id: 'we-1', unit: 'wohnung', status: 'vermietet' })];
+    const withStellplatzLeerstand = [
+      ...wohnungOnly,
+      makeStatusEntry({ id: 'te-1', unit: 'stellplatz', status: 'leerstand' }),
+    ];
+    const parkingProperty = makeProperty({ parking_type: 'tiefgarage' });
+    const result = computeCashflowYearTable(parkingProperty, withStellplatzLeerstand, [], 2026, today);
+    const june = result.months.find((m) => m.month === 6)!;
+    expect(june.lineItems.incomeWE).toBeCloseTo(f.coldRentMonthly, 2);
+    expect(june.lineItems.incomeTE).toBe(0); // Stellplatz leerstand — its rent doesn't flow
+    expect(june.statusLabelsWE).toEqual(['vermietet']);
+    expect(june.statusLabelsTE).toEqual(['leerstand']);
+  });
+
+  it('regression: a Mietgarantie property with a Stellplatz but no Stellplatz-tagged rows does not double the guaranteed income', () => {
+    const parkingProperty = makeProperty({ parking_type: 'tiefgarage' });
+    const mietgarantieEntries = [makeStatusEntry({ status: 'mietgarantie', income_actual_monthly: 800 })];
+    const result = computeCashflowYearTable(parkingProperty, mietgarantieEntries, [], 2026, today);
+    const june = result.months.find((m) => m.month === 6)!;
+    expect(june.lineItems.incomeWE + june.lineItems.incomeTE).toBeCloseTo(800, 2);
   });
 });
