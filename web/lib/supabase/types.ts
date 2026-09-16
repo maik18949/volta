@@ -527,6 +527,44 @@ export type Database = {
           },
         ]
       }
+      loan_disbursements: {
+        Row: {
+          amount: number
+          created_at: string
+          date: string
+          id: string
+          is_deductible: boolean
+          label: string
+          property_id: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          date?: string
+          id?: string
+          is_deductible?: boolean
+          label?: string
+          property_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          date?: string
+          id?: string
+          is_deductible?: boolean
+          label?: string
+          property_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loan_disbursements_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
