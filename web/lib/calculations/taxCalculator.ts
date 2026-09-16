@@ -1,5 +1,6 @@
 import { makeDate } from './dateHelpers';
-import { interestForCalendarYear } from './amortizationCalculator';
+import { interestForCalendarYear, stagedInterestForCalendarYear } from './amortizationCalculator';
+import type { LoanDisbursement } from './amortizationCalculator';
 import { ownershipDayFraction, leerstandDayFraction, incomeForUnit } from './statusPeriodCalculator';
 import type { StatusEntry } from './statusPeriodCalculator';
 import { depreciationYearly } from './depreciationCalculator';
@@ -11,6 +12,8 @@ export interface AnnualTaxableIncomeInput {
   stellplatzStatusHistory?: StatusEntry[];
   economicTransferDate: Date;
   loanStartDate: Date;
+  /** Optional and additive: when provided (non-empty), interest is computed per-tranche via stagedInterestForCalendarYear and only the deductible portion is deducted — loanStartDate/loanAmount are ignored for the interest line in that case, but stay required for the (unchanged) non-tranche fallback. */
+  disbursements?: LoanDisbursement[];
   loanAmount: number;
   interestRate: number;
   monthlyMortgage: number;
@@ -98,13 +101,10 @@ export function annualTaxableIncomeBreakdown(input: AnnualTaxableIncomeBreakdown
   if (ownershipMonths.length === 0) return ZERO_TAX_LINE_ITEMS;
   const stellplatzHistory = input.stellplatzStatusHistory ?? input.statusHistory;
 
-  const interestYear = interestForCalendarYear(
-    input.year,
-    input.loanStartDate,
-    input.loanAmount,
-    input.interestRate,
-    input.monthlyMortgage
-  );
+  const interestYear =
+    input.disbursements && input.disbursements.length > 0
+      ? stagedInterestForCalendarYear(input.year, input.disbursements, input.interestRate, input.monthlyMortgage).deductible
+      : interestForCalendarYear(input.year, input.loanStartDate, input.loanAmount, input.interestRate, input.monthlyMortgage);
 
   const afaYear = isAcquisitionYear
     ? (input.afaBasis * input.depreciationRate / 12) * ownershipMonths.length

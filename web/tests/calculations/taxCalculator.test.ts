@@ -279,6 +279,69 @@ describe('taxCalculator.annualTaxableIncomeBreakdown', () => {
     expect(overridden.interest).toBe(naive.interest);
     expect(overridden.depreciation).toBe(naive.depreciation);
   });
+
+  it('disbursements: excludes non-deductible-tranche interest from taxableIncome', () => {
+    const disbursements = [
+      { date: makeDate(2025, 10, 1), amount: 2_734.45, deductible: false },
+      { date: makeDate(2026, 1, 20), amount: 278_665.55, deductible: true },
+    ];
+    const withoutDisbursements = annualTaxableIncomeBreakdown({
+      year: 2026,
+      statusHistory: [{ date: makeDate(2026, 1, 1), status: 'vermietet', incomeActualMonthly: null }],
+      stellplatzStatusHistory: [],
+      economicTransferDate: makeDate(2026, 1, 1),
+      loanStartDate: makeDate(2025, 12, 1),
+      loanAmount: 281_400,
+      interestRate: 0.043,
+      monthlyMortgage: 1_242.85,
+      afaBasis: 0,
+      depreciationRate: 0.02,
+      hoaUnitNonRecoverableMonthly: 0,
+      hoaUnitRecoverableMonthly: 0,
+      hoaParkingNonRecoverableMonthly: 0,
+      hoaParkingRecoverableMonthly: 0,
+      propertyTaxUnitMonthly: 0,
+      propertyTaxParkingMonthly: 0,
+      propertyManagementMonthly: 0,
+      propertyInsuranceMonthly: 0,
+      otherCostsMonthly: 0,
+      coldRentMonthly: 999,
+      parkingRentMonthly: 0,
+      otherIncomeMonthly: 0,
+      today: makeDate(2026, 9, 16),
+      extraordinaryCostsDeductibleYearly: 0,
+    });
+    const withDisbursements = annualTaxableIncomeBreakdown({
+      year: 2026,
+      statusHistory: [{ date: makeDate(2026, 1, 1), status: 'vermietet', incomeActualMonthly: null }],
+      stellplatzStatusHistory: [],
+      economicTransferDate: makeDate(2026, 1, 1),
+      loanStartDate: makeDate(2025, 12, 1),
+      loanAmount: 281_400,
+      interestRate: 0.043,
+      monthlyMortgage: 1_242.85,
+      afaBasis: 0,
+      depreciationRate: 0.02,
+      hoaUnitNonRecoverableMonthly: 0,
+      hoaUnitRecoverableMonthly: 0,
+      hoaParkingNonRecoverableMonthly: 0,
+      hoaParkingRecoverableMonthly: 0,
+      propertyTaxUnitMonthly: 0,
+      propertyTaxParkingMonthly: 0,
+      propertyManagementMonthly: 0,
+      propertyInsuranceMonthly: 0,
+      otherCostsMonthly: 0,
+      coldRentMonthly: 999,
+      parkingRentMonthly: 0,
+      otherIncomeMonthly: 0,
+      today: makeDate(2026, 9, 16),
+      extraordinaryCostsDeductibleYearly: 0,
+      disbursements,
+    });
+    // less interest deducted -> HIGHER taxableIncome (less of a loss)
+    expect(withDisbursements.taxableIncome).toBeGreaterThan(withoutDisbursements.taxableIncome);
+    expect(withDisbursements.interest).toBeLessThan(withoutDisbursements.interest);
+  });
 });
 
 describe('taxCalculator.taxLineItemsForScenario', () => {
