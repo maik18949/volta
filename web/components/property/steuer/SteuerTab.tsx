@@ -15,6 +15,7 @@ import type { Database } from '@/lib/supabase/types';
 type PropertyRow = Database['public']['Tables']['properties']['Row'];
 type StatusEntryRow = Database['public']['Tables']['status_entries']['Row'];
 type ExtraordinaryCostRow = Database['public']['Tables']['extraordinary_costs']['Row'];
+type LoanDisbursementRow = Database['public']['Tables']['loan_disbursements']['Row'];
 
 export function SteuerTab({
   property,
@@ -22,12 +23,14 @@ export function SteuerTab({
   extraordinaryCosts,
   overview,
   today,
+  loanDisbursements,
 }: {
   property: PropertyRow;
   statusEntries: StatusEntryRow[];
   extraordinaryCosts: ExtraordinaryCostRow[];
   overview: OverviewMetrics;
   today: Date;
+  loanDisbursements: LoanDisbursementRow[];
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -117,9 +120,9 @@ export function SteuerTab({
   const currentYearResult = useMemo(
     () =>
       liveCurrentYearQuote !== currentYearDefaultQuote
-        ? computeTaxCurrentYear(property, statusEntries, extraordinaryCosts, today, liveCurrentYearQuote / 100)
-        : computeTaxCurrentYear(property, statusEntries, extraordinaryCosts, today),
-    [property, statusEntries, extraordinaryCosts, today, liveCurrentYearQuote, currentYearDefaultQuote]
+        ? computeTaxCurrentYear(property, statusEntries, extraordinaryCosts, today, liveCurrentYearQuote / 100, loanDisbursements)
+        : computeTaxCurrentYear(property, statusEntries, extraordinaryCosts, today, undefined, loanDisbursements),
+    [property, statusEntries, extraordinaryCosts, today, liveCurrentYearQuote, currentYearDefaultQuote, loanDisbursements]
   );
   const forecastResult = computeTaxForecastYear(property, forecastYear, forecastQuote / 100);
 

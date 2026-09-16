@@ -20,6 +20,7 @@ export default async function CashflowTabPage({ params }: { params: Promise<{ id
       extraordinaryCosts={detail.extraordinaryCosts}
       overview={overview}
       today={today}
+      loanDisbursements={detail.loanDisbursements}
     />
   );
 }
