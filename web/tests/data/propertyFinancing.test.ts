@@ -188,3 +188,89 @@ describe('computeAmortizationYearTable', () => {
     expect(result.rows.length).toBeLessThan(40);
   });
 });
+
+describe('computeFinancingOverview with staged disbursements', () => {
+  type LoanDisbursementRow = Database['public']['Tables']['loan_disbursements']['Row'];
+  function makeDisbursement(overrides: Partial<LoanDisbursementRow> = {}): LoanDisbursementRow {
+    return {
+      id: 'd1',
+      property_id: 'prop-1',
+      date: '2025-10-01',
+      amount: 2_734.45,
+      is_deductible: false,
+      label: 'Hyposchutz',
+      created_at: '2025-10-01T00:00:00Z',
+      ...overrides,
+    };
+  }
+
+  it('empty disbursementRows falls back to today\'s single-loan behavior (byte-identical)', () => {
+    const property = makeProperty({ loan_amount: f.loanAmount, loan_start_date: '2025-12-01' });
+    const withoutRows = computeFinancingOverview(property, makeDate(2026, 6, 1));
+    const withEmptyRows = computeFinancingOverview(property, makeDate(2026, 6, 1), []);
+    expect(withEmptyRows).toEqual(withoutRows);
+  });
+
+  it('with tranches, remainingDebtNow reflects the staged payout instead of a single day-one disbursement', () => {
+    const property = makeProperty({
+      loan_amount: 281_400,
+      loan_start_date: '2025-12-01',
+      interest_rate: 0.043,
+      amortization_rate: 0.01,
+      monthly_mortgage: 1_242.85,
+    });
+    const disbursements = [
+      makeDisbursement(),
+      makeDisbursement({ id: 'd2', date: '2026-01-20', amount: 278_665.55, is_deductible: true, label: 'Hauptauszahlung' }),
+    ];
+    const staged = computeFinancingOverview(property, makeDate(2026, 9, 16), disbursements);
+    const naive = computeFinancingOverview(property, makeDate(2026, 9, 16));
+    if (!staged.hasFinancing || !naive.hasFinancing) throw new Error('expected hasFinancing: true');
+    // the staged model must show a LOWER remaining debt than the naive one —
+    // it credits the extra early paydown that happened while only the small
+    // tranche was outstanding (validated against the real bank statement:
+    // staged landed within ~160 EUR of the real 276,275.50 EUR balance).
+    expect(staged.remainingDebtNow).toBeLessThan(naive.remainingDebtNow);
+    expect(staged.remainingDebtNow).toBeCloseTo(276_435, -2);
+  });
+});
+
+describe('computeAmortizationYearTable with staged disbursements', () => {
+  type LoanDisbursementRow = Database['public']['Tables']['loan_disbursements']['Row'];
+  function makeDisbursement(overrides: Partial<LoanDisbursementRow> = {}): LoanDisbursementRow {
+    return {
+      id: 'd1',
+      property_id: 'prop-1',
+      date: '2025-10-01',
+      amount: 2_734.45,
+      is_deductible: false,
+      label: 'Hyposchutz',
+      created_at: '2025-10-01T00:00:00Z',
+      ...overrides,
+    };
+  }
+
+  it('empty disbursementRows falls back to the existing behavior', () => {
+    const property = makeProperty({ loan_amount: f.loanAmount, loan_start_date: '2025-12-01' });
+    const withoutRows = computeAmortizationYearTable(property, makeDate(2026, 6, 1));
+    const withEmptyRows = computeAmortizationYearTable(property, makeDate(2026, 6, 1), []);
+    expect(withEmptyRows).toEqual(withoutRows);
+  });
+
+  it('with tranches, the year table starts at the earliest tranche date, not loan_start_date', () => {
+    const property = makeProperty({
+      loan_amount: 281_400,
+      loan_start_date: '2025-12-01',
+      interest_rate: 0.043,
+      amortization_rate: 0.01,
+      monthly_mortgage: 1_242.85,
+    });
+    const disbursements = [
+      makeDisbursement(),
+      makeDisbursement({ id: 'd2', date: '2026-01-20', amount: 278_665.55, is_deductible: true, label: 'Hauptauszahlung' }),
+    ];
+    const result = computeAmortizationYearTable(property, makeDate(2026, 9, 16), disbursements);
+    expect(result.hasFinancing).toBe(true);
+    expect(result.rows[0].year).toBe(2025);
+  });
+});
