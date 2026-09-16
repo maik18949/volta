@@ -1,7 +1,11 @@
 import { formatCurrency, formatPercent } from '@/lib/formatters';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { SectionLabel } from '@/components/ui/SectionLabel';
+import { DisbursementList } from './DisbursementList';
 import type { FinancingOverviewResult, AmortizationYearTableResult } from '@/lib/data/propertyFinancing';
+import type { Database } from '@/lib/supabase/types';
+
+type LoanDisbursementRow = Database['public']['Tables']['loan_disbursements']['Row'];
 
 function monthYearLabel(date: Date): string {
   return `${String(date.getUTCMonth() + 1).padStart(2, '0')}/${date.getUTCFullYear()}`;
@@ -10,9 +14,13 @@ function monthYearLabel(date: Date): string {
 export function FinanzierungTab({
   overview,
   yearTable,
+  propertyId,
+  disbursements,
 }: {
   overview: FinancingOverviewResult;
   yearTable: AmortizationYearTableResult;
+  propertyId: string;
+  disbursements: LoanDisbursementRow[];
 }) {
   if (!overview.hasFinancing) {
     return (
@@ -53,6 +61,10 @@ export function FinanzierungTab({
           <span className="text-text-secondary">Restschuld Zinsbindungsende</span>
           <span className="text-right text-text-primary">{formatCurrency(overview.remainingDebtAtFixedRateEnd)}</span>
         </div>
+      </GlassCard>
+
+      <GlassCard>
+        <DisbursementList propertyId={propertyId} disbursements={disbursements} />
       </GlassCard>
 
       <GlassCard>

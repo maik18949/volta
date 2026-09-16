@@ -9,8 +9,15 @@ export default async function FinanzierungTabPage({ params }: { params: Promise<
   if (!detail) notFound();
 
   const today = new Date();
-  const overview = computeFinancingOverview(detail.property, today);
-  const yearTable = computeAmortizationYearTable(detail.property, today);
+  const overview = computeFinancingOverview(detail.property, today, detail.loanDisbursements);
+  const yearTable = computeAmortizationYearTable(detail.property, today, detail.loanDisbursements);
 
-  return <FinanzierungTab overview={overview} yearTable={yearTable} />;
+  return (
+    <FinanzierungTab
+      overview={overview}
+      yearTable={yearTable}
+      propertyId={id}
+      disbursements={detail.loanDisbursements}
+    />
+  );
 }
