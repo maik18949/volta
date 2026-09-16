@@ -252,6 +252,43 @@ describe('amortizationCalculator.stagedAmortizationSchedule', () => {
   it('empty disbursements produce an empty schedule', () => {
     expect(stagedAmortizationSchedule([], rate, payment, 12)).toEqual([]);
   });
+
+  it('two tranches landing in the same calendar month both accumulate into their own bucket', () => {
+    // Both disbursements fall in Oct 2025 -> the loop's month-matching must add
+    // both into outDeductible/outNonDeductible rather than one clobbering the other.
+    const sameMonthDisbursements = [
+      { date: makeDate(2025, 10, 1), amount: 100_000, deductible: true },
+      { date: makeDate(2025, 10, 15), amount: 20_000, deductible: false },
+    ];
+    const schedule = stagedAmortizationSchedule(sameMonthDisbursements, rate, 1_500, 1);
+    expect(schedule).toHaveLength(1);
+
+    // interest: 100000*0.043/12 = 358.33, 20000*0.043/12 = 71.67, total = 430.00
+    // principal: 1500 - 430 = 1070, split 100000:20000 -> 891.67 deductible / 178.33 non-deductible
+    expect(schedule[0].remainingDebtDeductible).toBeCloseTo(99_108.33, 1);
+    expect(schedule[0].remainingDebtNonDeductible).toBeCloseTo(19_821.67, 1);
+    // Neither bucket was overwritten by the other landing in the same month.
+    expect(schedule[0].remainingDebtDeductible).toBeGreaterThan(0);
+    expect(schedule[0].remainingDebtNonDeductible).toBeGreaterThan(0);
+  });
+
+  it('a tranche far from payoff keeps producing sensible non-negative rows for the full window', () => {
+    // monthlyPayment (1080) is barely above the interest-only amount on 300000
+    // (300000 * 0.043/12 = 1075), so principal only trickles down ~5/month -
+    // nowhere close to paid off within a 6-month window.
+    const slowDisbursement = [{ date: makeDate(2025, 10, 1), amount: 300_000, deductible: true }];
+    const schedule = stagedAmortizationSchedule(slowDisbursement, rate, 1_080, 6);
+    expect(schedule).toHaveLength(6);
+
+    for (const row of schedule) {
+      expect(row.remainingDebtTotal).toBeGreaterThan(0);
+    }
+    for (let i = 1; i < schedule.length; i++) {
+      expect(schedule[i].remainingDebtTotal).toBeLessThanOrEqual(schedule[i - 1].remainingDebtTotal);
+    }
+    // Still hugely unpaid after 6 months - balance barely moved.
+    expect(schedule[5].remainingDebtTotal).toBeGreaterThan(299_000);
+  });
 });
 
 describe('amortizationCalculator.stagedInterestForCalendarYear', () => {
