@@ -11,6 +11,7 @@ import {
 } from '@/lib/calculations/cashflowCalculator';
 import { hoaNonRecoverableMonthly } from '@/lib/calculations/kpiCalculator';
 import { computeTaxCurrentYear } from '@/lib/data/propertyTax';
+import type { LoanDisbursementRow } from '@/lib/data/loanDisbursements';
 
 type PropertyRow = Database['public']['Tables']['properties']['Row'];
 type StatusEntryRow = Database['public']['Tables']['status_entries']['Row'];
@@ -55,7 +56,8 @@ export function computeCashflowForecastMonth(
   extraordinaryCostRows: ExtraordinaryCostRow[],
   leerstandQuote: number,
   defaultLeerstandQuote: number,
-  today: Date = new Date()
+  today: Date = new Date(),
+  disbursementRows: LoanDisbursementRow[] = []
 ): CashflowForecastMonthResult {
   const hoaFeeNonRecoverableMonthly = hoaNonRecoverableMonthly(
     property.hoa_fee_total_monthly,
@@ -93,8 +95,8 @@ export function computeCashflowForecastMonth(
 
   const { taxEffectMonthly } =
     leerstandQuote === defaultLeerstandQuote
-      ? computeTaxCurrentYear(property, statusEntryRows, extraordinaryCostRows, today)
-      : computeTaxCurrentYear(property, statusEntryRows, extraordinaryCostRows, today, leerstandQuote);
+      ? computeTaxCurrentYear(property, statusEntryRows, extraordinaryCostRows, today, undefined, disbursementRows)
+      : computeTaxCurrentYear(property, statusEntryRows, extraordinaryCostRows, today, leerstandQuote, disbursementRows);
 
   return {
     lineItems,
@@ -279,7 +281,8 @@ export function computeCashflowYearTable(
   statusEntryRows: StatusEntryRow[],
   extraordinaryCostRows: ExtraordinaryCostRow[],
   year: number,
-  today: Date = new Date()
+  today: Date = new Date(),
+  disbursementRows: LoanDisbursementRow[] = []
 ): CashflowYearTableResult {
   const { wohnung: statusHistory, stellplatz: stellplatzStatusHistory } = toUnitStatusHistories(statusEntryRows);
   const economicTransferDate = new Date(property.economic_transfer_date + 'T00:00:00Z');
@@ -309,7 +312,9 @@ export function computeCashflowYearTable(
     property,
     statusEntryRows,
     extraordinaryCostRows,
-    today
+    today,
+    undefined,
+    disbursementRows
   );
 
   const months: CashflowMonthColumn[] = [];
