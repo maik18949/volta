@@ -260,7 +260,9 @@ describe('computeAmortizationYearTable with staged disbursements', () => {
   it('with tranches, the year table starts at the earliest tranche date, not loan_start_date', () => {
     const property = makeProperty({
       loan_amount: 281_400,
-      loan_start_date: '2025-12-01',
+      // loan_start_date is in a LATER year than the earliest disbursement, so
+      // this only passes if the schedule is built from the disbursement date.
+      loan_start_date: '2026-03-01',
       interest_rate: 0.043,
       amortization_rate: 0.01,
       monthly_mortgage: 1_242.85,
@@ -272,5 +274,25 @@ describe('computeAmortizationYearTable with staged disbursements', () => {
     const result = computeAmortizationYearTable(property, makeDate(2026, 9, 16), disbursements);
     expect(result.hasFinancing).toBe(true);
     expect(result.rows[0].year).toBe(2025);
+  });
+
+  it('with tranches, the first year starts with remainingDebtStart of 0, not the full loan amount', () => {
+    const property = makeProperty({
+      loan_amount: 281_400,
+      loan_start_date: '2026-03-01',
+      interest_rate: 0.043,
+      amortization_rate: 0.01,
+      monthly_mortgage: 1_242.85,
+    });
+    const disbursements = [
+      makeDisbursement(),
+      makeDisbursement({ id: 'd2', date: '2026-01-20', amount: 278_665.55, is_deductible: true, label: 'Hauptauszahlung' }),
+    ];
+    const result = computeAmortizationYearTable(property, makeDate(2026, 9, 16), disbursements);
+    expect(result.hasFinancing).toBe(true);
+    // Nothing has disbursed yet before the first (smallest) tranche lands, so
+    // the balance at the very start of the first year must be 0 — not the sum
+    // of all tranches, which only exists after the LAST tranche lands.
+    expect(result.rows[0].remainingDebtStart).toBe(0);
   });
 });

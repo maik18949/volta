@@ -137,7 +137,11 @@ export function computeAmortizationYearTable(
       MAX_AMORTIZATION_HORIZON_YEARS * 12
     );
     trimmedSchedule = trimAmortizationScheduleToPayoff(toAnnuityRows(stagedFull));
-    scheduleLoanAmount = disbursements.reduce((sum, d) => sum + d.amount, 0);
+    // Nothing has disbursed yet before the schedule's first row (the month the
+    // first, smallest tranche lands) — groupAmortizationScheduleByYear uses this
+    // value as the balance immediately BEFORE that row, which is 0 for a staged
+    // loan (unlike a lump-sum loan, where the full amount already exists).
+    scheduleLoanAmount = 0;
   } else {
     const fullSchedule = amortizationSchedule(
       property.loan_amount,
