@@ -56,7 +56,7 @@ create table loan_disbursements (
 
 alter table loan_disbursements enable row level security;
 create policy "loan_disbursements_owner" on loan_disbursements for all using (
-  property_id in (select id from properties where user_id = auth.uid())
+  property_id in (select id from properties where user_id = (select auth.uid()))
 );
 
 -- Backfill: every property with an existing single-disbursement loan gets one
