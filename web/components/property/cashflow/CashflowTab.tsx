@@ -13,6 +13,7 @@ import type { Database } from '@/lib/supabase/types';
 type PropertyRow = Database['public']['Tables']['properties']['Row'];
 type StatusEntryRow = Database['public']['Tables']['status_entries']['Row'];
 type ExtraordinaryCostRow = Database['public']['Tables']['extraordinary_costs']['Row'];
+type LoanDisbursementRow = Database['public']['Tables']['loan_disbursements']['Row'];
 
 export function CashflowTab({
   property,
@@ -20,12 +21,14 @@ export function CashflowTab({
   extraordinaryCosts,
   overview,
   today,
+  loanDisbursements,
 }: {
   property: PropertyRow;
   statusEntries: StatusEntryRow[];
   extraordinaryCosts: ExtraordinaryCostRow[];
   overview: OverviewMetrics;
   today: Date;
+  loanDisbursements: LoanDisbursementRow[];
 }) {
   const searchParams = useSearchParams();
   const currentYear = today.getUTCFullYear();
@@ -49,11 +52,12 @@ export function CashflowTab({
     extraordinaryCosts,
     quote / 100,
     defaultQuote / 100,
-    today
+    today,
+    loanDisbursements
   );
   const economicTransferDate = new Date(property.economic_transfer_date + 'T00:00:00Z');
   const minYear = economicTransferDate.getUTCFullYear();
-  const yearTable = computeCashflowYearTable(property, statusEntries, extraordinaryCosts, year, today);
+  const yearTable = computeCashflowYearTable(property, statusEntries, extraordinaryCosts, year, today, loanDisbursements);
   const hasParking = property.parking_type !== 'nicht_vorhanden';
 
   return (

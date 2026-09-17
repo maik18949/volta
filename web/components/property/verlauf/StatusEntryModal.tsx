@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useTransition } from 'react';
+import { useState, useTransition } from 'react';
 import { useForm } from 'react-hook-form';
 import { Modal } from '@/components/ui/Modal';
 import { TextField } from '@/components/ui/TextField';
@@ -48,11 +48,15 @@ export function StatusEntryModal({
   // close/reopen cycles. Clear stale errors whenever the modal (re)opens
   // rather than only on submit/close, since Modal can also be dismissed via
   // the backdrop, Escape, or its own close button, not just "Abbrechen".
-  useEffect(() => {
-    if (open) {
-      setSubmitError(null);
-    }
-  }, [open]);
+  // Adjusted during render (React's recommended pattern for "reset state when
+  // a prop changes") rather than in an effect, so the reset happens before
+  // this render's JSX is evaluated — an effect-based reset would still paint
+  // the stale error for one frame, since the effect only runs after commit.
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) setSubmitError(null);
+  }
 
   // NOTE: `values` here only resets correctly on reopen because the caller
   // (VerlaufFeed, Task 20) is expected to null out `entry` in its onClose

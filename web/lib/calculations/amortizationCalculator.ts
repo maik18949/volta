@@ -1,4 +1,4 @@
-import { addMonths, yearOf, monthsBetween, makeDate } from './dateHelpers';
+import { addMonths, yearOf, monthOf, monthsBetween, makeDate } from './dateHelpers';
 
 export interface AnnuityRow {
   month: number; // 1-based index into the schedule
@@ -172,4 +172,150 @@ export function trimAmortizationScheduleToPayoff(schedule: AnnuityRow[]): Annuit
   const lastPaymentIndex = schedule.reduce((lastIdx, row, idx) => (row.payment > 0 ? idx : lastIdx), -1);
   if (lastPaymentIndex === -1) return schedule;
   return schedule.slice(0, lastPaymentIndex + 1);
+}
+
+export interface LoanDisbursement {
+  date: Date;
+  amount: number;
+  deductible: boolean;
+}
+
+export interface StagedAnnuityRow {
+  month: number;
+  date: Date;
+  interestTotal: number;
+  interestDeductible: number;
+  interestNonDeductible: number;
+  principalTotal: number;
+  remainingDebtTotal: number;
+  remainingDebtDeductible: number;
+  remainingDebtNonDeductible: number;
+}
+
+/**
+ * Like amortizationSchedule, but the balance builds up from a list of
+ * disbursements instead of being fully outstanding from day one — for a loan
+ * paid out in stages (e.g. a small insurance-premium tranche before the main
+ * purchase-price tranche). Interest is computed per tranche against its own
+ * outstanding balance (so a non-deductible tranche's interest stays isolated);
+ * the fixed monthlyPayment's principal portion is then split across tranches
+ * in proportion to their current balance share — the same split the
+ * "Auszahlungstranchen" prototype validated against the real bank statement.
+ * Disbursements are bucketed by calendar month (not day-exact), matching the
+ * rest of this app's month-granularity financing model.
+ */
+export function stagedAmortizationSchedule(
+  disbursements: LoanDisbursement[],
+  interestRate: number,
+  monthlyPayment: number,
+  months: number
+): StagedAnnuityRow[] {
+  if (disbursements.length === 0 || months <= 0) return [];
+
+  const sorted = [...disbursements].sort((a, b) => a.date.getTime() - b.date.getTime());
+  const start = sorted[0].date;
+  const r = interestRate / 12;
+  let outDeductible = 0;
+  let outNonDeductible = 0;
+  const rows: StagedAnnuityRow[] = [];
+
+  for (let t = 0; t < months; t++) {
+    const date = addMonths(start, t);
+    for (const d of sorted) {
+      if (yearOf(d.date) === yearOf(date) && monthOf(d.date) === monthOf(date)) {
+        if (d.deductible) outDeductible += d.amount;
+        else outNonDeductible += d.amount;
+      }
+    }
+
+    const total = outDeductible + outNonDeductible;
+    if (total <= 0.005) {
+      rows.push({
+        month: t + 1,
+        date,
+        interestTotal: 0,
+        interestDeductible: 0,
+        interestNonDeductible: 0,
+        principalTotal: 0,
+        remainingDebtTotal: Math.max(0, total),
+        remainingDebtDeductible: outDeductible,
+        remainingDebtNonDeductible: outNonDeductible,
+      });
+      continue;
+    }
+
+    const interestDeductible = outDeductible * r;
+    const interestNonDeductible = outNonDeductible * r;
+    const interestTotal = interestDeductible + interestNonDeductible;
+    const principalTotal = Math.max(0, Math.min(monthlyPayment - interestTotal, total));
+    const deductibleShare = outDeductible / total;
+    const principalDeductible = principalTotal * deductibleShare;
+    const principalNonDeductible = principalTotal - principalDeductible;
+
+    outDeductible = Math.max(0, outDeductible - principalDeductible);
+    outNonDeductible = Math.max(0, outNonDeductible - principalNonDeductible);
+
+    rows.push({
+      month: t + 1,
+      date,
+      interestTotal,
+      interestDeductible,
+      interestNonDeductible,
+      principalTotal,
+      remainingDebtTotal: outDeductible + outNonDeductible,
+      remainingDebtDeductible: outDeductible,
+      remainingDebtNonDeductible: outNonDeductible,
+    });
+  }
+
+  return rows;
+}
+
+export interface StagedInterestForYear {
+  total: number;
+  deductible: number;
+  nonDeductible: number;
+}
+
+/** Mirrors interestForCalendarYear, but split by deductibility — feeds taxCalculator's Werbungskosten line. */
+export function stagedInterestForCalendarYear(
+  year: number,
+  disbursements: LoanDisbursement[],
+  interestRate: number,
+  monthlyPayment: number
+): StagedInterestForYear {
+  const ZERO = { total: 0, deductible: 0, nonDeductible: 0 };
+  if (disbursements.length === 0 || interestRate <= 0 || monthlyPayment <= 0) return ZERO;
+
+  const sorted = [...disbursements].sort((a, b) => a.date.getTime() - b.date.getTime());
+  const start = sorted[0].date;
+  if (yearOf(start) > year) return ZERO;
+
+  const yearEnd = makeDate(year, 12, 31);
+  const totalMonths = monthsBetween(start, yearEnd);
+  if (totalMonths <= 0) return ZERO;
+
+  const schedule = stagedAmortizationSchedule(sorted, interestRate, monthlyPayment, totalMonths);
+  return schedule
+    .filter((row) => yearOf(row.date) === year)
+    .reduce(
+      (acc, row) => ({
+        total: acc.total + row.interestTotal,
+        deductible: acc.deductible + row.interestDeductible,
+        nonDeductible: acc.nonDeductible + row.interestNonDeductible,
+      }),
+      ZERO
+    );
+}
+
+/** Downcasts a StagedAnnuityRow[] to plain AnnuityRow[] so groupAmortizationScheduleByYear/trimAmortizationScheduleToPayoff (which only know the simple shape) can be reused unchanged. */
+export function toAnnuityRows(rows: StagedAnnuityRow[]): AnnuityRow[] {
+  return rows.map((r) => ({
+    month: r.month,
+    date: r.date,
+    interest: r.interestTotal,
+    principal: r.principalTotal,
+    payment: r.interestTotal + r.principalTotal,
+    remainingDebt: r.remainingDebtTotal,
+  }));
 }

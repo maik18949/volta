@@ -12,6 +12,7 @@ import {
 } from '@/lib/calculations/taxCalculator';
 import { afaBasis as computeAfaBasis } from '@/lib/calculations/depreciationCalculator';
 import { closingCostsTotal as computeClosingCostsTotal, hoaNonRecoverableMonthly } from '@/lib/calculations/kpiCalculator';
+import { toLoanDisbursements, type LoanDisbursementRow } from '@/lib/data/loanDisbursements';
 
 type PropertyRow = Database['public']['Tables']['properties']['Row'];
 type StatusEntryRow = Database['public']['Tables']['status_entries']['Row'];
@@ -44,13 +45,19 @@ export interface TaxCurrentYearResult {
  * intentionally diverges, via the `leerstandQuoteOverride` parameter below,
  * once the user actually moves that slider away from the default, to show a
  * genuine what-if scenario.
+ *
+ * `disbursementRows` is optional and additive (see loanDisbursements.ts) —
+ * omitted or empty, interest is computed the original way from loanAmount/
+ * loanStartDate; when tranches exist, non-deductible-tranche interest is
+ * excluded from the deducted Werbungskosten-Zinsen.
  */
 export function computeTaxCurrentYear(
   property: PropertyRow,
   statusEntryRows: StatusEntryRow[],
   extraordinaryCostRows: ExtraordinaryCostRow[],
   today: Date = new Date(),
-  leerstandQuoteOverride?: number
+  leerstandQuoteOverride?: number,
+  disbursementRows: LoanDisbursementRow[] = []
 ): TaxCurrentYearResult {
   const { wohnung: statusHistory, stellplatz: stellplatzStatusHistory } = toUnitStatusHistories(statusEntryRows);
   const economicTransferDate = new Date(property.economic_transfer_date + 'T00:00:00Z');
@@ -85,6 +92,7 @@ export function computeTaxCurrentYear(
     economicTransferDate,
     loanStartDate,
     loanAmount: property.loan_amount,
+    disbursements: disbursementRows.length > 0 ? toLoanDisbursements(disbursementRows) : undefined,
     interestRate: property.interest_rate,
     monthlyMortgage: property.monthly_mortgage,
     afaBasis: basis,

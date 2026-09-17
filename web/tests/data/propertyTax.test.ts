@@ -273,3 +273,44 @@ describe('computeTaxForecastYear', () => {
     expect(result.lineItems.hoaRecoverableWE).toBe(0);
   });
 });
+
+describe('computeTaxCurrentYear with disbursementRows', () => {
+  type LoanDisbursementRow = Database['public']['Tables']['loan_disbursements']['Row'];
+  function makeDisbursement(overrides: Partial<LoanDisbursementRow> = {}): LoanDisbursementRow {
+    return {
+      id: 'd1',
+      property_id: 'prop-1',
+      date: '2025-10-01',
+      amount: 2_734.45,
+      is_deductible: false,
+      label: 'Hyposchutz',
+      created_at: '2025-10-01T00:00:00Z',
+      ...overrides,
+    };
+  }
+
+  it('empty disbursementRows falls back to the existing behavior', () => {
+    const property = makeProperty();
+    const withoutRows = computeTaxCurrentYear(property, [], [], makeDate(2026, 9, 16));
+    const withEmptyRows = computeTaxCurrentYear(property, [], [], makeDate(2026, 9, 16), undefined, []);
+    expect(withEmptyRows).toEqual(withoutRows);
+  });
+
+  it('with tranches, less interest is deducted -> a smaller (less negative) tax effect', () => {
+    const property = makeProperty({
+      loan_amount: 281_400,
+      loan_start_date: '2025-12-01',
+      interest_rate: 0.043,
+      amortization_rate: 0.01,
+      monthly_mortgage: 1_242.85,
+      marginal_tax_rate: 0.42,
+    });
+    const disbursements = [
+      makeDisbursement(),
+      makeDisbursement({ id: 'd2', date: '2026-01-20', amount: 278_665.55, is_deductible: true, label: 'Hauptauszahlung' }),
+    ];
+    const naive = computeTaxCurrentYear(property, [], [], makeDate(2026, 9, 16));
+    const staged = computeTaxCurrentYear(property, [], [], makeDate(2026, 9, 16), undefined, disbursements);
+    expect(staged.lineItems.interest).toBeLessThan(naive.lineItems.interest);
+  });
+});

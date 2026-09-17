@@ -84,18 +84,22 @@ describe('Modal focus trap', () => {
   });
 
   it('applies the dark backdrop by default, and omits it when overlay={false}', () => {
-    const { container, rerender } = render(
+    // Modal renders via a portal into document.body (see Modal.tsx — needed so
+    // a backdrop-filter/transform ancestor like GlassCard can't trap its
+    // position:fixed overlay), so the overlay div isn't under the local
+    // render `container` — find it via the dialog's parent instead.
+    const { rerender } = render(
       <Modal open onClose={() => {}} title="Overlay test">
         <button type="button">Action</button>
       </Modal>
     );
-    expect(container.firstElementChild?.className).toContain('bg-black/40');
+    expect(screen.getByRole('dialog').parentElement?.className).toContain('bg-black/40');
 
     rerender(
       <Modal open onClose={() => {}} title="Overlay test" overlay={false}>
         <button type="button">Action</button>
       </Modal>
     );
-    expect(container.firstElementChild?.className).not.toContain('bg-black/40');
+    expect(screen.getByRole('dialog').parentElement?.className).not.toContain('bg-black/40');
   });
 });
