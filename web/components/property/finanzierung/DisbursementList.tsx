@@ -65,6 +65,13 @@ export function DisbursementList({
         </button>
       </div>
 
+      <p className="rounded-md bg-black/[0.02] px-3 py-2 text-xs text-text-secondary">
+        Nur eintragen, wenn dein Darlehen in mehreren Tranchen zu unterschiedlichen Zeitpunkten ausgezahlt wurde (z.&nbsp;B.
+        eine Versicherungsprämie vor der Hauptauszahlung), oder ein Teilbetrag steuerlich nicht abzugsfähig ist. Wurde alles
+        auf einmal ausgezahlt und ist alles abzugsfähig, brauchst du hier nichts einzutragen — dann gelten einfach die
+        Angaben aus den Immobiliendaten (Darlehensbetrag, Datum).
+      </p>
+
       {sorted.length === 0 ? (
         <p className="text-sm text-text-secondary">
           Keine Auszahlungstranchen erfasst — es wird mit einer einzelnen Auszahlung gerechnet.

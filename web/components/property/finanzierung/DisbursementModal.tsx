@@ -75,9 +75,9 @@ export function DisbursementModal({
   return (
     <Modal open={open} onClose={onClose} title={entry ? 'Auszahlung bearbeiten' : 'Auszahlung hinzufügen'}>
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
-        <TextField label="Bezeichnung" name="label" register={register} />
-        <TextField label="Datum" name="date" register={register} type="date" required />
-        <CurrencyField label="Betrag" name="amount" register={register} required />
+        <TextField label="Bezeichnung" name="label" register={register} hint="Nur zur eigenen Orientierung, z.B. 'Hyposchutz' oder 'Hauptauszahlung'." />
+        <TextField label="Datum" name="date" register={register} type="date" required hint="Wann dieser Teilbetrag tatsächlich ausgezahlt wurde." />
+        <CurrencyField label="Betrag" name="amount" register={register} required hint="Höhe dieser einen Teilauszahlung, nicht der Gesamtkredit." />
         <label className="flex items-center gap-2 text-sm text-text-secondary">
           <input type="checkbox" {...register('isDeductible')} />
           Steuerlich abzugsfähig

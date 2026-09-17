@@ -8,12 +8,14 @@ export function TextField<T extends FieldValues>({
   register,
   required = false,
   type = 'text',
+  hint,
 }: {
   label: string;
   name: Path<T>;
   register: UseFormRegister<T>;
   required?: boolean;
   type?: 'text' | 'date' | 'number';
+  hint?: string;
 }) {
   return (
     <label className="block">
@@ -27,6 +29,7 @@ export function TextField<T extends FieldValues>({
         onFocus={type === 'number' ? (e) => e.target.select() : undefined}
         {...register(name, type === 'number' ? { valueAsNumber: true } : undefined)}
       />
+      {hint && <span className="mt-1 block text-xs text-text-dim">{hint}</span>}
     </label>
   );
 }
