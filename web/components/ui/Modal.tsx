@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useId, useRef, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 
 const FOCUSABLE_SELECTOR =
@@ -73,7 +74,14 @@ export function Modal({
 
   if (!open) return null;
 
-  return (
+  // Rendered via a portal into document.body — not just a style choice.
+  // Any ancestor with backdrop-filter/filter/transform/will-change (e.g. the
+  // .glass-card class GlassCard uses) creates a new containing block for
+  // position:fixed descendants per spec, which traps this modal's overlay
+  // inside that ancestor's box instead of covering the viewport. Portaling
+  // to body sidesteps that entirely, so this works correctly regardless of
+  // which component tree renders <Modal>.
+  return createPortal(
     <div
       className={`fixed inset-0 z-50 flex items-end justify-center sm:items-center ${overlay ? 'bg-black/40' : ''}`}
       onClick={onClose}
@@ -102,6 +110,7 @@ export function Modal({
         </div>
         {children}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
