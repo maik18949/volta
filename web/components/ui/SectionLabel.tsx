@@ -1,6 +1,8 @@
-export function SectionLabel({ children }: { children: string }) {
+import { twMerge } from 'tailwind-merge';
+
+export function SectionLabel({ children, className }: { children: string; className?: string }) {
   return (
-    <p className="text-[11px] font-bold uppercase tracking-[0.5px] text-section-label mt-2.5 mb-2">
+    <p className={twMerge('mb-3 text-[11px] font-bold uppercase tracking-[0.5px] text-section-label', className)}>
       {children}
     </p>
   );

@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { GlassCard } from '@/components/ui/GlassCard';
+import { Card } from '@/components/ui/Card';
+import { SectionLabel } from '@/components/ui/SectionLabel';
 import { YearPicker } from '@/components/ui/YearPicker';
 import { QuoteSlider } from '@/components/ui/QuoteSlider';
 import { computeTaxCurrentYear, computeTaxForecastYear } from '@/lib/data/propertyTax';
@@ -127,38 +128,37 @@ export function SteuerTab({
   const forecastResult = computeTaxForecastYear(property, forecastYear, forecastQuote / 100);
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col gap-4">
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <GlassCard className="flex flex-col">
-          <QuoteSlider
-            label="Leerstandsquote (laufendes Jahr)"
-            value={liveCurrentYearQuote}
-            defaultValue={currentYearDefaultQuote}
-            onChange={setLiveCurrentYearQuote}
-          />
-          <div className="mt-3">
-            <CurrentYearSection result={currentYearResult} hasParking={hasParking} economicTransferDate={economicTransferDate} />
-          </div>
-        </GlassCard>
-
-        <GlassCard className="flex flex-col">
-          <div className="mb-2 flex items-center justify-between">
-            <h2 className="text-sm font-bold uppercase text-text-secondary">Prognose</h2>
-            <span className="rounded-md bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-700">Prognose</span>
+        <Card className="flex flex-col">
+          <div className="mb-3 flex items-center justify-between">
+            <SectionLabel className="mb-0">{`Laufendes Jahr ${currentYearResult.year}`}</SectionLabel>
+            <span className="rounded-[5px] bg-slate-100 px-2 py-[3px] text-[11px] font-bold text-slate-700">Ist</span>
           </div>
           <div className="mb-3">
+            <QuoteSlider
+              label="Leerstandsquote"
+              value={liveCurrentYearQuote}
+              defaultValue={currentYearDefaultQuote}
+              onChange={setLiveCurrentYearQuote}
+            />
+          </div>
+          <CurrentYearSection result={currentYearResult} hasParking={hasParking} economicTransferDate={economicTransferDate} />
+        </Card>
+
+        <Card className="flex flex-col">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2.5">
+            <div className="flex items-center gap-2.5">
+              <SectionLabel className="mb-0">Prognose</SectionLabel>
+              <span className="rounded-[5px] bg-accent/[0.12] px-2 py-[3px] text-[11px] font-bold text-section-label">Prognose</span>
+            </div>
             <YearPicker year={forecastYear} onChange={setForecastYear} minYear={currentYear + 1} />
           </div>
-          <QuoteSlider
-            label="Leerstandsquote (Prognose)"
-            value={forecastQuote}
-            defaultValue={forecastDefaultQuote}
-            onChange={setForecastQuote}
-          />
-          <div className="mt-3">
-            <ForecastSection result={forecastResult} hasParking={hasParking} />
+          <div className="mb-3">
+            <QuoteSlider label="Leerstandsquote" value={forecastQuote} defaultValue={forecastDefaultQuote} onChange={setForecastQuote} />
           </div>
-        </GlassCard>
+          <ForecastSection result={forecastResult} hasParking={hasParking} />
+        </Card>
       </div>
 
       <AfaBasisCard property={property} />

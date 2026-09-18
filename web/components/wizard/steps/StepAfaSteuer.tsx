@@ -3,6 +3,7 @@
 import { useFormContext, useWatch } from 'react-hook-form';
 import { CurrencyField } from '@/components/ui/CurrencyField';
 import { PercentField } from '@/components/ui/PercentField';
+import { CalcSummary, FormCard, FormGrid, FormHint, FormSection, FormWarning } from '@/components/ui/FormLayout';
 import { afaBasis, depreciationYearly, depreciationMonthly, valuationDeviation } from '@/lib/calculations/depreciationCalculator';
 import { closingCostsTotal } from '@/lib/calculations/kpiCalculator';
 import { formatCurrency } from '@/lib/formatters';
@@ -36,41 +37,38 @@ export function StepAfaSteuer() {
   const sumDeviation = valuationDeviation(buildingValue, landValue, purchasePrice);
 
   return (
-    <div className="space-y-4">
-      <p className="text-sm text-text-secondary">
-        Gebäude- und Grundstückswert kommen aus dem Sachwertverfahren (Regierungs-Excel). Beide Werte sollten sich zum Kaufpreis
-        addieren (Toleranz ±5%).
-      </p>
+    <FormSection>
+      <FormHint>
+        Gebäude- und Grundstückswert kommen aus dem Sachwertverfahren (Regierungs-Excel) und sollten sich zum Kaufpreis addieren (Toleranz ±5 %).
+      </FormHint>
 
-      <CurrencyField label="Gebäudewert (aus Regierungs-Excel)" name="buildingValue" register={register} required />
-      <CurrencyField label="Grundstückswert (aus Regierungs-Excel)" name="landValue" register={register} required />
+      <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-2">
+        <FormCard title="AfA & Steuer">
+          <FormGrid>
+            <CurrencyField label="Gebäudewert (Regierungs-Excel)" name="buildingValue" register={register} required />
+            <CurrencyField label="Grundstückswert (Regierungs-Excel)" name="landValue" register={register} required />
+            <PercentField label="AfA-Satz" name="depreciationRate" control={control} required hint="2 % ab 1925 · 2,5 % vor 1925 · 3 % Neubau ab 2023" />
+            <PercentField label="Grenzsteuersatz" name="marginalTaxRate" control={control} required />
+            {sumDeviation > 0.05 && (
+              <div className="sm:col-span-2">
+                <FormWarning>
+                  ⚠ Gebäude + Grundstück ({formatCurrency(buildingValue + landValue)}) weicht {(sumDeviation * 100).toFixed(1)} % vom
+                  Kaufpreis ab — Werte aus dem Regierungs-Excel prüfen.
+                </FormWarning>
+              </div>
+            )}
+          </FormGrid>
+        </FormCard>
 
-      {sumDeviation > 0.05 && (
-        <p className="text-sm text-warning">
-          ⚠ Gebäude + Grundstück ({formatCurrency(buildingValue + landValue)}) weicht {(sumDeviation * 100).toFixed(1)}% vom Kaufpreis
-          ab — Werte aus dem Regierungs-Excel prüfen.
-        </p>
-      )}
-
-      <PercentField label="AfA-Satz" name="depreciationRate" control={control} required />
-      <p className="text-xs text-text-dim">Standard: 2,0% (ab 1925) · 2,5% (vor 1925) · 3,0% (Neubau ab 2023) · individuell per Gutachten</p>
-
-      <PercentField label="Grenzsteuersatz" name="marginalTaxRate" control={control} required />
-
-      <div className="space-y-1 rounded-md bg-black/[0.03] p-3 text-sm">
-        <div className="flex justify-between">
-          <span>AfA-Bemessungsgrundlage</span>
-          <span>{formatCurrency(basis)}</span>
-        </div>
-        <div className="flex justify-between font-bold">
-          <span>AfA / Jahr</span>
-          <span>{formatCurrency(yearly)}</span>
-        </div>
-        <div className="flex justify-between">
-          <span>AfA / Monat</span>
-          <span>{formatCurrency(monthly)}</span>
-        </div>
+        <CalcSummary
+          className="self-start"
+          rows={[
+            { label: 'AfA-Bemessungsgrundlage', value: formatCurrency(basis) },
+            { label: 'AfA / Jahr', value: formatCurrency(yearly) },
+          ]}
+          total={{ label: 'AfA / Monat', value: formatCurrency(monthly) }}
+        />
       </div>
-    </div>
+    </FormSection>
   );
 }

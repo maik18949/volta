@@ -1,6 +1,7 @@
-import { GlassCard } from '@/components/ui/GlassCard';
+import { Card } from '@/components/ui/Card';
 import { SectionLabel } from '@/components/ui/SectionLabel';
-import { KpiScale, kpiValueColorClass } from '@/components/property/KpiScale';
+import { Stat } from '@/components/ui/Stat';
+import { KpiRatingPill } from '@/components/property/KpiRatingPill';
 import { KpiInfoButton } from '@/components/property/KpiInfoButton';
 import { formatCurrency, formatNumber, formatPercent } from '@/lib/formatters';
 import type { BenchmarkKpi } from '@/lib/calculations/kpiCalculator';
@@ -28,15 +29,15 @@ function KpiRow({
   overview: OverviewMetrics;
 }) {
   return (
-    <div className="flex items-center justify-between gap-3 py-1.5 text-sm">
-      <span className="text-text-secondary">{label}</span>
-      <div className="flex items-center gap-2">
-        <span className={`font-semibold ${kpiValueColorClass(kpi, rawValue)}`}>{formattedValue}</span>
-        <div className="w-[90px]">
-          <KpiScale kpi={kpi} value={rawValue} />
-        </div>
+    <div className="flex items-center justify-between gap-3 border-b border-black/[0.05] py-[7px]">
+      <span className="inline-flex items-center gap-1.5 text-[13px] font-medium text-text-secondary">
+        {label}
         <KpiInfoButton kpi={kpi} value={rawValue} property={property} summary={summary} overview={overview} />
-      </div>
+      </span>
+      <span className="inline-flex shrink-0 items-center gap-2">
+        <span className="whitespace-nowrap text-[13px] font-bold tabular-nums text-text-primary">{formattedValue}</span>
+        <KpiRatingPill kpi={kpi} value={rawValue} className="min-w-14" />
+      </span>
     </div>
   );
 }
@@ -106,54 +107,49 @@ export function ReturnsCard({
       formattedValue: overview.actualVacancyRateYear !== null ? formatPercent(overview.actualVacancyRateYear) : '–',
     },
   ];
-  const half = Math.ceil(kpiRows.length / 2);
-  const kpiColumns = [kpiRows.slice(0, half), kpiRows.slice(half)];
+
+  const valueGainClass = overview.valueGain !== null && overview.valueGain >= 0 ? 'text-positive' : 'text-negative';
 
   return (
-    <GlassCard variant="solid">
-      <SectionLabel>Rendite & Investment</SectionLabel>
+    <Card className="flex flex-col">
+      <SectionLabel className="mb-2">Rendite & Investment</SectionLabel>
 
-      <div className="grid grid-cols-1 gap-x-6 sm:grid-cols-2">
-        {kpiColumns.map((column, i) => (
-          <div key={i}>
-            {column.map((row) => (
-              <KpiRow key={row.kpi} {...row} property={property} summary={summary} overview={overview} />
-            ))}
-          </div>
+      <div className="flex flex-col">
+        {kpiRows.map((row) => (
+          <KpiRow key={row.kpi} {...row} property={property} summary={summary} overview={overview} />
         ))}
       </div>
 
-      <div className="my-2 h-px bg-black/[0.06]" />
+      <div className="mt-auto">
+        <p className="mb-2 mt-3.5 text-[11px] font-bold uppercase tracking-[0.4px] text-text-dim">Investment</p>
+        <div className="grid grid-cols-2 gap-x-5 gap-y-2.5">
+          <Stat label="Gesamtinvestment" value={formatCurrency(summary.totalInvestment)} size="lg" />
+          <Stat label="Eigenkapital" value={formatCurrency(overview.equityUsed)} size="lg" />
+          <Stat label="NOI / Jahr" value={formatCurrency(summary.netOperatingIncomeYearly)} size="lg" />
+          <Stat label="Break-Even-Miete" value={formatCurrency(overview.breakEvenRentMonthly)} size="lg" />
+        </div>
 
-      <div className="grid grid-cols-2 gap-y-2 text-sm">
-        <span className="text-text-secondary">Gesamtinvestment</span>
-        <span className="text-right text-text-primary">{formatCurrency(summary.totalInvestment)}</span>
-
-        <span className="text-text-secondary">Eigenkapital</span>
-        <span className="text-right text-text-primary">{formatCurrency(overview.equityUsed)}</span>
-
-        <span className="text-text-secondary">NOI / Jahr</span>
-        <span className="text-right text-text-primary">{formatCurrency(summary.netOperatingIncomeYearly)}</span>
-
-        <span className="text-text-secondary">Break-Even-Miete</span>
-        <span className="text-right text-text-primary">{formatCurrency(overview.breakEvenRentMonthly)}</span>
+        {overview.valueGain !== null && overview.valueGainPercent !== null && (
+          <>
+            <div className="my-3.5 h-px bg-black/[0.07]" />
+            <div className="grid grid-cols-2 gap-x-5 gap-y-2.5">
+              <Stat label="Aktueller Marktwert" value={formatCurrency(overview.currentMarketValue ?? 0)} size="lg" />
+              <Stat
+                label="Wertsteigerung"
+                size="lg"
+                valueClassName={valueGainClass}
+                value={
+                  <>
+                    {overview.valueGain >= 0 ? '+' : ''}
+                    {formatCurrency(overview.valueGain)}{' '}
+                    <span className="text-[13px] font-semibold">({formatPercent(overview.valueGainPercent)})</span>
+                  </>
+                }
+              />
+            </div>
+          </>
+        )}
       </div>
-
-      {overview.valueGain !== null && overview.valueGainPercent !== null && (
-        <>
-          <div className="my-2 h-px bg-black/[0.06]" />
-          <div className="grid grid-cols-2 gap-y-2 text-sm">
-            <span className="text-text-secondary">Aktueller Marktwert</span>
-            <span className="text-right text-text-primary">{formatCurrency(overview.currentMarketValue ?? 0)}</span>
-
-            <span className="text-text-secondary">Wertsteigerung</span>
-            <span className={`text-right font-semibold ${overview.valueGain >= 0 ? 'text-positive' : 'text-negative'}`}>
-              {overview.valueGain >= 0 ? '+' : ''}
-              {formatCurrency(overview.valueGain)} ({formatPercent(overview.valueGainPercent)})
-            </span>
-          </div>
-        </>
-      )}
-    </GlassCard>
+    </Card>
   );
 }

@@ -2,7 +2,8 @@
 
 import { useSearchParams } from 'next/navigation';
 import { useState } from 'react';
-import { GlassCard } from '@/components/ui/GlassCard';
+import { Card } from '@/components/ui/Card';
+import { SectionLabel } from '@/components/ui/SectionLabel';
 import { YearPicker } from '@/components/ui/YearPicker';
 import { computeCashflowForecastMonth, computeCashflowYearTable } from '@/lib/data/propertyCashflow';
 import type { OverviewMetrics } from '@/lib/data/propertyOverview';
@@ -36,7 +37,7 @@ export function CashflowTab({
 
   // Gleicher Default wie der "Laufendes Jahr"-Regler im Steuer-Tab — kein eigener
   // Regler mehr hier, nur Anzeige. Bewegt der Nutzer den Regler im Steuer-Tab, kommt
-  // der Wert über den ?leerstand=-Parameter mit (siehe PropertyTabNav).
+  // der Wert über den ?leerstand=-Parameter mit (siehe PropertySidebar).
   const defaultQuote = overview.actualVacancyRateYear !== null ? Math.round(overview.actualVacancyRateYear * 100) : 0;
   const leerstandParam = searchParams.get('leerstand');
   // Defensiv parsen: ein manuell editierter/geteilter Link (?leerstand=abc oder ?leerstand=9999)
@@ -59,23 +60,22 @@ export function CashflowTab({
   const minYear = economicTransferDate.getUTCFullYear();
   const yearTable = computeCashflowYearTable(property, statusEntries, extraordinaryCosts, year, today, loanDisbursements);
   const hasParking = property.parking_type !== 'nicht_vorhanden';
+  const steuerHref = `/properties/${property.id}/steuer${leerstandParam !== null ? `?leerstand=${encodeURIComponent(leerstandParam)}` : ''}`;
 
   return (
-    <div className="space-y-4">
-      <GlassCard>
-        <div className="mb-3">
-          <h2 className="text-sm font-bold uppercase text-text-secondary">Prognose / Monat</h2>
-        </div>
-        <ForecastMonthCard result={forecast} hasParking={hasParking} quote={quote} propertyId={property.id} />
-      </GlassCard>
+    <div className="flex flex-col gap-4">
+      <Card>
+        <SectionLabel>Prognose / Monat</SectionLabel>
+        <ForecastMonthCard result={forecast} hasParking={hasParking} quote={quote} steuerHref={steuerHref} />
+      </Card>
 
-      <GlassCard>
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-bold uppercase text-text-secondary">Jahresübersicht</h2>
+      <Card>
+        <div className="mb-3.5 flex items-center justify-between">
+          <SectionLabel className="mb-0">Jahresübersicht</SectionLabel>
           <YearPicker year={year} onChange={setYear} minYear={minYear} maxYear={currentYear + 1} />
         </div>
         <CashflowYearTable result={yearTable} hasParking={hasParking} />
-      </GlassCard>
+      </Card>
     </div>
   );
 }

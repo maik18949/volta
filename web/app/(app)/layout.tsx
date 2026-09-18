@@ -12,10 +12,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     redirect('/login');
   }
 
+  // No padding here on purpose: the property detail shell paints its own full-bleed
+  // header/sidebar layout; every other page adds its own `p-6` wrapper.
   return (
     <div className="flex min-h-screen">
       <Sidebar />
-      <main className="min-w-0 flex-1 p-6">{children}</main>
+      <main className="flex min-w-0 flex-1 flex-col">{children}</main>
     </div>
   );
 }
