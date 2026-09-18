@@ -18,6 +18,8 @@ function makeItem(overrides: Partial<PropertySummary> = {}): PropertyWithSummary
     currentStatus: 'vermietet',
     cashflowAfterTaxMonthly: 0,
     incomeActualMonthly: 0,
+    incomeWohnungMonthly: 0,
+    incomeStellplatzMonthly: 0,
     cashflowBeforeTaxMonthly: 0,
     taxEffectMonthly: 0,
     taxEffectYearly: 0,
@@ -36,7 +38,17 @@ describe('computePortfolioTotals', () => {
       totalInvestment: 0,
       averageNetYield: null,
       remainingDebt: 0,
+      totalMarketValue: null,
     });
+  });
+
+  it('sums totalMarketValue over properties with a market value, and yields null when none has one', () => {
+    const withValues = [makeItem(), makeItem()];
+    withValues[0].property = { current_market_value: 300_000 } as PropertyWithSummary['property'];
+    withValues[1].property = { current_market_value: null } as PropertyWithSummary['property'];
+    expect(computePortfolioTotals(withValues).totalMarketValue).toBe(300_000);
+
+    expect(computePortfolioTotals([makeItem()]).totalMarketValue).toBeNull();
   });
 
   it('computes averageNetYield as a true weighted average (Σ NOI / Σ totalInvestment), not a mean of per-property yields', () => {

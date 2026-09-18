@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useTransition } from 'react';
-import { Plus, Trash2, Pencil } from 'lucide-react';
-import { StatusBadge } from '@/components/ui/StatusBadge';
+import { useState, useTransition, type ReactNode } from 'react';
+import { Plus, Trash2, Pencil, ArrowDown } from 'lucide-react';
+import { Card } from '@/components/ui/Card';
+import { StatusBadge, STATUS_LABELS } from '@/components/ui/StatusBadge';
 import { StatusEntryModal } from './StatusEntryModal';
 import { ExtraordinaryCostModal } from './ExtraordinaryCostModal';
 import { deleteStatusEntry } from '@/lib/data/statusEntryActions';
@@ -22,6 +23,9 @@ const CATEGORY_LABELS: Record<ExtraordinaryCostRow['category'], string> = {
   rechtskosten: 'Rechtskosten',
   sonstiges: 'Sonstiges',
 };
+
+const PRIMARY_BUTTON =
+  'inline-flex items-center gap-1.5 rounded-[9px] bg-accent px-3.5 py-2 text-[13px] font-semibold text-white hover:bg-blue-600';
 
 function sortFeed(items: FeedItem[]): FeedItem[] {
   // Same-date ties: StatusEntry has created_at (later wins, per spec-verlauf-tab.md).
@@ -45,6 +49,69 @@ function withoutKey<T>(record: Record<string, T>, key: string): Record<string, T
   const next = { ...record };
   delete next[key];
   return next;
+}
+
+function isoToDate(iso: string): Date {
+  return new Date(iso + 'T00:00:00Z');
+}
+
+/** One feed line: badge · title/subtitle on the left, amount · date · edit/delete on the right. */
+function FeedRow({
+  badge,
+  title,
+  subtitle,
+  amount,
+  date,
+  onEdit,
+  onDelete,
+  deleting,
+  deleteError,
+}: {
+  badge: ReactNode;
+  title: string;
+  subtitle: ReactNode;
+  amount?: string;
+  date: string;
+  onEdit: () => void;
+  onDelete: () => void;
+  deleting: boolean;
+  deleteError?: string;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-4 border-b border-black/[0.06] px-5 py-3.5 last:border-b-0">
+      <div className="flex min-w-0 items-center gap-3.5">
+        {badge}
+        <div className="min-w-0">
+          <p className="text-[13px] font-semibold text-text-primary">{title}</p>
+          <div className="mt-0.5 flex flex-wrap items-center gap-2 text-[13px] text-text-secondary">{subtitle}</div>
+        </div>
+      </div>
+      <div className="flex shrink-0 items-center gap-3.5">
+        {amount && <span className="text-[13px] font-semibold tabular-nums text-text-primary">{amount}</span>}
+        <span className="text-[13px] tabular-nums text-text-dim">{date}</span>
+        <button type="button" onClick={onEdit} title="Bearbeiten" aria-label="Bearbeiten" className="flex p-1 text-text-dim hover:text-accent">
+          <Pencil size={14} />
+        </button>
+        <div className="relative">
+          <button
+            type="button"
+            onClick={onDelete}
+            disabled={deleting}
+            title="Löschen"
+            aria-label="Löschen"
+            className="flex p-1 text-text-dim hover:text-negative disabled:opacity-50"
+          >
+            <Trash2 size={14} />
+          </button>
+          {deleteError && (
+            <p role="alert" className="absolute right-0 top-full mt-1 whitespace-nowrap text-xs text-negative">
+              {deleteError}
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export function VerlaufFeed({
@@ -79,28 +146,13 @@ export function VerlaufFeed({
     ...extraordinaryCosts.map((row): FeedItem => ({ kind: 'cost', date: row.cost_month, row })),
   ]);
 
-  function handleDeleteStatus(id: string) {
-    if (!window.confirm('Diesen Statuseintrag löschen?')) return;
+  function runDelete(id: string, confirmText: string, action: () => Promise<unknown>) {
+    if (!window.confirm(confirmText)) return;
     setDeleteErrors((prev) => withoutKey(prev, id));
     setPendingIds((prev) => ({ ...prev, [id]: true }));
     startTransition(async () => {
       try {
-        await deleteStatusEntry(id, propertyId);
-      } catch {
-        setDeleteErrors((prev) => ({ ...prev, [id]: 'Löschen fehlgeschlagen — bitte erneut versuchen.' }));
-      } finally {
-        setPendingIds((prev) => withoutKey(prev, id));
-      }
-    });
-  }
-
-  function handleDeleteCost(id: string) {
-    if (!window.confirm('Diesen Kosteneintrag löschen?')) return;
-    setDeleteErrors((prev) => withoutKey(prev, id));
-    setPendingIds((prev) => ({ ...prev, [id]: true }));
-    startTransition(async () => {
-      try {
-        await deleteExtraordinaryCost(id, propertyId);
+        await action();
       } catch {
         setDeleteErrors((prev) => ({ ...prev, [id]: 'Löschen fehlgeschlagen — bitte erneut versuchen.' }));
       } finally {
@@ -110,167 +162,119 @@ export function VerlaufFeed({
   }
 
   return (
-    <div>
-      {hasParking && (
-        <div className="mb-3 inline-flex rounded-md bg-black/[0.04] p-0.5">
-          <button
-            type="button"
-            onClick={() => setActiveUnit('wohnung')}
-            className={`rounded px-3 py-1 text-sm font-semibold ${
-              activeUnit === 'wohnung' ? 'bg-white shadow-sm text-text-primary' : 'text-text-secondary'
-            }`}
-          >
-            Wohnung
+    <div className="flex flex-col gap-3.5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        {hasParking ? (
+          <div className="inline-flex rounded-[9px] bg-[#e9edf3] p-[3px]">
+            {(['wohnung', 'stellplatz'] as const).map((unit) => (
+              <button
+                key={unit}
+                type="button"
+                onClick={() => setActiveUnit(unit)}
+                aria-pressed={activeUnit === unit}
+                className={`rounded-[7px] px-3.5 py-1.5 text-[13px] font-semibold ${
+                  activeUnit === unit ? 'bg-white text-text-primary shadow-sm' : 'text-text-secondary'
+                }`}
+              >
+                {unit === 'wohnung' ? 'Wohnung' : 'Stellplatz'}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <div />
+        )}
+        <div className="flex gap-2">
+          <button type="button" onClick={() => setStatusModal({ open: true, entry: null })} className={PRIMARY_BUTTON}>
+            <Plus size={14} strokeWidth={2.5} /> Status
           </button>
-          <button
-            type="button"
-            onClick={() => setActiveUnit('stellplatz')}
-            className={`rounded px-3 py-1 text-sm font-semibold ${
-              activeUnit === 'stellplatz' ? 'bg-white shadow-sm text-text-primary' : 'text-text-secondary'
-            }`}
-          >
-            Stellplatz
+          <button type="button" onClick={() => setCostModal({ open: true, entry: null })} className={PRIMARY_BUTTON}>
+            <Plus size={14} strokeWidth={2.5} /> Kosten
           </button>
         </div>
-      )}
-
-      <div className="mb-3 flex justify-end gap-2">
-        <button
-          type="button"
-          onClick={() => setStatusModal({ open: true, entry: null })}
-          className="flex items-center gap-1 rounded-md bg-accent px-3 py-1.5 text-sm font-semibold text-white"
-        >
-          <Plus size={14} /> Status
-        </button>
-        <button
-          type="button"
-          onClick={() => setCostModal({ open: true, entry: null })}
-          className="flex items-center gap-1 rounded-md bg-accent px-3 py-1.5 text-sm font-semibold text-white"
-        >
-          <Plus size={14} /> Kosten
-        </button>
       </div>
 
       {items.length === 0 ? (
-        <div className="glass-card p-4 text-center">
-          <p className="text-sm text-text-secondary">
+        <Card className="text-center">
+          <p className="text-[13px] text-text-secondary">
             {hasParking ? `Noch kein Statusverlauf für ${activeUnit === 'wohnung' ? 'Wohnung' : 'Stellplatz'}.` : 'Noch kein Statusverlauf.'}
           </p>
           <button
             type="button"
             onClick={() => setStatusModal({ open: true, entry: null })}
-            className="mt-2 text-sm font-semibold text-accent hover:underline"
+            className="mt-2 text-[13px] font-semibold text-accent hover:underline"
           >
             + Ersten Status hinzufügen
           </button>
-        </div>
+        </Card>
       ) : (
-        <div className="glass-card divide-y divide-black/[0.06] p-0">
-          {items.map((item) =>
-            item.kind === 'status' ? (
-              <div key={`status-${item.row.id}`} className="flex items-center justify-between px-4 py-3">
-                <div className="flex flex-wrap items-center gap-2">
-                  <StatusBadge status={item.row.status} />
-                  {(() => {
-                    const end = endDateFor(item.row);
-                    const start = new Date(item.row.date + 'T00:00:00Z');
-                    return end ? (
-                      <span className="text-sm text-text-secondary">
-                        {formatDate(start)} – {formatDate(new Date(end + 'T00:00:00Z'))} ({daysBetween(item.row.date, end)} Tage)
+        <Card className="overflow-hidden p-0">
+          {items.map((item) => {
+            if (item.kind === 'status') {
+              const row = item.row;
+              const end = endDateFor(row);
+              const start = isoToDate(row.date);
+              return (
+                <FeedRow
+                  key={`status-${row.id}`}
+                  badge={<StatusBadge status={row.status} />}
+                  title={STATUS_LABELS[row.status]}
+                  subtitle={
+                    <>
+                      <span>
+                        {end
+                          ? `${formatDate(start)} – ${formatDate(isoToDate(end))} (${daysBetween(row.date, end)} Tage)`
+                          : `seit ${formatDate(start)}`}
                       </span>
-                    ) : (
-                      <span className="text-sm text-text-secondary">seit {formatDate(start)}</span>
-                    );
-                  })()}
-                  {item.row.status === 'mietgarantie' && item.row.income_actual_monthly !== null && (
-                    <span className="text-sm text-text-dim">
-                      {item.row.income_is_fixed_amount && item.row.income_period_end_date ? (
-                        <>
-                          Fixbetrag: {formatCurrency(item.row.income_actual_monthly)} (
-                          {formatDate(new Date(item.row.date + 'T00:00:00Z'))} –{' '}
-                          {formatDate(new Date(item.row.income_period_end_date + 'T00:00:00Z'))})
-                        </>
-                      ) : (
-                        <>{formatCurrency(item.row.income_actual_monthly)}/Monat</>
+                      {row.status === 'mietgarantie' && row.income_actual_monthly !== null && (
+                        <span className="text-text-dim">
+                          {row.income_is_fixed_amount && row.income_period_end_date ? (
+                            <>
+                              Fixbetrag: {formatCurrency(row.income_actual_monthly)} ({formatDate(start)} –{' '}
+                              {formatDate(isoToDate(row.income_period_end_date))})
+                            </>
+                          ) : (
+                            <>{formatCurrency(row.income_actual_monthly)}/Monat</>
+                          )}
+                        </span>
                       )}
-                    </span>
-                  )}
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setStatusModal({ open: true, entry: item.row })}
-                    aria-label="Bearbeiten"
-                    className="text-text-dim hover:text-accent"
-                  >
-                    <Pencil size={14} />
-                  </button>
-                  <div className="relative">
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteStatus(item.row.id)}
-                      disabled={!!pendingIds[item.row.id]}
-                      aria-label="Löschen"
-                      className="text-text-dim hover:text-negative disabled:opacity-50"
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                    {deleteErrors[item.row.id] && (
-                      <p role="alert" className="absolute right-0 top-full mt-1 whitespace-nowrap text-xs text-negative">
-                        {deleteErrors[item.row.id]}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div key={`cost-${item.row.id}`} className="flex items-center justify-between px-4 py-3">
-                <div>
-                  <p className="text-sm text-text-primary">
-                    {item.row.description_text || CATEGORY_LABELS[item.row.category]}{' '}
-                    <span className="text-xs text-text-dim">({formatDate(new Date(item.row.cost_month + 'T00:00:00Z'))})</span>
-                  </p>
-                  <p className="text-sm text-negative">
-                    {formatCurrency(-item.row.amount)}{' '}
-                    <span
-                      className={`ml-1 rounded px-1.5 py-0.5 text-xs ${
-                        item.row.is_deductible ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'
-                      }`}
-                    >
-                      {item.row.is_deductible ? 'absetzbar' : 'nicht absetzbar'}
-                    </span>
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setCostModal({ open: true, entry: item.row })}
-                    aria-label="Bearbeiten"
-                    className="text-text-dim hover:text-accent"
-                  >
-                    <Pencil size={14} />
-                  </button>
-                  <div className="relative">
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteCost(item.row.id)}
-                      disabled={!!pendingIds[item.row.id]}
-                      aria-label="Löschen"
-                      className="text-text-dim hover:text-negative disabled:opacity-50"
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                    {deleteErrors[item.row.id] && (
-                      <p role="alert" className="absolute right-0 top-full mt-1 whitespace-nowrap text-xs text-negative">
-                        {deleteErrors[item.row.id]}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )
-          )}
-        </div>
+                    </>
+                  }
+                  date={formatDate(start)}
+                  onEdit={() => setStatusModal({ open: true, entry: row })}
+                  onDelete={() => runDelete(row.id, 'Diesen Statuseintrag löschen?', () => deleteStatusEntry(row.id, propertyId))}
+                  deleting={!!pendingIds[row.id]}
+                  deleteError={deleteErrors[row.id]}
+                />
+              );
+            }
+
+            const row = item.row;
+            return (
+              <FeedRow
+                key={`cost-${row.id}`}
+                badge={
+                  <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-md bg-negative/[0.08] px-2.5 py-1 text-[11px] font-bold text-negative">
+                    <ArrowDown size={11} strokeWidth={2.5} />
+                    Kosten
+                  </span>
+                }
+                title={row.description_text || CATEGORY_LABELS[row.category]}
+                subtitle={
+                  <>
+                    <span>{CATEGORY_LABELS[row.category]}</span>
+                    <span>· {row.is_deductible ? 'absetzbar' : 'nicht absetzbar'}</span>
+                  </>
+                }
+                amount={formatCurrency(-row.amount)}
+                date={formatDate(isoToDate(row.cost_month))}
+                onEdit={() => setCostModal({ open: true, entry: row })}
+                onDelete={() => runDelete(row.id, 'Diesen Kosteneintrag löschen?', () => deleteExtraordinaryCost(row.id, propertyId))}
+                deleting={!!pendingIds[row.id]}
+                deleteError={deleteErrors[row.id]}
+              />
+            );
+          })}
+        </Card>
       )}
 
       <StatusEntryModal

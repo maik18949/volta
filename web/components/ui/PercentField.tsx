@@ -1,6 +1,8 @@
 'use client';
 
 import { useController, type Control, type FieldValues, type Path } from 'react-hook-form';
+import { twMerge } from 'tailwind-merge';
+import { FieldLabel, SUFFIXED_INPUT_CLASS, SuffixedInputBox } from './fieldStyles';
 
 export function PercentField<T extends FieldValues>({
   label,
@@ -8,23 +10,22 @@ export function PercentField<T extends FieldValues>({
   control,
   required = false,
   hint,
+  className,
 }: {
   label: string;
   name: Path<T>;
   control: Control<T>;
   required?: boolean;
   hint?: string;
+  className?: string;
 }) {
   const { field } = useController({ name, control });
   const displayValue = typeof field.value === 'number' ? field.value * 100 : '';
 
   return (
-    <label className="block">
-      <span className="text-[13px] font-medium text-text-secondary">
-        {label}
-        {required && ' *'}
-      </span>
-      <div className="mt-1 flex items-center rounded-md border border-black/10 bg-white/90 px-3">
+    <label className={twMerge('block', className)}>
+      <FieldLabel label={label} required={required} hint={hint} />
+      <SuffixedInputBox suffix="%">
         <input
           type="number"
           step="0.01"
@@ -32,11 +33,9 @@ export function PercentField<T extends FieldValues>({
           onChange={(e) => field.onChange(e.target.value === '' ? 0 : Number(e.target.value) / 100)}
           onBlur={field.onBlur}
           onFocus={(e) => e.target.select()}
-          className="w-full bg-transparent py-2 text-sm text-text-primary outline-none"
+          className={SUFFIXED_INPUT_CLASS}
         />
-        <span className="text-sm text-text-dim">%</span>
-      </div>
-      {hint && <span className="mt-1 block text-xs text-text-dim">{hint}</span>}
+      </SuffixedInputBox>
     </label>
   );
 }

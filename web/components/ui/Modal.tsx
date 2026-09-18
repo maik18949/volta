@@ -83,7 +83,7 @@ export function Modal({
   // which component tree renders <Modal>.
   return createPortal(
     <div
-      className={`fixed inset-0 z-50 flex items-end justify-center sm:items-center ${overlay ? 'bg-black/40' : ''}`}
+      className={`fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-5 ${overlay ? 'bg-black/40' : ''}`}
       onClick={onClose}
     >
       <div
@@ -92,20 +92,20 @@ export function Modal({
         aria-modal="true"
         aria-labelledby={titleId}
         tabIndex={-1}
-        className="glass-card max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-b-none p-5 sm:rounded-b-[18px]"
+        className="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-t-2xl bg-white px-6 py-[22px] shadow-[0_24px_64px_rgba(0,0,0,0.18)] outline-none sm:rounded-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="mb-3 flex items-center justify-between">
-          <h2 id={titleId} className="text-base font-bold text-text-primary">
+        <div className="mb-3.5 flex items-start justify-between gap-3">
+          <h2 id={titleId} className="text-[18px] font-extrabold tracking-[-0.3px] text-text-primary">
             {title}
           </h2>
           <button
             type="button"
             onClick={onClose}
             aria-label="Schließen"
-            className="text-text-dim hover:text-text-primary"
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-black/[0.08] bg-[#f5f7fa] text-text-secondary hover:text-text-primary"
           >
-            <X size={18} />
+            <X size={14} strokeWidth={2.5} />
           </button>
         </div>
         {children}

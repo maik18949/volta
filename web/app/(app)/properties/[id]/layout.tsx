@@ -1,7 +1,7 @@
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getPropertyDetail } from '@/lib/data/propertyDetail';
-import { PropertyTabNav } from '@/components/property/PropertyTabNav';
+import { computePropertySummary } from '@/lib/data/propertySummary';
+import { PropertyDetailShell } from '@/components/property/detail/PropertyDetailShell';
 
 export default async function PropertyDetailLayout({
   children,
@@ -14,16 +14,20 @@ export default async function PropertyDetailLayout({
   const detail = await getPropertyDetail(id);
   if (!detail) notFound();
 
+  const { currentStatus } = computePropertySummary(detail.property, detail.statusEntries, new Date());
+
   return (
-    <div className="space-y-4">
-      <div>
-        <Link href="/" className="text-xs text-text-dim hover:underline">
-          ← Portfolio
-        </Link>
-        <h1 className="text-xl font-extrabold text-text-primary">{detail.property.name}</h1>
-      </div>
-      <PropertyTabNav propertyId={id} />
+    <PropertyDetailShell
+      propertyId={id}
+      name={detail.property.name}
+      address={detail.property.address}
+      postalCode={detail.property.postal_code}
+      city={detail.property.city}
+      propertyType={detail.property.property_type}
+      status={currentStatus}
+      photos={detail.photos}
+    >
       {children}
-    </div>
+    </PropertyDetailShell>
   );
 }

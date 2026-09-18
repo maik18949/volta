@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useState, useTransition } from 'react';
-import { Star, Trash2, Plus } from 'lucide-react';
+import { Star, Trash2, Image as ImageIcon } from 'lucide-react';
 import { uploadPropertyPhoto, deletePropertyPhoto, setCoverPhoto } from '@/lib/data/propertyPhotoActions';
 import type { PropertyPhotoWithUrl } from '@/lib/data/propertyPhotos';
 
@@ -13,6 +13,7 @@ function withoutKey<T>(record: Record<string, T>, key: string): Record<string, T
   return next;
 }
 
+/** Photo grid for the Immobiliendaten tab — the caller wraps it in a "Fotos" FormCard. */
 export function FotosSection({ propertyId, photos }: { propertyId: string; photos: PropertyPhotoWithUrl[] }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
@@ -66,19 +67,19 @@ export function FotosSection({ propertyId, photos }: { propertyId: string; photo
   }
 
   return (
-    <div className="space-y-3">
-      <p className="text-xs font-semibold uppercase text-text-secondary">Fotos</p>
+    <div>
+      <p className="mb-3.5 text-[13px] text-text-secondary">
+        Erstes Foto wird automatisch Titelbild. Max. {MAX_PHOTOS} Fotos — aktuell {photos.length}.
+      </p>
 
-      {photos.length === 0 && <p className="text-sm text-text-dim">Noch keine Fotos hinzugefügt.</p>}
-
-      <div className="grid grid-cols-3 gap-3">
+      <div className="flex flex-wrap gap-2.5">
         {photos.map(({ photo, url }) => (
-          <div key={photo.id} className="group relative aspect-square overflow-hidden rounded-lg bg-black/[0.04]">
+          <div key={photo.id} className="group relative h-[100px] w-[100px] shrink-0 overflow-hidden rounded-[10px] bg-black/[0.04]">
             {/* eslint-disable-next-line @next/next/no-img-element -- signed Supabase Storage URLs, not a static asset */}
             <img src={url} alt="" className="h-full w-full object-cover" />
             {photo.is_cover_photo && (
-              <span className="absolute left-1.5 top-1.5 rounded-full bg-black/60 p-1">
-                <Star size={12} className="fill-amber-400 text-amber-400" />
+              <span className="absolute left-[5px] top-[5px] flex h-5 w-5 items-center justify-center rounded-full bg-black/55">
+                <Star size={11} className="fill-amber-400 text-amber-400" />
               </span>
             )}
             <div className="absolute inset-0 flex items-center justify-center gap-2 bg-black/50 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
@@ -121,18 +122,15 @@ export function FotosSection({ propertyId, photos }: { propertyId: string; photo
             type="button"
             disabled={isPending}
             onClick={() => fileInputRef.current?.click()}
-            className="flex aspect-square flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-black/20 text-text-dim disabled:opacity-40"
+            className="flex h-[100px] w-[100px] shrink-0 flex-col items-center justify-center gap-[5px] rounded-[10px] border-2 border-dashed border-black/[0.12] bg-[#fafafa] text-[11px] font-semibold text-text-dim hover:border-accent hover:text-accent disabled:opacity-40"
           >
-            <Plus size={20} />
-            <span className="text-xs">Foto hinzufügen</span>
+            <ImageIcon size={22} strokeWidth={1.5} />
+            <span>+ Foto</span>
           </button>
         )}
       </div>
 
-      <p className="text-xs text-text-dim">
-        {photos.length}/{MAX_PHOTOS} Fotos
-      </p>
-      {error && <p className="text-xs text-negative">{error}</p>}
+      {error && <p className="mt-2 text-xs text-negative">{error}</p>}
 
       <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/heic" onChange={handleFileChange} className="hidden" />
     </div>

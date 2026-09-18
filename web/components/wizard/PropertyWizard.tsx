@@ -13,6 +13,7 @@ import {
   mapToStatusEntryInserts,
 } from '@/lib/wizard/wizardLogic';
 import { createProperty } from '@/lib/data/propertyActions';
+import { SectionNav } from '@/components/ui/SectionNav';
 import { StepStammdaten } from './steps/StepStammdaten';
 import { StepObjektdaten } from './steps/StepObjektdaten';
 import { StepKauf } from './steps/StepKauf';
@@ -22,16 +23,20 @@ import { StepFinanzierung } from './steps/StepFinanzierung';
 import { StepAfaSteuer } from './steps/StepAfaSteuer';
 import { StepStatusOnboarding } from './steps/StepStatusOnboarding';
 
+// Same labels as the Immobiliendaten "Bereiche" nav (minus Annahmen/Gefahrenzone, which only
+// exist for an already-created property), plus the conditional Nutzungsverlauf step.
 const STEP_TITLES = [
   'Stammdaten',
   'Objektdaten',
-  'Kauf & Nebenkosten',
+  'Kauf',
   'Einnahmen',
   'Kosten',
   'Finanzierung',
   'AfA & Steuer',
   'Nutzungsverlauf',
 ];
+
+const PRIMARY_BUTTON = 'rounded-[9px] bg-accent px-4 py-2 text-[13px] font-semibold text-white hover:bg-blue-600 disabled:opacity-50';
 
 export function PropertyWizard() {
   const router = useRouter();
@@ -75,29 +80,18 @@ export function PropertyWizard() {
 
   return (
     <FormProvider {...form}>
-      <div className="flex gap-6">
-        <nav className="w-48 shrink-0 space-y-1">
-          {Array.from({ length: stepCount }, (_, i) => i + 1).map((step) => (
-            <button
-              key={step}
-              type="button"
-              onClick={() => setCurrentStep(step)}
-              className={`block w-full rounded-md px-3 py-2 text-left text-sm ${
-                step === currentStep
-                  ? 'bg-accent font-semibold text-white'
-                  : 'text-text-secondary hover:bg-black/[0.04]'
-              }`}
-            >
-              {step}. {STEP_TITLES[step - 1]}
-            </button>
-          ))}
-        </nav>
+      <div className="flex w-full items-start gap-6">
+        <SectionNav
+          heading="Bereiche"
+          items={STEP_TITLES.slice(0, stepCount)}
+          activeIndex={currentStep - 1}
+          onSelect={(i) => setCurrentStep(i + 1)}
+        />
 
-        <div className="glass-card flex-1 p-6">
-          <p className="mb-4 text-xs font-semibold text-text-secondary">
+        <div className="min-w-0 flex-1">
+          <p className="mb-3 text-[13px] font-semibold text-text-secondary">
             Schritt {currentStep} von {stepCount}
           </p>
-
           {currentStep === 1 && <StepStammdaten />}
           {currentStep === 2 && <StepObjektdaten />}
           {currentStep === 3 && <StepKauf />}
@@ -108,39 +102,29 @@ export function PropertyWizard() {
           {currentStep === 8 && <StepStatusOnboarding />}
 
           {submitError && (
-            <p role="alert" className="mt-4 text-sm text-negative">
+            <p role="alert" className="mt-4 text-[13px] text-negative">
               {submitError}
             </p>
           )}
 
-          <div className="mt-6 flex items-center justify-between border-t border-black/[0.06] pt-4">
+          <div className="mt-6 flex items-center justify-between">
             <div>
               {currentStep > 1 && (
                 <button
                   type="button"
                   onClick={handleBack}
-                  className="rounded-md border border-black/10 px-4 py-2 text-sm text-text-primary"
+                  className="rounded-[9px] border border-black/10 bg-white px-4 py-2 text-[13px] font-semibold text-text-secondary hover:border-accent hover:text-accent"
                 >
                   Zurück
                 </button>
               )}
             </div>
             {currentStep < stepCount ? (
-              <button
-                type="button"
-                onClick={handleNext}
-                disabled={!canProceedFromStep(currentStep, values)}
-                className="rounded-md bg-accent px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
-              >
+              <button type="button" onClick={handleNext} disabled={!canProceedFromStep(currentStep, values)} className={PRIMARY_BUTTON}>
                 Weiter
               </button>
             ) : (
-              <button
-                type="button"
-                onClick={handleFinish}
-                disabled={!canFinish(values) || isPending}
-                className="rounded-md bg-accent px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
-              >
+              <button type="button" onClick={handleFinish} disabled={!canFinish(values) || isPending} className={PRIMARY_BUTTON}>
                 {isPending ? 'Wird gespeichert…' : 'Fertigstellen'}
               </button>
             )}

@@ -2,6 +2,7 @@
 
 import { useFormContext, useWatch } from 'react-hook-form';
 import { CurrencyField } from '@/components/ui/CurrencyField';
+import { CalcSummary, FormCard, FormGrid, FormHint, FormSection, type CalcSummaryRow } from '@/components/ui/FormLayout';
 import { grossYield } from '@/lib/calculations/kpiCalculator';
 import { formatCurrency, formatPercent } from '@/lib/formatters';
 import type { WizardFormValues } from '@/lib/wizard/wizardLogic';
@@ -28,47 +29,29 @@ export function StepEinnahmen() {
   const warmmieteYearlyInclParking = warmmieteYearly !== null ? warmmieteYearly + parkingRentMonthly * 12 : null;
   const yieldValue = grossYield(coldRentYearly, parkingRentMonthly * 12, purchasePrice);
 
+  const rows: CalcSummaryRow[] = [{ label: 'Nettomiete / Jahr', value: formatCurrency(coldRentYearly) }];
+  if (warmmieteYearly !== null) rows.push({ label: 'Bruttomiete / Jahr', value: formatCurrency(warmmieteYearly) });
+  if (parkingRentMonthly > 0) {
+    rows.push({ label: 'Nettomiete inkl. Stellplatz / Jahr', value: formatCurrency(coldRentYearlyInclParking) });
+    if (warmmieteYearlyInclParking !== null) {
+      rows.push({ label: 'Bruttomiete inkl. Stellplatz / Jahr', value: formatCurrency(warmmieteYearlyInclParking) });
+    }
+  }
+
   return (
-    <div className="space-y-4">
-      <p className="text-sm text-text-secondary">
-        Prognose-Einnahmen bei Vollvermietung. Die Nettokaltmiete ist Pflicht — sie ist Basis aller Rendite-KPIs.
-      </p>
+    <FormSection>
+      <FormHint>Prognose-Einnahmen bei Vollvermietung. Die Nettokaltmiete ist Pflicht — sie ist Basis aller Rendite-KPIs.</FormHint>
 
-      <CurrencyField label="Nettomiete/Monat" name="coldRentMonthly" register={register} required />
-      <CurrencyField label="Bruttomiete/Monat" name="warmmieteMonthly" register={register} hint="Optional, vereinbarte Warmmiete inkl. NK" />
-      {parkingType !== 'nicht_vorhanden' && (
-        <CurrencyField label="Stellplatzmiete/Monat" name="parkingRentMonthly" register={register} />
-      )}
-      <CurrencyField label="Sonstige Einnahmen/Monat" name="otherIncomeMonthly" register={register} />
+      <FormCard title="Einnahmen">
+        <FormGrid>
+          <CurrencyField label="Nettomiete / Monat" name="coldRentMonthly" register={register} required />
+          {parkingType !== 'nicht_vorhanden' && <CurrencyField label="Stellplatzmiete / Monat" name="parkingRentMonthly" register={register} />}
+          <CurrencyField label="Bruttomiete / Monat" name="warmmieteMonthly" register={register} hint="optional (Warmmiete inkl. NK)" />
+          <CurrencyField label="Sonstige Einnahmen / Monat" name="otherIncomeMonthly" register={register} />
+        </FormGrid>
+      </FormCard>
 
-      <div className="space-y-1 rounded-md bg-black/[0.03] p-3 text-sm">
-        <div className="flex justify-between">
-          <span>Nettomiete / Jahr</span>
-          <span>{formatCurrency(coldRentYearly)}</span>
-        </div>
-        {warmmieteYearly !== null && (
-          <div className="flex justify-between">
-            <span>Bruttomiete / Jahr</span>
-            <span>{formatCurrency(warmmieteYearly)}</span>
-          </div>
-        )}
-        {parkingRentMonthly > 0 && (
-          <>
-            <div className="flex justify-between border-t border-black/[0.06] pt-1">
-              <span>Nettomiete inkl. Stellplatz / Jahr</span>
-              <span>{formatCurrency(coldRentYearlyInclParking)}</span>
-            </div>
-            {warmmieteYearlyInclParking !== null && (
-              <div className="flex justify-between">
-                <span>Bruttomiete inkl. Stellplatz / Jahr</span>
-                <span>{formatCurrency(warmmieteYearlyInclParking)}</span>
-              </div>
-            )}
-          </>
-        )}
-      </div>
-
-      {yieldValue !== null && <p className="text-sm font-semibold text-text-primary">Bruttorendite: {formatPercent(yieldValue)}</p>}
-    </div>
+      <CalcSummary rows={rows} total={yieldValue !== null ? { label: 'Bruttorendite', value: formatPercent(yieldValue) } : undefined} />
+    </FormSection>
   );
 }
