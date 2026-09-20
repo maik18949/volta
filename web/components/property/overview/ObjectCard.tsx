@@ -55,6 +55,7 @@ const PARKING_LABELS: Record<PropertyRow['parking_type'], string> = {
 /** "Objekt" card: the property's descriptive fields (address and photo live in the sidebar). */
 export function ObjectCard({ property, purchasePricePerSqm }: { property: PropertyRow; purchasePricePerSqm: number }) {
   const coldRentPerSqm = property.living_area_sqm > 0 ? property.cold_rent_monthly / property.living_area_sqm : 0;
+  const hasParking = property.parking_type !== 'nicht_vorhanden';
 
   const fields: Array<[string, string | number]> = [
     ['Typ', PROPERTY_TYPE_LABELS[property.property_type]],
@@ -67,7 +68,11 @@ export function ObjectCard({ property, purchasePricePerSqm }: { property: Proper
     ['Zustand', property.condition ? CONDITION_LABELS[property.condition] : '–'],
     ['Heizung', property.heating_type ? HEATING_LABELS[property.heating_type] : '–'],
     ['Stellplatz', PARKING_LABELS[property.parking_type]],
+    ['Hausgeld Wohnung', formatCurrency(property.hoa_fee_total_monthly)],
   ];
+  if (hasParking) {
+    fields.push(['Hausgeld Stellplatz', formatCurrency(property.hoa_fee_parking_total_monthly)]);
+  }
 
   return (
     <Card className="py-[18px]">
