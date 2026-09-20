@@ -48,7 +48,7 @@ export function PropertyCard({ property, summary, coverPhotoUrl }: PropertyWithS
         <div className="mb-3 h-px bg-black/[0.07]" />
         <div className="grid grid-cols-2 gap-x-3.5 gap-y-2.5">
           <div>
-            <p className="mb-0.5 text-[11px] text-text-secondary">Cashflow / Mon</p>
+            <p className="mb-0.5 text-[11px] text-text-secondary">Cashflow / Mon (n. St.)</p>
             <p className={`text-[15px] font-bold tabular-nums ${cashflowColor}`}>{formatCurrency(summary.cashflowAfterTaxMonthly)}</p>
           </div>
           <div>

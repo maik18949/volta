@@ -1,7 +1,7 @@
 import { Card } from '@/components/ui/Card';
 import { SectionLabel } from '@/components/ui/SectionLabel';
 import { Stat } from '@/components/ui/Stat';
-import { KpiRatingPill } from '@/components/property/KpiRatingPill';
+import { KpiScale, kpiValueColorClass } from '@/components/property/KpiScale';
 import { KpiInfoButton } from '@/components/property/KpiInfoButton';
 import { formatCurrency, formatNumber, formatPercent } from '@/lib/formatters';
 import type { BenchmarkKpi } from '@/lib/calculations/kpiCalculator';
@@ -35,8 +35,10 @@ function KpiRow({
         <KpiInfoButton kpi={kpi} value={rawValue} property={property} summary={summary} overview={overview} />
       </span>
       <span className="inline-flex shrink-0 items-center gap-2">
-        <span className="whitespace-nowrap text-[13px] font-bold tabular-nums text-text-primary">{formattedValue}</span>
-        <KpiRatingPill kpi={kpi} value={rawValue} className="min-w-14" />
+        <span className={`whitespace-nowrap text-[13px] font-bold tabular-nums ${kpiValueColorClass(kpi, rawValue)}`}>{formattedValue}</span>
+        <div className="w-[90px]">
+          <KpiScale kpi={kpi} value={rawValue} />
+        </div>
       </span>
     </div>
   );

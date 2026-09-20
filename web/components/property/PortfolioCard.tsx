@@ -16,7 +16,7 @@ export function PortfolioCard({ totals }: { totals: PortfolioTotals }) {
 
   return (
     <div className="grid grid-cols-1 gap-px overflow-hidden rounded-xl border border-black/[0.07] bg-white sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-      <Tile label="Cashflow / Mon" value={formatCurrency(totals.cashflowMonthly)} valueClassName={cashflowColor} />
+      <Tile label="Cashflow / Mon (n. Steuern)" value={formatCurrency(totals.cashflowMonthly)} valueClassName={cashflowColor} />
       <Tile label="Gesamtinvestment" value={formatCurrency(totals.totalInvestment)} />
       <Tile label="Ø Nettorendite" value={totals.averageNetYield !== null ? formatPercent(totals.averageNetYield) : '–'} />
       <Tile label="Restschuld" value={totals.remainingDebt > 0 ? formatCurrency(totals.remainingDebt) : '–'} />

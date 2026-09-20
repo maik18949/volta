@@ -1,11 +1,11 @@
 import type { ReactNode } from 'react';
-import { KpiRatingPill, kpiTargetLabel } from '@/components/property/KpiRatingPill';
-import { benchmarkColor, type BenchmarkKpi } from '@/lib/calculations/kpiCalculator';
+import { KpiScale, kpiValueColorClass } from '@/components/property/KpiScale';
+import { type BenchmarkKpi } from '@/lib/calculations/kpiCalculator';
 import { formatCurrency, formatNumber, formatPercent } from '@/lib/formatters';
 import type { PropertySummary } from '@/lib/data/propertySummary';
 import type { OverviewMetrics } from '@/lib/data/propertyOverview';
 
-function Tile({ label, value, valueClassName, children }: { label: string; value: string; valueClassName?: string; children: ReactNode }) {
+function Tile({ label, value, valueClassName, children }: { label: string; value: string; valueClassName?: string; children?: ReactNode }) {
   return (
     <div className="bg-white px-[18px] py-4 shadow-[0_0_0_1px_rgba(0,0,0,0.07)]">
       <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.4px] text-text-secondary">{label}</p>
@@ -16,12 +16,10 @@ function Tile({ label, value, valueClassName, children }: { label: string; value
 }
 
 function KpiTile({ kpi, label, value, formatted }: { kpi: BenchmarkKpi; label: string; value: number | null; formatted: string }) {
-  const isRed = benchmarkColor(kpi, value) === 'red';
   return (
-    <Tile label={label} value={formatted} valueClassName={isRed ? 'text-negative' : undefined}>
-      <div className="mt-1.5 flex items-center gap-2 text-[13px] text-text-secondary">
-        {kpiTargetLabel(kpi)}
-        <KpiRatingPill kpi={kpi} value={value} />
+    <Tile label={label} value={formatted} valueClassName={kpiValueColorClass(kpi, value)}>
+      <div className="mt-2.5 w-16">
+        <KpiScale kpi={kpi} value={value} />
       </div>
     </Tile>
   );
