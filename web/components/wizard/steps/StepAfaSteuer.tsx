@@ -13,6 +13,23 @@ function safeNum(value: number | undefined): number {
   return typeof value === 'number' && !Number.isNaN(value) ? value : 0;
 }
 
+const BERECHNUNGSHILFE_URL =
+  'https://www.bundesfinanzministerium.de/Datenportal/Daten/frei-nutzbare-produkte/Anwendungen/Kaufpreisaufteilung-Grundstuecke/Kaufpreisaufteilung-Grundstuecke.html';
+
+function BerechnungshilfeLink() {
+  return (
+    <a
+      href={BERECHNUNGSHILFE_URL}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="underline hover:no-underline"
+      onClick={(e) => e.stopPropagation()}
+    >
+      Berechnungshilfe
+    </a>
+  );
+}
+
 export function StepAfaSteuer() {
   const { register, control } = useFormContext<WizardFormValues>();
   const values = useWatch({ control });
@@ -39,21 +56,32 @@ export function StepAfaSteuer() {
   return (
     <FormSection>
       <FormHint>
-        Gebäude- und Grundstückswert kommen aus dem Sachwertverfahren (Regierungs-Excel) und sollten sich zum Kaufpreis addieren (Toleranz ±5 %).
+        Gebäude- und Grundstückswert kommen aus dem Sachwertverfahren (<BerechnungshilfeLink />) und sollten sich zum Kaufpreis
+        addieren (Toleranz ±5 %).
       </FormHint>
 
       <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-2">
         <FormCard title="AfA & Steuer">
           <FormGrid>
-            <CurrencyField label="Gebäudewert (Regierungs-Excel)" name="buildingValue" register={register} required />
-            <CurrencyField label="Grundstückswert (Regierungs-Excel)" name="landValue" register={register} required />
+            <CurrencyField
+              label={<>Gebäudewert (<BerechnungshilfeLink />)</>}
+              name="buildingValue"
+              register={register}
+              required
+            />
+            <CurrencyField
+              label={<>Grundstückswert (<BerechnungshilfeLink />)</>}
+              name="landValue"
+              register={register}
+              required
+            />
             <PercentField label="AfA-Satz" name="depreciationRate" control={control} required hint="2 % ab 1925 · 2,5 % vor 1925 · 3 % Neubau ab 2023" />
             <PercentField label="Grenzsteuersatz" name="marginalTaxRate" control={control} required />
             {sumDeviation > 0.05 && (
               <div className="sm:col-span-2">
                 <FormWarning>
                   ⚠ Gebäude + Grundstück ({formatCurrency(buildingValue + landValue)}) weicht {(sumDeviation * 100).toFixed(1)} % vom
-                  Kaufpreis ab — Werte aus dem Regierungs-Excel prüfen.
+                  Kaufpreis ab — Werte aus der Berechnungshilfe prüfen.
                 </FormWarning>
               </div>
             )}

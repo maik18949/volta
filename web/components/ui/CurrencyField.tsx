@@ -1,5 +1,6 @@
 'use client';
 
+import type { ReactNode } from 'react';
 import type { UseFormRegister, FieldValues, Path } from 'react-hook-form';
 import { twMerge } from 'tailwind-merge';
 import { FieldLabel, SUFFIXED_INPUT_CLASS, SuffixedInputBox } from './fieldStyles';
@@ -12,7 +13,7 @@ export function CurrencyField<T extends FieldValues>({
   hint,
   className,
 }: {
-  label: string;
+  label: ReactNode;
   name: Path<T>;
   register: UseFormRegister<T>;
   required?: boolean;
