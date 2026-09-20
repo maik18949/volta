@@ -56,7 +56,7 @@ create table loan_disbursements (
 
 alter table loan_disbursements enable row level security;
 create policy "loan_disbursements_owner" on loan_disbursements for all using (
-  property_id in (select id from properties where user_id = (select auth.uid()))
+  property_id in (select id from properties where user_id = auth.uid())
 );
 
 -- Backfill: every property with an existing single-disbursement loan gets one
@@ -664,15 +664,13 @@ export function computeFinancingOverview(
   if (disbursementRows.length > 0) {
     const disbursements = toLoanDisbursements(disbursementRows);
     const sortedStart = [...disbursements].sort((a, b) => a.date.getTime() - b.date.getTime())[0].date;
-    // stagedAmortizationSchedule's row at index i represents the (i+1)-th
-    // calendar month since sortedStart, payment already applied. monthsBetween
-    // counts calendar months inclusively, so it's already a 1-based count of
-    // "today's" month position — the "- 1" below (when indexing into the
-    // array) is the only count-to-index conversion needed. Clamped to at
-    // least 1 so a lookup date in sortedStart's own month still reads that
-    // first row instead of an empty/undefined one.
-    const monthsToToday = Math.max(1, monthsBetween(sortedStart, today));
-    const monthsToFixedRateEnd = Math.max(1, monthsBetween(sortedStart, fixedRateEndDate));
+    // Matches remainingDebt's own t-convention (t=0 -> no payment applied yet):
+    // one full calendar month must have elapsed since the first tranche before
+    // a payment has landed, hence the same "-1". Clamped to at least 1 so the
+    // very first month (before month-end) still shows a sensible value instead
+    // of an empty schedule.
+    const monthsToToday = Math.max(1, monthsBetween(sortedStart, today) - 1);
+    const monthsToFixedRateEnd = Math.max(1, monthsBetween(sortedStart, fixedRateEndDate) - 1);
     const schedule = stagedAmortizationSchedule(
       disbursements,
       property.interest_rate,
