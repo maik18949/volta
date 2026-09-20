@@ -20,19 +20,19 @@ export function YearPicker({
         onClick={() => onChange(year - 1)}
         disabled={year <= minYear}
         aria-label="Vorheriges Jahr"
-        className="text-text-dim hover:text-accent disabled:opacity-30"
+        className="flex p-0.5 text-text-dim hover:text-accent disabled:opacity-30"
       >
-        <ChevronLeft size={16} />
+        <ChevronLeft size={16} strokeWidth={2.5} />
       </button>
-      <span className="w-12 text-center text-sm font-semibold text-text-primary">{year}</span>
+      <span className="w-12 text-center text-[13px] font-bold text-text-primary">{year}</span>
       <button
         type="button"
         onClick={() => onChange(year + 1)}
         disabled={maxYear !== undefined && year >= maxYear}
         aria-label="Nächstes Jahr"
-        className="text-text-dim hover:text-accent disabled:opacity-30"
+        className="flex p-0.5 text-text-dim hover:text-accent disabled:opacity-30"
       >
-        <ChevronRight size={16} />
+        <ChevronRight size={16} strokeWidth={2.5} />
       </button>
     </div>
   );

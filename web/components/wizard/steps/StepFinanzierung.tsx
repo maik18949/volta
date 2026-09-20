@@ -5,14 +5,24 @@ import { useFormContext, useWatch } from 'react-hook-form';
 import { CurrencyField } from '@/components/ui/CurrencyField';
 import { PercentField } from '@/components/ui/PercentField';
 import { TextField } from '@/components/ui/TextField';
+import { NumberStepper } from '@/components/ui/NumberStepper';
+import { CalcSummary, FormCard, FormGrid, FormHint, FormSection } from '@/components/ui/FormLayout';
 import { monthlyMortgageCalc } from '@/lib/calculations/amortizationCalculator';
-import { equityUsed, ltvRatio, totalInvestment as computeTotalInvestment, closingCostsTotal } from '@/lib/calculations/kpiCalculator';
+import {
+  benchmarkColor,
+  equityUsed,
+  ltvRatio,
+  totalInvestment as computeTotalInvestment,
+  closingCostsTotal,
+} from '@/lib/calculations/kpiCalculator';
 import { formatCurrency, formatPercent } from '@/lib/formatters';
 import type { WizardFormValues } from '@/lib/wizard/wizardLogic';
 
 function safeNum(value: number | undefined): number {
   return typeof value === 'number' && !Number.isNaN(value) ? value : 0;
 }
+
+const LTV_COLOR = { green: 'text-positive', orange: 'text-warning', red: 'text-negative' } as const;
 
 export function StepFinanzierung() {
   const { register, control, setValue, getFieldState } = useFormContext<WizardFormValues>();
@@ -22,6 +32,7 @@ export function StepFinanzierung() {
   const interestRate = safeNum(values.interestRate);
   const amortizationRate = safeNum(values.amortizationRate);
   const calculatedMortgage = monthlyMortgageCalc(loanAmount, interestRate, amortizationRate);
+  const firstMonthInterest = (loanAmount * interestRate) / 12;
 
   // Auto-fill `monthlyMortgage` from the calculated value until the user has actually
   // touched (blurred) the field themselves. `isTouched` is set on blur regardless of the
@@ -50,46 +61,42 @@ export function StepFinanzierung() {
   const totalEquityContributed = safeNum(values.equityContributed) + safeNum(values.brokerCommissionAgreement);
   const equity = totalEquityContributed > 0 ? totalEquityContributed : theoreticalEquity;
   const ltv = ltvRatio(loanAmount, total);
+  const ltvColor = benchmarkColor('ltv', ltv);
 
   return (
-    <div className="space-y-4">
-      <p className="text-sm text-text-secondary">
-        Die Monatsrate wird automatisch aus Darlehensbetrag, Zins- und Tilgungssatz berechnet — du kannst sie danach frei überschreiben.
-      </p>
+    <FormSection>
+      <FormHint>Die Monatsrate wird automatisch aus Darlehensbetrag, Zins- und Tilgungssatz berechnet — du kannst sie danach frei überschreiben.</FormHint>
 
-      <CurrencyField label="Darlehensbetrag" name="loanAmount" register={register} required />
-      <div className="grid grid-cols-2 gap-3">
-        <PercentField label="Zinssatz" name="interestRate" control={control} required />
-        <PercentField label="Tilgungssatz" name="amortizationRate" control={control} required />
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        <TextField label="Zinsbindung (Jahre)" name="fixedInterestPeriodYears" register={register} type="number" />
-        <TextField label="Darlehensbeginn" name="loanStartDate" register={register} type="date" />
-      </div>
-      <CurrencyField label="Monatsrate" name="monthlyMortgage" register={register} />
+      <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-2">
+        <FormCard title="Darlehen">
+          <FormGrid>
+            <CurrencyField label="Darlehensbetrag" name="loanAmount" register={register} required className="sm:col-span-2" />
+            <PercentField label="Zinssatz" name="interestRate" control={control} required />
+            <PercentField label="Tilgungssatz" name="amortizationRate" control={control} required />
+            <NumberStepper label="Zinsbindung (Jahre)" name="fixedInterestPeriodYears" control={control} min={1} max={40} />
+            <TextField label="Darlehensbeginn" name="loanStartDate" register={register} type="date" />
+            <CurrencyField label="Monatliche Rate" name="monthlyMortgage" register={register} className="sm:col-span-2" />
+            <CurrencyField label="Eigenkapital eingebracht" name="equityContributed" register={register} className="sm:col-span-2" />
+            <CurrencyField
+              label="Eigenprovisions-Vereinbarung"
+              name="brokerCommissionAgreement"
+              register={register}
+              className="sm:col-span-2"
+            />
+          </FormGrid>
+        </FormCard>
 
-      <CurrencyField label="Eigenkapital eingebracht" name="equityContributed" register={register} />
-      <CurrencyField
-        label="Eigenprovisions-Vereinbarung"
-        name="brokerCommissionAgreement"
-        register={register}
-        hint="Maklerkosten aus separater Vereinbarung — zählt wie eingebrachtes Eigenkapital für die Cash-on-Cash-Rendite"
-      />
-
-      <div className="space-y-1 rounded-md bg-black/[0.03] p-3 text-sm">
-        <div className="flex justify-between">
-          <span>Berechnete Monatsrate</span>
-          <span>{formatCurrency(calculatedMortgage)}</span>
-        </div>
-        <div className="flex justify-between">
-          <span>Eigenkapital (genutzt)</span>
-          <span>{formatCurrency(equity)}</span>
-        </div>
-        <div className="flex justify-between">
-          <span>Anfangs-LTV</span>
-          <span>{ltv !== null ? formatPercent(ltv) : '–'}</span>
-        </div>
+        <CalcSummary
+          className="self-start"
+          rows={[
+            { label: 'Berechnete Monatsrate', value: formatCurrency(calculatedMortgage) },
+            { label: 'davon Zinsen', value: formatCurrency(firstMonthInterest) },
+            { label: 'davon Tilgung', value: formatCurrency(calculatedMortgage - firstMonthInterest) },
+            { label: 'Eigenkapital (genutzt)', value: formatCurrency(equity) },
+          ]}
+          total={{ label: 'Anfangs-LTV', value: ltv !== null ? formatPercent(ltv) : '–', valueClassName: ltvColor ? LTV_COLOR[ltvColor] : undefined }}
+        />
       </div>
-    </div>
+    </FormSection>
   );
 }

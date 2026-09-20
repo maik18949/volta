@@ -1,45 +1,48 @@
+import type { ReactNode } from 'react';
 import { KpiScale, kpiValueColorClass } from '@/components/property/KpiScale';
+import { type BenchmarkKpi } from '@/lib/calculations/kpiCalculator';
 import { formatCurrency, formatNumber, formatPercent } from '@/lib/formatters';
 import type { PropertySummary } from '@/lib/data/propertySummary';
 import type { OverviewMetrics } from '@/lib/data/propertyOverview';
+
+function Tile({ label, value, valueClassName, children }: { label: string; value: string; valueClassName?: string; children?: ReactNode }) {
+  return (
+    <div className="bg-white px-[18px] py-4 shadow-[0_0_0_1px_rgba(0,0,0,0.07)]">
+      <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.4px] text-text-secondary">{label}</p>
+      <p className={`text-[22px] font-extrabold leading-[1.1] tracking-[-0.5px] tabular-nums ${valueClassName ?? 'text-text-primary'}`}>{value}</p>
+      {children}
+    </div>
+  );
+}
+
+function KpiTile({ kpi, label, value, formatted }: { kpi: BenchmarkKpi; label: string; value: number | null; formatted: string }) {
+  return (
+    <Tile label={label} value={formatted} valueClassName={kpiValueColorClass(kpi, value)}>
+      <div className="mt-2.5 w-16">
+        <KpiScale kpi={kpi} value={value} />
+      </div>
+    </Tile>
+  );
+}
 
 export function OverviewKpiBar({ summary, overview }: { summary: PropertySummary; overview: OverviewMetrics }) {
   const cfColor = summary.cashflowAfterTaxMonthly >= 0 ? 'text-positive' : 'text-negative';
 
   return (
-    <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl bg-black/[0.06] shadow-sm sm:grid-cols-4">
-      <div className="bg-white px-3 py-2">
-        <p className="text-[10px] font-bold uppercase text-text-secondary">CF nach Steuern</p>
-        <p className={`text-[18px] font-extrabold ${cfColor}`}>{formatCurrency(summary.cashflowAfterTaxMonthly)}</p>
-        <p className="text-[11px] text-text-secondary">vor St.: {formatCurrency(summary.cashflowBeforeTaxMonthly)}</p>
-      </div>
-      <div className="bg-white px-3 py-2">
-        <p className="text-[10px] font-bold uppercase text-text-secondary">Nettorendite</p>
-        <p className={`text-[18px] font-extrabold ${kpiValueColorClass('netYield', summary.netYield)}`}>
-          {summary.netYield !== null ? formatPercent(summary.netYield) : '–'}
+    <section className="grid grid-cols-1 gap-px overflow-hidden rounded-[14px] border border-black/[0.07] bg-white sm:grid-cols-2 xl:grid-cols-4">
+      <Tile label="CF nach Steuern" value={formatCurrency(summary.cashflowAfterTaxMonthly)} valueClassName={cfColor}>
+        <p className="mt-1.5 text-[13px] text-text-secondary">
+          vor Steuern <span className="font-semibold text-text-primary">{formatCurrency(summary.cashflowBeforeTaxMonthly)}</span>
         </p>
-        <div className="mt-1 w-16">
-          <KpiScale kpi="netYield" value={summary.netYield} />
-        </div>
-      </div>
-      <div className="bg-white px-3 py-2">
-        <p className="text-[10px] font-bold uppercase text-text-secondary">Cash-on-Cash</p>
-        <p className={`text-[18px] font-extrabold ${kpiValueColorClass('cashOnCash', overview.cashOnCash)}`}>
-          {overview.cashOnCash !== null ? formatPercent(overview.cashOnCash) : '–'}
-        </p>
-        <div className="mt-1 w-16">
-          <KpiScale kpi="cashOnCash" value={overview.cashOnCash} />
-        </div>
-      </div>
-      <div className="bg-white px-3 py-2">
-        <p className="text-[10px] font-bold uppercase text-text-secondary">DSCR</p>
-        <p className={`text-[18px] font-extrabold ${kpiValueColorClass('dscr', overview.dscr)}`}>
-          {overview.dscr !== null ? formatNumber(overview.dscr, 2) : '–'}
-        </p>
-        <div className="mt-1 w-16">
-          <KpiScale kpi="dscr" value={overview.dscr} />
-        </div>
-      </div>
-    </div>
+      </Tile>
+      <KpiTile kpi="netYield" label="Nettorendite" value={summary.netYield} formatted={summary.netYield !== null ? formatPercent(summary.netYield) : '–'} />
+      <KpiTile
+        kpi="cashOnCash"
+        label="Cash-on-Cash"
+        value={overview.cashOnCash}
+        formatted={overview.cashOnCash !== null ? formatPercent(overview.cashOnCash) : '–'}
+      />
+      <KpiTile kpi="dscr" label="DSCR" value={overview.dscr} formatted={overview.dscr !== null ? formatNumber(overview.dscr, 2) : '–'} />
+    </section>
   );
 }

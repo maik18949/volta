@@ -1,11 +1,16 @@
 'use client';
 
-import { useFormContext, useWatch } from 'react-hook-form';
+import type { ReactNode } from 'react';
+import { useFormContext } from 'react-hook-form';
 import { TextField } from '@/components/ui/TextField';
+import { SelectField } from '@/components/ui/SelectField';
+import { NumberStepper } from '@/components/ui/NumberStepper';
+import { Toggle } from '@/components/ui/Toggle';
+import { FormCard, FormGrid, FormSection } from '@/components/ui/FormLayout';
 import type { WizardFormValues } from '@/lib/wizard/wizardLogic';
 
 const PARKING_TYPES: Array<[WizardFormValues['parkingType'], string]> = [
-  ['nicht_vorhanden', 'Nicht vorhanden'],
+  ['nicht_vorhanden', 'Kein Stellplatz'],
   ['tiefgarage', 'Tiefgarage'],
   ['aussenstellplatz', 'Außenstellplatz'],
   ['garage', 'Garage'],
@@ -21,16 +26,16 @@ const HEATING_TYPES: Array<[NonNullable<WizardFormValues['heatingType']>, string
   ['sonstiges', 'Sonstiges'],
 ];
 
-const ENERGY_CLASSES: Array<NonNullable<WizardFormValues['energyEfficiencyClass']>> = [
-  'a_plus_plus',
-  'a',
-  'b',
-  'c',
-  'd',
-  'e',
-  'f',
-  'g',
-  'h',
+const ENERGY_CLASSES: Array<[NonNullable<WizardFormValues['energyEfficiencyClass']>, string]> = [
+  ['a_plus_plus', 'A++'],
+  ['a', 'A'],
+  ['b', 'B'],
+  ['c', 'C'],
+  ['d', 'D'],
+  ['e', 'E'],
+  ['f', 'F'],
+  ['g', 'G'],
+  ['h', 'H'],
 ];
 
 const CONDITIONS: Array<[NonNullable<WizardFormValues['condition']>, string]> = [
@@ -49,92 +54,43 @@ const BOOLEAN_FEATURES = [
   { field: 'hasFittedKitchen', label: 'Einbauküche' },
 ] as const;
 
-export function StepObjektdaten() {
+const NULL_WHEN_EMPTY = { setValueAs: (v: string) => (v === '' ? null : v) };
+
+/** `fotos` is an optional extra card rendered between Objektdaten and Ausstattung (Immobiliendaten tab only). */
+export function StepObjektdaten({ fotos }: { fotos?: ReactNode }) {
   const { register, control } = useFormContext<WizardFormValues>();
-  const parkingType = useWatch({ control, name: 'parkingType' });
 
   return (
-    <div className="space-y-4">
-      <p className="text-sm text-text-secondary">Objektdaten — trage ein, was du weißt.</p>
+    <FormSection>
+      <FormCard title="Objektdaten">
+        <FormGrid>
+          <TextField label="Wohnfläche (m²)" name="livingAreaSqm" register={register} type="number" required />
+          <TextField label="Nutzfläche (m²)" name="usableAreaSqm" register={register} type="number" />
+          <NumberStepper label="Zimmer" name="rooms" control={control} step={0.5} min={0.5} />
+          <SelectField label="Stellplatz" name="parkingType" register={register} options={PARKING_TYPES} />
+          <SelectField label="Heizung" name="heatingType" register={register} options={HEATING_TYPES} emptyOption="–" registerOptions={NULL_WHEN_EMPTY} />
+          <SelectField
+            label="Energieklasse"
+            name="energyEfficiencyClass"
+            register={register}
+            options={ENERGY_CLASSES}
+            emptyOption="–"
+            registerOptions={NULL_WHEN_EMPTY}
+          />
+          <SelectField label="Zustand" name="condition" register={register} options={CONDITIONS} emptyOption="–" registerOptions={NULL_WHEN_EMPTY} />
+          <TextField label="Letzte Renovierung" name="lastRenovationYear" register={register} type="number" />
+        </FormGrid>
+      </FormCard>
 
-      <div className="grid grid-cols-3 gap-3">
-        <TextField label="Wohnfläche (m²)" name="livingAreaSqm" register={register} type="number" required />
-        <TextField label="Nutzfläche (m²)" name="usableAreaSqm" register={register} type="number" />
-        <TextField label="Zimmer" name="rooms" register={register} type="number" />
-      </div>
+      {fotos}
 
-      <div className="flex flex-wrap gap-4">
-        {BOOLEAN_FEATURES.map(({ field, label }) => (
-          <label key={field} className="flex items-center gap-2 text-sm text-text-primary">
-            <input type="checkbox" {...register(field)} />
-            {label}
-          </label>
-        ))}
-      </div>
-
-      <div className="grid grid-cols-4 gap-3">
-        <label className="block">
-          <span className="text-[13px] font-medium text-text-secondary">Stellplatz</span>
-          <select
-            {...register('parkingType')}
-            className="mt-1 w-full rounded-md border border-black/10 bg-white/90 px-3 py-2 text-sm text-text-primary"
-          >
-            {PARKING_TYPES.map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="block">
-          <span className="text-[13px] font-medium text-text-secondary">Heizung</span>
-          <select
-            {...register('heatingType', { setValueAs: (v) => (v === '' ? null : v) })}
-            className="mt-1 w-full rounded-md border border-black/10 bg-white/90 px-3 py-2 text-sm text-text-primary"
-          >
-            <option value="">–</option>
-            {HEATING_TYPES.map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="block">
-          <span className="text-[13px] font-medium text-text-secondary">Energieklasse</span>
-          <select
-            {...register('energyEfficiencyClass', { setValueAs: (v) => (v === '' ? null : v) })}
-            className="mt-1 w-full rounded-md border border-black/10 bg-white/90 px-3 py-2 text-sm text-text-primary"
-          >
-            <option value="">–</option>
-            {ENERGY_CLASSES.map((value) => (
-              <option key={value} value={value}>
-                {value.toUpperCase().replace('_PLUS_PLUS', '++')}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="block">
-          <span className="text-[13px] font-medium text-text-secondary">Zustand</span>
-          <select
-            {...register('condition', { setValueAs: (v) => (v === '' ? null : v) })}
-            className="mt-1 w-full rounded-md border border-black/10 bg-white/90 px-3 py-2 text-sm text-text-primary"
-          >
-            <option value="">–</option>
-            {CONDITIONS.map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
-
-      <TextField label="Letzte Renovierung (Jahr)" name="lastRenovationYear" register={register} type="number" />
-
-      {parkingType !== 'nicht_vorhanden' && (
-        <p className="text-xs text-text-dim">Stellplatz-Felder (Kaufpreis, Miete, Kosten) erscheinen in den folgenden Schritten.</p>
-      )}
-    </div>
+      <FormCard title="Ausstattung">
+        <div className="grid grid-cols-1 gap-x-8 sm:grid-cols-2">
+          {BOOLEAN_FEATURES.map(({ field, label }) => (
+            <Toggle key={field} label={label} name={field} register={register} className="border-b border-black/[0.07] last:border-b-0 sm:[&:nth-last-child(-n+2)]:border-b-0" />
+          ))}
+        </div>
+      </FormCard>
+    </FormSection>
   );
 }

@@ -9,7 +9,7 @@ export default async function InvestmentCalculatorDetailPage({ params }: { param
   if (!calculation) notFound();
 
   return (
-    <div className="mx-auto max-w-5xl space-y-4">
+    <div className="mx-auto w-full max-w-5xl space-y-4 p-6">
       <Link href="/investment-calculator" className="text-xs text-text-dim hover:underline">
         ← Investment-Rechner
       </Link>

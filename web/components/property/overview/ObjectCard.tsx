@@ -1,8 +1,8 @@
-import { GlassCard } from '@/components/ui/GlassCard';
-import { PhotoCarousel } from '@/components/property/overview/PhotoCarousel';
+import { Card } from '@/components/ui/Card';
+import { SectionLabel } from '@/components/ui/SectionLabel';
+import { Stat } from '@/components/ui/Stat';
 import { formatCurrency } from '@/lib/formatters';
 import type { Database } from '@/lib/supabase/types';
-import type { PropertyPhotoWithUrl } from '@/lib/data/propertyPhotos';
 
 type PropertyRow = Database['public']['Tables']['properties']['Row'];
 
@@ -52,15 +52,8 @@ const PARKING_LABELS: Record<PropertyRow['parking_type'], string> = {
   garage: 'Garage',
 };
 
-export function PropertyHeaderCard({
-  property,
-  purchasePricePerSqm,
-  photos,
-}: {
-  property: PropertyRow;
-  purchasePricePerSqm: number;
-  photos: PropertyPhotoWithUrl[];
-}) {
+/** "Objekt" card: the property's descriptive fields (address and photo live in the sidebar). */
+export function ObjectCard({ property, purchasePricePerSqm }: { property: PropertyRow; purchasePricePerSqm: number }) {
   const coldRentPerSqm = property.living_area_sqm > 0 ? property.cold_rent_monthly / property.living_area_sqm : 0;
 
   const fields: Array<[string, string | number]> = [
@@ -75,32 +68,16 @@ export function PropertyHeaderCard({
     ['Heizung', property.heating_type ? HEATING_LABELS[property.heating_type] : '–'],
     ['Stellplatz', PARKING_LABELS[property.parking_type]],
   ];
-  const half = Math.ceil(fields.length / 2);
-  const fieldColumns = [fields.slice(0, half), fields.slice(half)];
 
   return (
-    <GlassCard variant="solid">
-      <div className="flex gap-4">
-        <PhotoCarousel photos={photos} propertyType={property.property_type} />
-        <div className="min-w-0 flex-1">
-          <p className="text-[15px] font-semibold text-text-primary">
-            {property.address}, {property.postal_code} {property.city}
-          </p>
-          <div className="mt-2 grid grid-cols-2 gap-x-8 text-[13px]">
-            {fieldColumns.map((column, i) => (
-              <div key={i} className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
-                {column.map(([label, value]) => (
-                  <div className="contents" key={label}>
-                    <span className="text-text-secondary">{label}</span>
-                    <span className="text-right text-text-primary">{value}</span>
-                  </div>
-                ))}
-              </div>
-            ))}
-          </div>
-        </div>
+    <Card className="py-[18px]">
+      <SectionLabel className="mb-3.5">Objekt</SectionLabel>
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(120px,1fr))] gap-x-5 gap-y-3">
+        {fields.map(([label, value]) => (
+          <Stat key={label} label={label} value={value} size="sm" />
+        ))}
       </div>
-      {property.notes && <p className="mt-3 text-sm text-text-secondary">{property.notes}</p>}
-    </GlassCard>
+      {property.notes && <p className="mt-3.5 text-[13px] text-text-secondary">{property.notes}</p>}
+    </Card>
   );
 }

@@ -4,6 +4,8 @@ import { useEffect } from 'react';
 import { useFormContext, useWatch } from 'react-hook-form';
 import { CurrencyField } from '@/components/ui/CurrencyField';
 import { TextField } from '@/components/ui/TextField';
+import { SelectField } from '@/components/ui/SelectField';
+import { FormCard, FormGrid, FormHint, FormSection } from '@/components/ui/FormLayout';
 import { formatDate } from '@/lib/formatters';
 import type { WizardFormValues } from '@/lib/wizard/wizardLogic';
 
@@ -31,35 +33,23 @@ export function StepStatusOnboarding() {
   }, [economicTransferDate, getFieldState, setValue]);
 
   return (
-    <div className="space-y-4">
-      <p className="rounded-md bg-accent/10 p-3 text-sm text-text-primary">
-        Der wirtschaftliche Übergang ({economicTransferDate ? formatDate(new Date(economicTransferDate + 'T00:00:00Z')) : '–'}) liegt
-        in der Vergangenheit. Erfasse den bisherigen Nutzungsverlauf — mindestens ein Eintrag ab diesem Datum ist Pflicht.
-      </p>
+    <FormSection>
+      <FormHint>
+        Der wirtschaftliche Übergang ({economicTransferDate ? formatDate(new Date(economicTransferDate + 'T00:00:00Z')) : '–'}) liegt in
+        der Vergangenheit. Erfasse den bisherigen Nutzungsverlauf — mindestens ein Eintrag ab diesem Datum ist Pflicht.
+      </FormHint>
 
-      <TextField label="Erster Statuseintrag ab (Datum)" name="firstStatusDate" register={register} type="date" required />
-
-      <label className="block">
-        <span className="text-[13px] font-medium text-text-secondary">Status</span>
-        <select
-          {...register('firstStatus')}
-          className="mt-1 w-full rounded-md border border-black/10 bg-white/90 px-3 py-2 text-sm text-text-primary"
-        >
-          {STATUS_OPTIONS.map(([value, label]) => (
-            <option key={value} value={value}>
-              {label}
-            </option>
-          ))}
-        </select>
-      </label>
-
-      {firstStatus === 'mietgarantie' && (
-        <CurrencyField label="Einnahmen in diesem Zeitraum/Monat" name="firstStatusIncome" register={register} />
-      )}
-
-      <TextField label="Notiz (optional)" name="firstStatusNotes" register={register} />
-
-      <p className="text-xs text-text-dim">Weitere Statuswechsel können nach dem Anlegen im Cashflow-Tab ergänzt werden.</p>
-    </div>
+      <FormCard title="Nutzungsverlauf">
+        <FormGrid>
+          <TextField label="Erster Statuseintrag ab (Datum)" name="firstStatusDate" register={register} type="date" required />
+          <SelectField label="Status" name="firstStatus" register={register} options={STATUS_OPTIONS} />
+          {firstStatus === 'mietgarantie' && (
+            <CurrencyField label="Einnahmen in diesem Zeitraum / Monat" name="firstStatusIncome" register={register} />
+          )}
+          <TextField label="Notiz (optional)" name="firstStatusNotes" register={register} className="sm:col-span-2" />
+        </FormGrid>
+        <p className="mt-4 text-xs text-text-dim">Weitere Statuswechsel können nach dem Anlegen im Verlauf-Tab ergänzt werden.</p>
+      </FormCard>
+    </FormSection>
   );
 }

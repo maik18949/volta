@@ -76,6 +76,8 @@ export interface PortfolioTotals {
   totalInvestment: number;
   averageNetYield: number | null;
   remainingDebt: number;
+  /** Σ current_market_value over properties that have one entered; null when none does. */
+  totalMarketValue: number | null;
 }
 
 export function computePortfolioTotals(items: PropertyWithSummary[]): PortfolioTotals {
@@ -83,11 +85,13 @@ export function computePortfolioTotals(items: PropertyWithSummary[]): PortfolioT
   const cashflowMonthly = items.reduce((sum, i) => sum + i.summary.cashflowAfterTaxMonthly, 0);
   const totalInvestment = items.reduce((sum, i) => sum + i.summary.totalInvestment, 0);
   const remainingDebt = items.reduce((sum, i) => sum + i.summary.remainingDebtNow, 0);
+  const marketValues = items.map((i) => i.property.current_market_value).filter((v): v is number => typeof v === 'number');
+  const totalMarketValue = marketValues.length > 0 ? marketValues.reduce((sum, v) => sum + v, 0) : null;
   // Per spec-hauptscreen.md: "Ø Nettorendite = Σ NOI / Σ totalInvestment" — a true weighted
   // average, using the now-exposed netOperatingIncomeYearly field directly (not reconstructed
   // from netYield * totalInvestment, which would need awkward null-handling).
   const totalNOI = items.reduce((sum, i) => sum + i.summary.netOperatingIncomeYearly, 0);
   const averageNetYield = totalInvestment > 0 ? totalNOI / totalInvestment : null;
 
-  return { count, cashflowMonthly, totalInvestment, averageNetYield, remainingDebt };
+  return { count, cashflowMonthly, totalInvestment, averageNetYield, remainingDebt, totalMarketValue };
 }

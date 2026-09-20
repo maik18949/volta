@@ -29,6 +29,9 @@ export interface PropertySummary {
   currentStatus: PropertyStatus;
   cashflowAfterTaxMonthly: number;
   incomeActualMonthly: number;
+  /** The two unit-level terms incomeActualMonthly is the sum of (Übersicht "Einnahmen" breakdown). */
+  incomeWohnungMonthly: number;
+  incomeStellplatzMonthly: number;
   cashflowBeforeTaxMonthly: number;
   taxEffectMonthly: number;
   taxEffectYearly: number;
@@ -156,9 +159,14 @@ export function computePropertySummary(
     { label: 'Umlagefähige Kosten während Leerstand', amountMonthly: ownerBorneRecoverableWEMonthly },
   ].filter((item) => Math.abs(item.amountMonthly) > ZERO_AMOUNT_EPSILON_EUR);
 
-  const incomeThisMonth =
-    incomeForUnit(currentMonth, statusHistory, today, property.cold_rent_monthly + property.other_income_monthly) +
-    incomeForUnit(currentMonth, stellplatzStatusHistory, today, property.parking_rent_monthly);
+  const incomeWohnungThisMonth = incomeForUnit(
+    currentMonth,
+    statusHistory,
+    today,
+    property.cold_rent_monthly + property.other_income_monthly
+  );
+  const incomeStellplatzThisMonth = incomeForUnit(currentMonth, stellplatzStatusHistory, today, property.parking_rent_monthly);
+  const incomeThisMonth = incomeWohnungThisMonth + incomeStellplatzThisMonth;
 
   const taxableIncomeYear = annualTaxableIncome({
     year: currentYear,
@@ -230,6 +238,8 @@ export function computePropertySummary(
     currentStatus,
     cashflowAfterTaxMonthly,
     incomeActualMonthly: incomeThisMonth,
+    incomeWohnungMonthly: incomeWohnungThisMonth,
+    incomeStellplatzMonthly: incomeStellplatzThisMonth,
     cashflowBeforeTaxMonthly: cashflowBeforeTaxThisMonth,
     taxEffectMonthly: taxEffectThisMonth,
     taxEffectYearly: taxEffectYear,

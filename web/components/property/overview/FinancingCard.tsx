@@ -1,5 +1,6 @@
-import { GlassCard } from '@/components/ui/GlassCard';
+import { Card } from '@/components/ui/Card';
 import { SectionLabel } from '@/components/ui/SectionLabel';
+import { Stat } from '@/components/ui/Stat';
 import { addMonths, monthsBetween } from '@/lib/calculations/dateHelpers';
 import { formatCurrency, formatPercent } from '@/lib/formatters';
 import type { Database } from '@/lib/supabase/types';
@@ -17,10 +18,10 @@ export function FinancingCard({
 }) {
   if (property.loan_amount <= 0) {
     return (
-      <GlassCard>
+      <Card className="py-[18px]">
         <SectionLabel>Finanzierung</SectionLabel>
-        <p className="text-sm text-text-secondary">Keine Finanzierung erfasst.</p>
-      </GlassCard>
+        <p className="text-[13px] text-text-secondary">Keine Finanzierung erfasst.</p>
+      </Card>
     );
   }
 
@@ -33,29 +34,26 @@ export function FinancingCard({
   const fixedUntilLabel = `${String(fixedUntil.getUTCMonth() + 1).padStart(2, '0')}/${fixedUntil.getUTCFullYear()}`;
 
   return (
-    <GlassCard>
+    <Card className="py-[18px]">
       <SectionLabel>Finanzierung</SectionLabel>
-      <div className="grid grid-cols-2 gap-y-2 text-sm">
-        <span className="text-text-secondary">Darlehensbetrag</span>
-        <span className="text-right text-text-primary">{formatCurrency(property.loan_amount)}</span>
-
-        <span className="text-text-secondary">Restschuld (heute)</span>
-        <span className="text-right text-text-primary">{formatCurrency(remainingDebtNow)}</span>
-
-        <span className="text-text-secondary">Monatliche Rate</span>
-        <span className="text-right text-text-primary">{formatCurrency(property.monthly_mortgage)}</span>
-
-        <span className="text-text-secondary">Zinssatz</span>
-        <span className="text-right text-text-primary">{formatPercent(property.interest_rate)}</span>
-
-        <span className="text-text-secondary">Tilgungssatz</span>
-        <span className="text-right text-text-primary">{formatPercent(property.amortization_rate)}</span>
-
-        <span className="text-text-secondary">Zinsbindung bis</span>
-        <span className="text-right text-text-primary">
-          {fixedUntilLabel} (noch {yearsRemaining} {yearsRemaining === 1 ? 'Jahr' : 'Jahre'})
-        </span>
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(140px,1fr))] gap-x-5 gap-y-3">
+        <Stat label="Darlehensbetrag" value={formatCurrency(property.loan_amount)} />
+        <Stat label="Restschuld (heute)" value={formatCurrency(remainingDebtNow)} />
+        <Stat label="Monatliche Rate" value={formatCurrency(property.monthly_mortgage)} />
+        <Stat label="Zinssatz" value={formatPercent(property.interest_rate)} />
+        <Stat label="Tilgungssatz" value={formatPercent(property.amortization_rate)} />
+        <Stat
+          label="Zinsbindung bis"
+          value={
+            <>
+              {fixedUntilLabel}{' '}
+              <span className="text-[11px] font-normal text-text-secondary">
+                (noch {yearsRemaining} {yearsRemaining === 1 ? 'Jahr' : 'Jahre'})
+              </span>
+            </>
+          }
+        />
       </div>
-    </GlassCard>
+    </Card>
   );
 }

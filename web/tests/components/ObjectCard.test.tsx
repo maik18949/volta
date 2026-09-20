@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, afterEach } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
-import { PropertyHeaderCard } from '@/components/property/overview/PropertyHeaderCard';
+import { ObjectCard } from '@/components/property/overview/ObjectCard';
 import type { Database } from '@/lib/supabase/types';
 
 afterEach(cleanup);
@@ -90,10 +90,9 @@ function makeProperty(overrides: Partial<PropertyRow> = {}): PropertyRow {
   };
 }
 
-describe('PropertyHeaderCard', () => {
-  it('renders the address and all object data fields', () => {
-    render(<PropertyHeaderCard property={makeProperty()} purchasePricePerSqm={3_646.12} photos={[]} />);
-    expect(screen.getByText('Johann-Meyer-Straße 7b, 01097 Dresden')).toBeInTheDocument();
+describe('ObjectCard', () => {
+  it('renders all object data fields', () => {
+    render(<ObjectCard property={makeProperty()} purchasePricePerSqm={3_646.12} />);
     expect(screen.getByText('Apartment')).toBeInTheDocument();
     expect(screen.getByText('1996')).toBeInTheDocument();
     expect(screen.getByText('Gepflegt')).toBeInTheDocument();
@@ -101,8 +100,10 @@ describe('PropertyHeaderCard', () => {
     expect(screen.getByText('Tiefgarage')).toBeInTheDocument();
   });
 
-  it('renders the photo placeholder (no <img>) when there are no photos', () => {
-    const { container } = render(<PropertyHeaderCard property={makeProperty()} purchasePricePerSqm={3_646.12} photos={[]} />);
-    expect(container.querySelectorAll('img')).toHaveLength(0);
+  it('renders notes only when present', () => {
+    const { rerender } = render(<ObjectCard property={makeProperty()} purchasePricePerSqm={3_646.12} />);
+    expect(screen.queryByText('Dachgeschoss')).not.toBeInTheDocument();
+    rerender(<ObjectCard property={makeProperty({ notes: 'Dachgeschoss' })} purchasePricePerSqm={3_646.12} />);
+    expect(screen.getByText('Dachgeschoss')).toBeInTheDocument();
   });
 });

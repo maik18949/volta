@@ -25,9 +25,14 @@ const AXIS_FORMAT: Record<BenchmarkKpi, (value: number) => string> = {
   actualVacancyRateYear: formatPercent,
 };
 
+/** Formats a raw KPI value in the unit the KPI's scale axis uses (percent, multiplier, plain number). */
+export function formatKpiAxisValue(kpi: BenchmarkKpi, value: number): string {
+  return AXIS_FORMAT[kpi](value);
+}
+
 /**
- * Rot→Orange→Grün gradient bar with a marker at the KPI's current position.
- * Renders nothing when value is null (no data yet) — same as the old KpiChip dot.
+ * Three-segment Rot / Orange / Grün bar with a round marker at the KPI's current position.
+ * Renders nothing when value is null (no data yet).
  * showAxis adds domain/threshold tick labels below the bar (used in the KPI info popup).
  */
 export function KpiScale({ kpi, value, showAxis = false }: { kpi: BenchmarkKpi; value: number | null; showAxis?: boolean }) {
@@ -41,13 +46,17 @@ export function KpiScale({ kpi, value, showAxis = false }: { kpi: BenchmarkKpi; 
 
   return (
     <div>
-      <div className="relative h-[6px] w-full rounded-full bg-gradient-to-r from-red-500 via-amber-500 to-emerald-500">
-        <div className="absolute -top-[7px]" style={{ left: `${pct}%` }}>
-          <div className="h-0 w-0 -translate-x-1/2 border-x-[3.5px] border-t-[5px] border-x-transparent border-t-[#1f2937]" />
-        </div>
+      <div className="relative flex h-[5px] w-full gap-[2px]">
+        <div className="flex-1 rounded-l-full bg-[rgba(220,38,38,0.7)]" />
+        <div className="flex-1 bg-[rgba(217,119,6,0.7)]" />
+        <div className="flex-1 rounded-r-full bg-[rgba(5,150,105,0.7)]" />
+        <div
+          className="absolute -top-[3.5px] h-3 w-3 -translate-x-1/2 rounded-full border-[2.5px] border-text-primary bg-white shadow-[0_1px_3px_rgba(0,0,0,0.25)]"
+          style={{ left: `${pct}%` }}
+        />
       </div>
       {showAxis && (
-        <div className="mt-1.5 flex justify-between text-[10.5px] text-text-secondary">
+        <div className="mt-1.5 flex justify-between text-[11px] text-text-secondary">
           {axisValues.map((axisValue, i) => (
             <span key={i}>{format(axisValue)}</span>
           ))}

@@ -1,4 +1,6 @@
-import { GlassCard } from '@/components/ui/GlassCard';
+import { Card } from '@/components/ui/Card';
+import { SectionLabel } from '@/components/ui/SectionLabel';
+import { Stat } from '@/components/ui/Stat';
 import { afaBasis, depreciationYearly } from '@/lib/calculations/depreciationCalculator';
 import { closingCostsTotal } from '@/lib/calculations/kpiCalculator';
 import { formatCurrency, formatPercent } from '@/lib/formatters';
@@ -19,24 +21,15 @@ export function AfaBasisCard({ property }: { property: PropertyRow }) {
   const yearly = depreciationYearly(basis, property.depreciation_rate);
 
   return (
-    <GlassCard>
-      <h2 className="mb-3 text-sm font-bold uppercase text-text-secondary">AfA-Basis</h2>
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
+    <Card className="py-[18px]">
+      <SectionLabel>AfA-Basis</SectionLabel>
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-x-5 gap-y-3">
         <Stat label="Grundstückswert" value={formatCurrency(property.land_value)} />
         <Stat label="Gebäudewert" value={formatCurrency(property.building_value)} />
         <Stat label="AfA-Bemessungsgrundlage" value={formatCurrency(basis)} />
         <Stat label="AfA / Jahr" value={formatCurrency(yearly)} />
         <Stat label="Grenzsteuersatz" value={formatPercent(property.marginal_tax_rate)} />
       </div>
-    </GlassCard>
-  );
-}
-
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <p className="text-xs text-text-secondary">{label}</p>
-      <p className="mt-0.5 text-sm font-bold text-text-primary">{value}</p>
-    </div>
+    </Card>
   );
 }

@@ -6,7 +6,7 @@ export default async function InvestmentCalculatorPage() {
   const calculations = await getInvestmentCalculations();
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
+    <div className="mx-auto w-full max-w-5xl space-y-6 p-6">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold text-text-primary">Investment-Rechner</h1>
         <NewCalculationButton />

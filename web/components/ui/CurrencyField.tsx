@@ -1,6 +1,8 @@
 'use client';
 
 import type { UseFormRegister, FieldValues, Path } from 'react-hook-form';
+import { twMerge } from 'tailwind-merge';
+import { FieldLabel, SUFFIXED_INPUT_CLASS, SuffixedInputBox } from './fieldStyles';
 
 export function CurrencyField<T extends FieldValues>({
   label,
@@ -8,30 +10,27 @@ export function CurrencyField<T extends FieldValues>({
   register,
   required = false,
   hint,
+  className,
 }: {
   label: string;
   name: Path<T>;
   register: UseFormRegister<T>;
   required?: boolean;
   hint?: string;
+  className?: string;
 }) {
   return (
-    <label className="block">
-      <span className="text-[13px] font-medium text-text-secondary">
-        {label}
-        {required && ' *'}
-      </span>
-      <div className="mt-1 flex items-center rounded-md border border-black/10 bg-white/90 px-3">
+    <label className={twMerge('block', className)}>
+      <FieldLabel label={label} required={required} hint={hint} />
+      <SuffixedInputBox suffix="€">
         <input
           type="number"
           step="0.01"
-          className="w-full bg-transparent py-2 text-sm text-text-primary outline-none"
+          className={SUFFIXED_INPUT_CLASS}
           onFocus={(e) => e.target.select()}
           {...register(name, { valueAsNumber: true })}
         />
-        <span className="text-sm text-text-dim">€</span>
-      </div>
-      {hint && <span className="mt-1 block text-xs text-text-dim">{hint}</span>}
+      </SuffixedInputBox>
     </label>
   );
 }
