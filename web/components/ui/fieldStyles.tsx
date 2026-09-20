@@ -5,7 +5,7 @@ export const FIELD_INPUT_CLASS =
   'w-full rounded-[9px] border border-black/[0.12] bg-white px-[13px] py-2.5 text-[13px] font-medium text-text-primary outline-none focus:border-accent disabled:opacity-50';
 
 /** Field label: 13px semibold, red asterisk when required, optional dim inline hint. */
-export function FieldLabel({ label, required, hint }: { label: string; required?: boolean; hint?: string }) {
+export function FieldLabel({ label, required, hint }: { label: ReactNode; required?: boolean; hint?: string }) {
   return (
     <span className="mb-[5px] block text-[13px] font-semibold text-text-secondary [overflow-wrap:anywhere]">
       {label}
