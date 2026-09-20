@@ -20,7 +20,7 @@ https://volta-jade.vercel.app/
 Der aktuelle Stand deckt Portfolio-Übersicht, Rendite-KPIs, Cashflow, Steuer und den Investment-Rechner ab. Geplante Ausbaustufen:
 
 **Mieterverwaltung**
-Mieter einer Immobilie zuordnen.
+Mieter einer Immobilie zuordnen, Mieterdetails einsehen (Kontakt, Mietvertrag, Mietdauer) sowie Zählerstände (Wasser, Strom, Gas etc.) pro Mieter/Wohnung erfassen und im Verlauf einsehen.
 
 **Dokumente & Automatisierung**
 Zentrale Dokumentenverwaltung pro Immobilie — Kaufverträge, Mietverträge, Energieausweise, Rechnungen, Finanzierungs- und Steuerunterlagen, Gutachten — mit automatischer Kategorisierung. Perspektivisch: KI-Auswertung von Dokumenten, automatische Übernahme relevanter Daten (z. B. Kaufpreis, Mietbeginn) direkt ins Datenmodell.
