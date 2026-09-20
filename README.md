@@ -37,6 +37,9 @@ Proaktive Hinweise zu auslaufenden Mietverträgen und Finanzierungen, lange nich
 **Markt & Bewertung**
 Nebenkostenabrechnung, Einbindung von Verkaufs-/Marktdaten zur Wertermittlung, Unterstützung bei der Due Diligence vor dem Kauf.
 
+**Mobile-Optimierung**
+Responsive Umsetzung aller Ansichten (Portfolio, Objektdetail, Wizard, Rechner) für Smartphone und Tablet, damit sich die App unterwegs genauso gut bedienen lässt wie am Desktop.
+
 **Vision: Makler-Portal**
 Eigenes Portal, über das Makler ihre Objekte einpflegen und Interessenten diese direkt einsehen können — eine mögliche Erweiterung über die private Portfolioverwaltung hinaus.
 
