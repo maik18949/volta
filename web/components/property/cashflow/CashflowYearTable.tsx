@@ -155,12 +155,11 @@ export function CashflowYearTable({ result, hasParking }: { result: CashflowYear
   });
   const columnCount = 15; // label + 12 months + Ø + Total
 
-  const afterTaxAvg =
-    result.avgColumn && result.taxEffectMonthly !== null ? result.avgColumn.cashflowBeforeTax + result.taxEffectMonthly : null;
   const afterTaxTotal =
     result.totalColumn && result.taxEffectMonthly !== null
       ? result.totalColumn.cashflowBeforeTax + result.taxEffectMonthly * result.ownershipMonthCount
       : null;
+  const afterTaxAvg = afterTaxTotal !== null && result.mortgageMonthCount > 0 ? afterTaxTotal / result.mortgageMonthCount : null;
 
   return (
     <div>
