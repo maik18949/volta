@@ -15,6 +15,8 @@ interface RowDef {
   label: string;
   select: (items: CashflowLineItems) => number;
   sign: -1 | 1;
+  /** Defaults to `col.isOwned` when omitted — see the Kreditrate row below for the one override. */
+  visible?: (col: CashflowMonthColumn) => boolean;
 }
 
 /** Zero rounds to neutral text color instead of the row's positive/negative color — a -0,00 € shouldn't read as a real loss. */
@@ -32,7 +34,7 @@ function buildRowGroups(options: {
 }): { top: RowDef[]; wohnung: RowDef[]; stellplatz: RowDef[] } {
   const { hasParking, hasInsurance, hasOtherCosts, hasLeerstandCosts } = options;
 
-  const top: RowDef[] = [{ label: 'Kreditrate', select: (i) => i.mortgage, sign: -1 }];
+  const top: RowDef[] = [{ label: 'Kreditrate', select: (i) => i.mortgage, sign: -1, visible: (col) => col.hasMortgagePayment }];
 
   const wohnung: RowDef[] = [
     { label: 'Nicht umlagefähige Kosten', select: (i) => i.hoaNonRecoverableWE, sign: -1 },
@@ -90,9 +92,10 @@ function DataRow({
       <td className={TD_LABEL}>{row.label}</td>
       {months.map((col) => {
         const value = row.sign * row.select(col.lineItems);
+        const isVisible = row.visible ? row.visible(col) : col.isOwned;
         return (
-          <td key={col.month} className={`${TD_VALUE} ${col.isOwned ? amountColorClass(value) : 'text-text-dim'}`}>
-            {col.isOwned ? formatCurrency(value) : '–'}
+          <td key={col.month} className={`${TD_VALUE} ${isVisible ? amountColorClass(value) : 'text-text-dim'}`}>
+            {isVisible ? formatCurrency(value) : '–'}
           </td>
         );
       })}
@@ -255,8 +258,8 @@ export function CashflowYearTable({ result, hasParking }: { result: CashflowYear
             <tr className="font-bold [&>td]:border-t-2 [&>td]:border-accent/25">
               <td className={`${TD_LABEL} text-text-primary`}>Cashflow vor Steuern</td>
               {result.months.map((col) => (
-                <td key={col.month} className={`${TD_VALUE} ${col.isOwned ? amountColorClass(col.lineItems.cashflowBeforeTax) : 'text-text-dim'}`}>
-                  {col.isOwned ? formatCurrency(col.lineItems.cashflowBeforeTax) : '–'}
+                <td key={col.month} className={`${TD_VALUE} ${col.hasMortgagePayment ? amountColorClass(col.lineItems.cashflowBeforeTax) : 'text-text-dim'}`}>
+                  {col.hasMortgagePayment ? formatCurrency(col.lineItems.cashflowBeforeTax) : '–'}
                 </td>
               ))}
               <SummaryCell items={result.avgColumn} select={(i) => i.cashflowBeforeTax} />
@@ -305,7 +308,7 @@ export function CashflowYearTable({ result, hasParking }: { result: CashflowYear
       </div>
 
       <p className="mt-3 text-[11px] text-text-dim">
-        <span className="italic">Kursive Monate</span> = projiziert · Ø und Total über Eigentumsmonate
+        <span className="italic">Kursive Monate</span> = projiziert · Ø und Total über Eigentums- bzw. Kreditmonate
       </p>
 
       {(result.hoaUnitSplitWarning || result.hoaParkingSplitWarning) && (
