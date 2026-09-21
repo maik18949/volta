@@ -43,6 +43,10 @@ Responsive Umsetzung aller Ansichten (Portfolio, Objektdetail, Wizard, Rechner) 
 **Vision: Makler-Portal**
 Eigenes Portal, über das Makler ihre Objekte einpflegen und Interessenten diese direkt einsehen können — eine mögliche Erweiterung über die private Portfolioverwaltung hinaus.
 
+### Offene Punkte
+
+**Steuer-Jahresgrenze bei früher Kreditrate:** Wird eine Kreditrate schon vor dem wirtschaftlichen Übergang abgebucht (Darlehensbeginn liegt vor dem Übergangsdatum) und fällt das in ein anderes Kalenderjahr als der Übergang selbst, wird der darin enthaltene abzugsfähige Zins aktuell nicht als Werbungskosten berücksichtigt — die Steuerberechnung für ein Jahr ganz vor dem Übergang liefert pauschal 0. Betrifft nur Fälle mit einer abzugsfähigen (nicht z. B. reinen Versicherungs-)Tranche in diesem Zeitraum; aktuell nirgends im UI sichtbar, da vergangene Jahre im Steuer-Tab ohnehin nicht einsehbar sind.
+
 ## Vorgehen
 
 Volta ist ein Solo-Projekt. Architektur, Datenmodell und Produktentscheidungen werden selbst getätigt und durch Claude validiert. Implementierung liegt komplett bei Claude.
