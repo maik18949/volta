@@ -253,6 +253,7 @@ export interface CashflowMonthColumn {
   month: number;
   isProjection: boolean;
   isOwned: boolean;
+  hasMortgagePayment: boolean;
   statusLabelsWE: PropertyStatus[];
   statusLabelsTE: PropertyStatus[];
   lineItems: CashflowLineItems;
@@ -265,6 +266,7 @@ export interface CashflowYearTableResult {
   isFutureYear: boolean;
   months: CashflowMonthColumn[];
   ownershipMonthCount: number;
+  mortgageMonthCount: number;
   avgColumn: CashflowLineItems | null;
   totalColumn: CashflowLineItems | null;
   extraordinaryCostsTotalForYear: number;
@@ -286,6 +288,11 @@ export function computeCashflowYearTable(
 ): CashflowYearTableResult {
   const { wohnung: statusHistory, stellplatz: stellplatzStatusHistory } = toUnitStatusHistories(statusEntryRows);
   const economicTransferDate = new Date(property.economic_transfer_date + 'T00:00:00Z');
+  const loanStartDate = new Date(property.loan_start_date + 'T00:00:00Z');
+  // Kreditrate starts as soon as the loan does, even before the wirtschaftlicher Übergang —
+  // every other line item stays gated by economicTransferDate. See
+  // docs/superpowers/specs/2026-09-21-cashflow-kreditrate-vor-uebergang-design.md.
+  const mortgageStartDate = loanStartDate.getTime() < economicTransferDate.getTime() ? loanStartDate : economicTransferDate;
   const currentYear = today.getUTCFullYear();
   const isFutureYear = year > currentYear;
 
@@ -319,25 +326,39 @@ export function computeCashflowYearTable(
 
   const months: CashflowMonthColumn[] = [];
   let ownershipMonthCount = 0;
+  let mortgageMonthCount = 0;
+  let preOwnershipMortgageTotal = 0;
   let sumLineItems = ZERO_LINE_ITEMS;
 
   for (let m = 1; m <= 12; m++) {
     const monthDate = makeDate(year, m, 1);
     const ownerFraction = ownershipDayFraction(monthDate, economicTransferDate);
+    // Only used on the pre-ownership branch below — once a month is owned, its mortgage
+    // stays tied to ownerFraction exactly as before (a deliberate simplification for the
+    // rare case a mid-month transfer falls after mortgageStartDate; see the design doc).
+    const mortgageFraction = ownershipDayFraction(monthDate, mortgageStartDate);
     const key = `${year}-${String(m).padStart(2, '0')}`;
     const monthCostRows = extraordinaryCostsByMonth.get(key) ?? [];
     const extraordinaryCostsThisMonth = monthCostRows.reduce((sum, row) => sum + row.amount, 0);
 
     if (ownerFraction <= 0) {
+      const hasMortgagePayment = mortgageFraction > 0;
+      const mortgageAmount = property.monthly_mortgage * mortgageFraction;
+      mortgageMonthCount += mortgageFraction;
+      if (hasMortgagePayment) preOwnershipMortgageTotal += mortgageAmount;
+
       months.push({
         month: m,
         isProjection: monthDate.getTime() > firstDayOfMonth(today).getTime(),
         isOwned: false,
+        hasMortgagePayment,
         statusLabelsWE: [],
         statusLabelsTE: [],
-        lineItems: ZERO_LINE_ITEMS,
+        lineItems: hasMortgagePayment
+          ? { ...ZERO_LINE_ITEMS, mortgage: mortgageAmount, cashflowBeforeTax: -mortgageAmount }
+          : ZERO_LINE_ITEMS,
         extraordinaryCostRows: monthCostRows,
-        cashflowAfterTax: null,
+        cashflowAfterTax: hasMortgagePayment && !isFutureYear ? -mortgageAmount : null,
       });
       continue;
     }
@@ -355,12 +376,14 @@ export function computeCashflowYearTable(
     const lineItems = scaleLineItems(rawLineItems, ownerFraction);
 
     ownershipMonthCount += ownerFraction;
+    mortgageMonthCount += ownerFraction;
     sumLineItems = addLineItems(sumLineItems, lineItems);
 
     months.push({
       month: m,
       isProjection: statusHistory.length === 0 || monthDate.getTime() > firstDayOfMonth(today).getTime(),
       isOwned: true,
+      hasMortgagePayment: true,
       statusLabelsWE: statusHistory.length === 0 ? [] : statusesForMonth(monthDate, statusHistory, today),
       statusLabelsTE: stellplatzStatusHistory.length === 0 ? [] : statusesForMonth(monthDate, stellplatzStatusHistory, today),
       lineItems,
@@ -373,13 +396,30 @@ export function computeCashflowYearTable(
   const extraordinaryCostsTotalForYear = yearCostRows.reduce((sum, row) => sum + row.amount, 0);
   const extraordinaryCostsEntryCountForYear = yearCostRows.length;
 
+  const hasAnyColumn = ownershipMonthCount > 0 || mortgageMonthCount > 0;
+  const totalColumn: CashflowLineItems | null = hasAnyColumn
+    ? {
+        ...sumLineItems,
+        mortgage: sumLineItems.mortgage + preOwnershipMortgageTotal,
+        cashflowBeforeTax: sumLineItems.cashflowBeforeTax - preOwnershipMortgageTotal,
+      }
+    : null;
+  const avgColumn: CashflowLineItems | null = hasAnyColumn
+    ? {
+        ...(ownershipMonthCount > 0 ? divideLineItems(sumLineItems, ownershipMonthCount) : ZERO_LINE_ITEMS),
+        mortgage: mortgageMonthCount > 0 ? totalColumn!.mortgage / mortgageMonthCount : 0,
+        cashflowBeforeTax: mortgageMonthCount > 0 ? totalColumn!.cashflowBeforeTax / mortgageMonthCount : 0,
+      }
+    : null;
+
   return {
     year,
     isFutureYear,
     months,
     ownershipMonthCount,
-    avgColumn: ownershipMonthCount > 0 ? divideLineItems(sumLineItems, ownershipMonthCount) : null,
-    totalColumn: ownershipMonthCount > 0 ? sumLineItems : null,
+    mortgageMonthCount,
+    avgColumn,
+    totalColumn,
     extraordinaryCostsTotalForYear,
     extraordinaryCostsAvgForYear:
       extraordinaryCostsEntryCountForYear >= 2 ? extraordinaryCostsTotalForYear / extraordinaryCostsEntryCountForYear : null,
