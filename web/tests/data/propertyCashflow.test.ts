@@ -274,11 +274,11 @@ describe('computeCashflowYearTable', () => {
     expect(result.ownershipMonthCount).toBeCloseTo(11, 4);
   });
 
-  it('totalColumn sums cashflowBeforeTax across owned months; avgColumn divides by ownershipMonthCount', () => {
+  it('totalColumn sums cashflowBeforeTax across owned + pre-ownership Kreditrate months; avgColumn divides it by mortgageMonthCount', () => {
     const result = computeCashflowYearTable(property, statusEntries, [], 2026, today);
     expect(result.totalColumn).not.toBeNull();
     expect(result.avgColumn).not.toBeNull();
-    expect(result.avgColumn!.cashflowBeforeTax).toBeCloseTo(result.totalColumn!.cashflowBeforeTax / result.ownershipMonthCount, 4);
+    expect(result.avgColumn!.cashflowBeforeTax).toBeCloseTo(result.totalColumn!.cashflowBeforeTax / result.mortgageMonthCount, 4);
   });
 
   it('an extraordinary cost appears in its month, contributes to the year total, and is excluded from Ø when there is only 1 entry', () => {
@@ -445,5 +445,118 @@ describe('computeCashflowForecastMonth / computeCashflowYearTable with disbursem
     const withoutRows = computeCashflowYearTable(property, [], [], 2026, today);
     const withEmptyRows = computeCashflowYearTable(property, [], [], 2026, today, []);
     expect(withEmptyRows).toEqual(withoutRows);
+  });
+});
+
+describe('computeCashflowYearTable — Kreditrate before economic transfer (loan_start_date earlier)', () => {
+  const property = makeProperty(); // economic_transfer_date 2026-02-01, loan_start_date 2025-10-01
+  const statusEntries = [makeStatusEntry()];
+  const today = makeDate(2026, 6, 15);
+
+  it('a month before economic transfer but after loan_start_date shows the Kreditrate and hasMortgagePayment', () => {
+    const result = computeCashflowYearTable(property, statusEntries, [], 2026, today);
+    const january = result.months.find((m) => m.month === 1)!;
+    expect(january.isOwned).toBe(false);
+    expect(january.hasMortgagePayment).toBe(true);
+    expect(january.lineItems.mortgage).toBeCloseTo(f.monthlyMortgage, 2);
+    expect(january.lineItems.incomeWE).toBe(0);
+  });
+
+  it('cashflowBeforeTax for that month equals -Kreditrate (every other line item is 0)', () => {
+    const result = computeCashflowYearTable(property, statusEntries, [], 2026, today);
+    const january = result.months.find((m) => m.month === 1)!;
+    expect(january.lineItems.cashflowBeforeTax).toBeCloseTo(-f.monthlyMortgage, 2);
+  });
+
+  it('cashflowAfterTax for that month equals cashflowBeforeTax (no tax effect applied pre-ownership)', () => {
+    const result = computeCashflowYearTable(property, statusEntries, [], 2026, today);
+    const january = result.months.find((m) => m.month === 1)!;
+    expect(january.cashflowAfterTax).toBeCloseTo(january.lineItems.cashflowBeforeTax, 6);
+  });
+
+  it('a month before both loan_start_date and economic_transfer_date has no Kreditrate at all', () => {
+    const lateLoanProperty = makeProperty({ loan_start_date: '2025-12-15' });
+    const result = computeCashflowYearTable(lateLoanProperty, statusEntries, [], 2025, makeDate(2025, 12, 20));
+    const november = result.months.find((m) => m.month === 11)!;
+    expect(november.hasMortgagePayment).toBe(false);
+    expect(november.lineItems.mortgage).toBe(0);
+    expect(november.cashflowAfterTax).toBeNull();
+  });
+
+  it('when loan_start_date is on/after economic_transfer_date, pre-transfer months are unaffected (unchanged behavior)', () => {
+    const lateLoanProperty = makeProperty({ loan_start_date: '2026-02-01' }); // same as transfer
+    const result = computeCashflowYearTable(lateLoanProperty, statusEntries, [], 2026, today);
+    const january = result.months.find((m) => m.month === 1)!;
+    expect(january.hasMortgagePayment).toBe(false);
+    expect(january.lineItems.mortgage).toBe(0);
+    expect(january.cashflowAfterTax).toBeNull();
+  });
+
+  it('a mid-month loan start prorates the first Kreditrate month by day fraction', () => {
+    // loan starts 2025-12-16 -> December has 31 days, owned days 16-31 = 16 days -> 16/31
+    const midMonthLoanProperty = makeProperty({ loan_start_date: '2025-12-16' });
+    const result = computeCashflowYearTable(midMonthLoanProperty, statusEntries, [], 2025, makeDate(2025, 12, 20));
+    const december = result.months.find((m) => m.month === 12)!;
+    const expectedFraction = (31 - 16 + 1) / 31;
+    expect(december.lineItems.mortgage).toBeCloseTo(f.monthlyMortgage * expectedFraction, 4);
+  });
+
+  it('owned months are unaffected — isOwned, hasMortgagePayment and the mortgage amount stay as before', () => {
+    const result = computeCashflowYearTable(property, statusEntries, [], 2026, today);
+    const june = result.months.find((m) => m.month === 6)!;
+    expect(june.isOwned).toBe(true);
+    expect(june.hasMortgagePayment).toBe(true);
+    expect(june.lineItems.mortgage).toBeCloseTo(f.monthlyMortgage, 2);
+  });
+});
+
+describe('computeCashflowYearTable — Ø/Total include pre-ownership Kreditrate months', () => {
+  const property = makeProperty(); // economic_transfer_date 2026-02-01, loan_start_date 2025-10-01
+  const statusEntries = [makeStatusEntry()];
+  const today = makeDate(2026, 6, 15);
+
+  it('mortgageMonthCount is 12 when the loan already covered the whole year', () => {
+    const result = computeCashflowYearTable(property, statusEntries, [], 2026, today);
+    expect(result.mortgageMonthCount).toBeCloseTo(12, 4);
+  });
+
+  it("totalColumn.mortgage includes January's pre-ownership Kreditrate on top of the 11 owned months", () => {
+    const result = computeCashflowYearTable(property, statusEntries, [], 2026, today);
+    expect(result.totalColumn!.mortgage).toBeCloseTo(f.monthlyMortgage * 12, 2);
+  });
+
+  it('avgColumn.mortgage divides by mortgageMonthCount (12), not ownershipMonthCount (11)', () => {
+    const result = computeCashflowYearTable(property, statusEntries, [], 2026, today);
+    expect(result.avgColumn!.mortgage).toBeCloseTo(f.monthlyMortgage, 2);
+  });
+
+  it('avgColumn.cashflowBeforeTax also divides by mortgageMonthCount', () => {
+    const result = computeCashflowYearTable(property, statusEntries, [], 2026, today);
+    expect(result.avgColumn!.cashflowBeforeTax).toBeCloseTo(result.totalColumn!.cashflowBeforeTax / result.mortgageMonthCount, 4);
+  });
+
+  it('non-mortgage fields in avgColumn still divide by ownershipMonthCount, unaffected', () => {
+    const result = computeCashflowYearTable(property, statusEntries, [], 2026, today);
+    expect(result.avgColumn!.incomeWE).toBeCloseTo(f.coldRentMonthly, 2);
+  });
+
+  it('a year entirely before the transfer, but with the loan already running, still produces a non-null avg/total for Kreditrate + CF vor Steuern', () => {
+    const result = computeCashflowYearTable(property, statusEntries, [], 2025, makeDate(2025, 12, 20));
+    expect(result.ownershipMonthCount).toBe(0);
+    expect(result.mortgageMonthCount).toBeCloseTo(3, 4); // Oct, Nov, Dec 2025
+    expect(result.totalColumn).not.toBeNull();
+    expect(result.totalColumn!.mortgage).toBeCloseTo(f.monthlyMortgage * 3, 2);
+    expect(result.totalColumn!.cashflowBeforeTax).toBeCloseTo(-f.monthlyMortgage * 3, 2);
+    expect(result.totalColumn!.incomeWE).toBe(0); // zero ownership months that year
+    expect(result.avgColumn!.mortgage).toBeCloseTo(f.monthlyMortgage, 2);
+  });
+
+  it('a year with neither ownership nor an active loan still returns null avg/total (unchanged)', () => {
+    const neverStartedProperty = makeProperty({ loan_start_date: '2027-01-01' });
+    const result = computeCashflowYearTable(neverStartedProperty, statusEntries, [], 2025, makeDate(2025, 6, 15));
+    expect(result.ownershipMonthCount).toBe(0);
+    expect(result.mortgageMonthCount).toBe(0);
+    expect(result.totalColumn).toBeNull();
+    expect(result.avgColumn).toBeNull();
   });
 });

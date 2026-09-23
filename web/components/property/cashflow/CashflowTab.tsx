@@ -57,7 +57,10 @@ export function CashflowTab({
     loanDisbursements
   );
   const economicTransferDate = new Date(property.economic_transfer_date + 'T00:00:00Z');
-  const minYear = economicTransferDate.getUTCFullYear();
+  const loanStartDate = new Date(property.loan_start_date + 'T00:00:00Z');
+  // A year picker lower bound of just the transfer year would hide a year where the loan
+  // was already running (Kreditrate) but ownership hadn't transferred yet.
+  const minYear = Math.min(economicTransferDate.getUTCFullYear(), loanStartDate.getUTCFullYear());
   const yearTable = computeCashflowYearTable(property, statusEntries, extraordinaryCosts, year, today, loanDisbursements);
   const hasParking = property.parking_type !== 'nicht_vorhanden';
   const steuerHref = `/properties/${property.id}/steuer${leerstandParam !== null ? `?leerstand=${encodeURIComponent(leerstandParam)}` : ''}`;
