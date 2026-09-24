@@ -579,3 +579,63 @@ describe('computeCashflowYearTable — Ø/Total include pre-ownership Kreditrate
     expect(result.avgColumn).toBeNull();
   });
 });
+
+describe('computeCashflowYearTable — leerstandQuoteOverride (rest of current year)', () => {
+  const property = makeProperty();
+  const statusEntries = [makeStatusEntry()]; // vermietet from 2026-02-01
+  const today = makeDate(2026, 8, 15); // August
+
+  it('the current month itself is never overridden, even with leerstandQuoteOverride set', () => {
+    const withOverride = computeCashflowYearTable(property, statusEntries, [], 2026, today, [], 0, 1);
+    const withoutOverride = computeCashflowYearTable(property, statusEntries, [], 2026, today, [], 0);
+    const augustWith = withOverride.months.find((m) => m.month === 8)!;
+    const augustWithout = withoutOverride.months.find((m) => m.month === 8)!;
+    expect(augustWith.lineItems.incomeWE).toBeCloseTo(augustWithout.lineItems.incomeWE, 2);
+    expect(augustWith.statusLabelsWE).toEqual(augustWithout.statusLabelsWE);
+  });
+
+  it('months after the current month use the scenario blend once an override is set', () => {
+    const result = computeCashflowYearTable(property, statusEntries, [], 2026, today, [], 0, 1); // 100% leerstand
+    const september = result.months.find((m) => m.month === 9)!;
+    expect(september.lineItems.incomeWE).toBe(0);
+    expect(september.statusLabelsWE).toEqual([]);
+  });
+
+  it('without leerstandQuoteOverride, months after today keep projecting the last known status (regression guard)', () => {
+    const result = computeCashflowYearTable(property, statusEntries, [], 2026, today);
+    const december = result.months.find((m) => m.month === 12)!;
+    expect(december.lineItems.incomeWE).toBeCloseTo(f.coldRentMonthly, 2);
+    expect(december.statusLabelsWE).toEqual(['vermietet']);
+  });
+
+  it('a partial quote blends income proportionally, not discretely', () => {
+    const result = computeCashflowYearTable(property, statusEntries, [], 2026, today, [], 0, 0.3);
+    const september = result.months.find((m) => m.month === 9)!;
+    expect(september.lineItems.incomeWE).toBeCloseTo(f.coldRentMonthly * 0.7, 2);
+  });
+
+  it('leerstandQuoteOverride also feeds the current-year tax effect, matching computeTaxCurrentYear with the same override', () => {
+    const result = computeCashflowYearTable(property, statusEntries, [], 2026, today, [], 0, 1);
+    const direct = computeTaxCurrentYear(property, statusEntries, [], today, 1);
+    expect(result.taxEffectMonthly).toBe(direct.taxEffectMonthly);
+  });
+
+  it('omitting leerstandQuoteOverride keeps the whole result byte-identical to before (regression guard)', () => {
+    const withExplicitUndefined = computeCashflowYearTable(property, statusEntries, [], 2026, today, [], 0, undefined);
+    const withoutArg = computeCashflowYearTable(property, statusEntries, [], 2026, today, [], 0);
+    expect(withExplicitUndefined).toEqual(withoutArg);
+  });
+});
+
+describe('computeCashflowYearTable — fully future years always use the scenario blend', () => {
+  const property = makeProperty();
+  const statusEntries = [makeStatusEntry()];
+  const today = makeDate(2026, 8, 15);
+
+  it('a future year with no leerstandQuoteOverride still uses the scenario blend (forecastLeerstandQuote), not real status projection', () => {
+    const result = computeCashflowYearTable(property, statusEntries, [], 2027, today, [], 0.4);
+    const june = result.months.find((m) => m.month === 6)!;
+    expect(june.lineItems.incomeWE).toBeCloseTo(f.coldRentMonthly * 0.6, 2);
+    expect(june.statusLabelsWE).toEqual([]);
+  });
+});
