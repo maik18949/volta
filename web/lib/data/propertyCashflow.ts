@@ -438,7 +438,7 @@ export function computeCashflowYearTable(
 
     months.push({
       month: m,
-      isProjection: statusHistory.length === 0 || monthDate.getTime() > firstDayOfMonth(today).getTime(),
+      isProjection: useScenarioBlend || statusHistory.length === 0 || monthDate.getTime() > firstDayOfMonth(today).getTime(),
       isOwned: true,
       hasMortgagePayment: true,
       statusLabelsWE: useScenarioBlend || statusHistory.length === 0 ? [] : statusesForMonth(monthDate, statusHistory, today),

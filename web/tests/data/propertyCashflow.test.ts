@@ -592,6 +592,18 @@ describe('computeCashflowYearTable — leerstandQuoteOverride (rest of current y
     expect(august.statusLabelsWE).toEqual([]);
   });
 
+  it('a scenario-blended current month is marked isProjection (regression: table legend says "kursiv = projiziert")', () => {
+    const result = computeCashflowYearTable(property, statusEntries, [], 2026, today, [], 0, 1); // 100% leerstand, today = Aug 15
+    const august = result.months.find((m) => m.month === 8)!;
+    expect(august.isProjection).toBe(true);
+  });
+
+  it('a month before the current month stays isProjection false, regardless of leerstandQuoteOverride', () => {
+    const result = computeCashflowYearTable(property, statusEntries, [], 2026, today, [], 0, 1); // 100% leerstand, today = Aug 15
+    const july = result.months.find((m) => m.month === 7)!;
+    expect(july.isProjection).toBe(false);
+  });
+
   it('a month before the current month is never overridden, regardless of leerstandQuoteOverride', () => {
     const result = computeCashflowYearTable(property, statusEntries, [], 2026, today, [], 0, 1); // 100% leerstand, today = Aug 15
     const july = result.months.find((m) => m.month === 7)!;
