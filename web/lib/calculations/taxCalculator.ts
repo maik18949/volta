@@ -107,8 +107,10 @@ export function annualTaxableIncomeBreakdown(input: AnnualTaxableIncomeBreakdown
     // A calendar year entirely before economicTransferDate still deducts real interest if the
     // loan had already started that year (interestForCalendarYear/stagedInterestForCalendarYear
     // are computed purely from loan timing, independent of ownership) — everything
-    // ownership-dependent (income, AfA, Nebenkosten) stays 0. Mirrors propertyCashflow.ts's
+    // ownership-dependent (income, AfA, Nebenkosten) stays 0, mirroring propertyCashflow.ts's
     // pre-transfer Kreditrate handling. See docs/superpowers/specs/2026-09-24-steuer-jahresuebersicht-design.md.
+    // `0 - interestYear`, not `-interestYear`: avoids producing -0 when interestYear is exactly 0,
+    // which would fail a `toBe(0)` assertion (Object.is(-0, 0) is false).
     return { ...ZERO_TAX_LINE_ITEMS, interest: interestYear, taxableIncome: 0 - interestYear };
   }
 
