@@ -220,6 +220,31 @@ describe('computeTaxCurrentYear', () => {
     const b = computeTaxCurrentYear(property, statusEntries, [], today);
     expect(a).toEqual(b);
   });
+
+  it('yearOverride switches which year is computed, without touching today-based defaults', () => {
+    const result = computeTaxCurrentYear(property, statusEntries, [], today, undefined, [], 2025);
+    expect(result.year).toBe(2025);
+  });
+
+  it('a past year (yearOverride) with the loan already running deducts real interest instead of returning zero (Fall-B fix reachable here too)', () => {
+    const result = computeTaxCurrentYear(property, statusEntries, [], today, undefined, [], 2025);
+    expect(result.lineItems.interest).toBeGreaterThan(0);
+    expect(result.lineItems.taxableIncome).toBeLessThan(0);
+  });
+
+  it('leerstandQuoteOverride is ignored for any year other than the real current year', () => {
+    // today is 2026-06-15, so 2026 is the real current year; 2025 is not, even though
+    // yearOverride requests it explicitly.
+    const withoutQuoteOverride = computeTaxCurrentYear(property, statusEntries, [], today, undefined, [], 2025);
+    const withQuoteOverride = computeTaxCurrentYear(property, statusEntries, [], today, 1, [], 2025);
+    expect(withQuoteOverride).toEqual(withoutQuoteOverride);
+  });
+
+  it('omitting yearOverride is byte-identical to before (regression guard)', () => {
+    const withoutOverride = computeTaxCurrentYear(property, statusEntries, [], today);
+    const withUndefinedOverride = computeTaxCurrentYear(property, statusEntries, [], today, undefined, [], undefined);
+    expect(withUndefinedOverride).toEqual(withoutOverride);
+  });
 });
 
 describe('computeTaxForecastYear', () => {
