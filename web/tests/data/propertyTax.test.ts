@@ -240,6 +240,12 @@ describe('computeTaxCurrentYear', () => {
     expect(withQuoteOverride).toEqual(withoutQuoteOverride);
   });
 
+  it('leerstandQuoteOverride still applies when yearOverride explicitly names the real current year', () => {
+    const withoutYearOverride = computeTaxCurrentYear(property, statusEntries, [], today, 1);
+    const withExplicitCurrentYear = computeTaxCurrentYear(property, statusEntries, [], today, 1, [], 2026);
+    expect(withExplicitCurrentYear).toEqual(withoutYearOverride);
+  });
+
   it('omitting yearOverride is byte-identical to before (regression guard)', () => {
     const withoutOverride = computeTaxCurrentYear(property, statusEntries, [], today);
     const withUndefinedOverride = computeTaxCurrentYear(property, statusEntries, [], today, undefined, [], undefined);

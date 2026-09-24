@@ -55,7 +55,8 @@ export interface TaxCurrentYearResult {
  * (existing behavior, byte-identical). When provided, `year` becomes that value instead, and
  * `leerstandQuoteOverride` (the "rest of this year" what-if) is only actually applied when the
  * requested year is genuinely today's calendar year — a past year has no "rest of the year"
- * to project, it's plain Ist.
+ * to project, it's plain Ist. `yearOverride` isn't intended for future years — use
+ * `computeTaxForecastYear` for those.
  */
 export function computeTaxCurrentYear(
   property: PropertyRow,
@@ -118,6 +119,7 @@ export function computeTaxCurrentYear(
     otherIncomeMonthly: property.other_income_monthly,
     today,
     extraordinaryCostsDeductibleYearly: deductibleExtraordinaryCostsForYear(extraordinaryCostRows, year),
+    // both halves required: a past/future requested year must never get a "rest of year" projection
     leerstandQuoteOverride:
       leerstandQuoteOverride !== undefined && year === today.getUTCFullYear()
         ? { fromMonth: makeDate(today.getUTCFullYear(), today.getUTCMonth() + 1, 1), quote: leerstandQuoteOverride }
