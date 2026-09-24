@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { SectionLabel } from '@/components/ui/SectionLabel';
 import { YearPicker } from '@/components/ui/YearPicker';
@@ -22,6 +22,16 @@ type LoanDisbursementRow = Database['public']['Tables']['loan_disbursements']['R
  * Aktuelles Jahr speziell: identisches Ergebnis wie die "Laufendes Jahr"-Karte (übergeben via
  * `currentYearResult`, kein eigener Aufruf/Regler hier) — vermeidet zwei Regler für dieselbe Zahl.
  * Zukunft: computeTaxForecastYear mit einem eigenen, hier lokal + per URL geteilten Regler.
+ * Der Zukunfts-Regler nutzt denselben nativen <input type="range"> wie die "Laufendes Jahr"-Karte
+ * (QuoteSlider) und feuert damit ebenso bei JEDEM Tick eines Drags (~100x pro Geste), nicht nur
+ * beim Loslassen — hier ist also, entgegen einer früheren Annahme, KEIN diskretes, niedrigfrequentes
+ * Ereignis. Anzeige/Berechnung lesen deshalb den lokalen `liveForecastQuote`-State sofort, während
+ * der URL-Commit (router.replace, siehe updateUrl) erst ~400ms nach der letzten Änderung nachgezogen
+ * wird — sonst würde (Next.js' Router-Cache mit staleTime=0 für dynamische Routen) jeder Tick einen
+ * Server-Component-Rerender inkl. Supabase-Refetch auslösen. Siehe SteuerTab.tsx für dasselbe Muster
+ * beim "Laufendes Jahr"-Regler (liveCurrentYearQuote/committedCurrentYearQuoteRef/debounceTimeoutRef).
+ * Der Jahreswechsel selbst (YearPicker) bleibt synchron: ein Klick ist tatsächlich ein einzelnes,
+ * diskretes Ereignis und braucht kein Debouncing.
  */
 export function YearOverviewCard({
   property,
@@ -66,35 +76,61 @@ export function YearOverviewCard({
       : NaN;
   const forecastQuote = Number.isFinite(sharedQuote) ? Math.min(100, Math.max(0, sharedQuote)) : forecastDefaultQuote;
   const [liveForecastQuote, setLiveForecastQuote] = useState(forecastQuote);
+  // Zuletzt tatsächlich per updateUrl in die URL committeter Wert — Referenzpunkt für die
+  // Debounce-Logik unten (analog committedCurrentYearQuoteRef in SteuerTab.tsx).
+  const committedForecastQuoteRef = useRef(forecastQuote);
+  const debounceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  function updateUrl(nextYear: number, nextQuote: number | null) {
-    const params = new URLSearchParams(searchParams.toString());
-    if (nextYear > currentYear) {
-      params.set('prognoseJahr', String(nextYear));
-      if (nextQuote !== null && nextQuote !== forecastDefaultQuote) {
-        params.set('prognoseQuote', String(nextQuote));
+  const updateUrl = useCallback(
+    (nextYear: number, nextQuote: number | null) => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (nextYear > currentYear) {
+        params.set('prognoseJahr', String(nextYear));
+        if (nextQuote !== null && nextQuote !== forecastDefaultQuote) {
+          params.set('prognoseQuote', String(nextQuote));
+        } else {
+          params.delete('prognoseQuote');
+        }
       } else {
+        params.delete('prognoseJahr');
         params.delete('prognoseQuote');
       }
-    } else {
-      params.delete('prognoseJahr');
-      params.delete('prognoseQuote');
-    }
-    const query = params.toString();
-    router.replace(query ? `?${query}` : '?', { scroll: false });
-  }
+      const query = params.toString();
+      router.replace(query ? `?${query}` : '?', { scroll: false });
+    },
+    [searchParams, currentYear, forecastDefaultQuote, router]
+  );
 
   function handleYearChange(nextYear: number) {
     setYear(nextYear);
-    const nextDefaultQuote = overview.actualVacancyRate !== null ? Math.round(overview.actualVacancyRate * 100) : 0;
-    setLiveForecastQuote(nextDefaultQuote);
+    setLiveForecastQuote(forecastDefaultQuote);
+    // Synchron committen (kein Debounce): ein Jahreswechsel ist ein einzelnes, diskretes
+    // Ereignis, und der neue Wert (Standardannahme) muss den Debounce-Effekt unten nicht
+    // erst noch verzögert nachziehen lassen — daher wird die Referenz direkt mitgezogen.
+    committedForecastQuoteRef.current = forecastDefaultQuote;
     updateUrl(nextYear, null); // neues Jahr -> Standardannahme, kein Override übernehmen
   }
 
   function handleQuoteChange(nextQuote: number) {
     setLiveForecastQuote(nextQuote);
-    updateUrl(year, nextQuote);
   }
+
+  // Debounced URL-Commit für den Zukunfts-Regler — siehe Erklärung im Docstring oben und das
+  // identische Muster in SteuerTab.tsx (liveCurrentYearQuote-Effekt).
+  useEffect(() => {
+    if (liveForecastQuote === committedForecastQuoteRef.current) {
+      return undefined;
+    }
+    debounceTimeoutRef.current = setTimeout(() => {
+      committedForecastQuoteRef.current = liveForecastQuote;
+      updateUrl(year, liveForecastQuote);
+    }, 400);
+    return () => {
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+      }
+    };
+  }, [liveForecastQuote, year, updateUrl]);
 
   const pastOrCurrentResult = isFuture
     ? null
