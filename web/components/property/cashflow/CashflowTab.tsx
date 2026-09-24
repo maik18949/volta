@@ -1,6 +1,6 @@
 'use client';
 
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { SectionLabel } from '@/components/ui/SectionLabel';
@@ -32,8 +32,28 @@ export function CashflowTab({
   loanDisbursements: LoanDisbursementRow[];
 }) {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const currentYear = today.getUTCFullYear();
-  const [year, setYear] = useState(currentYear);
+  const prognoseJahrParam = searchParams.get('prognoseJahr');
+  const initialYear =
+    prognoseJahrParam !== null && Number(prognoseJahrParam) > currentYear && Number(prognoseJahrParam) <= currentYear + 1
+      ? Number(prognoseJahrParam)
+      : currentYear;
+  const [year, setYearState] = useState(initialYear);
+
+  function setYear(nextYear: number) {
+    setYearState(nextYear);
+    const params = new URLSearchParams(searchParams.toString());
+    if (nextYear > currentYear) {
+      params.set('prognoseJahr', String(nextYear));
+      params.delete('prognoseQuote'); // Cashflow hat keinen eigenen Regler -> immer Standardannahme
+    } else {
+      params.delete('prognoseJahr');
+      params.delete('prognoseQuote');
+    }
+    const query = params.toString();
+    router.replace(query ? `?${query}` : '?', { scroll: false });
+  }
 
   // Gleicher Default wie der "Laufendes Jahr"-Regler im Steuer-Tab — kein eigener
   // Regler mehr hier, nur Anzeige. Bewegt der Nutzer den Regler im Steuer-Tab, kommt
@@ -46,6 +66,21 @@ export function CashflowTab({
   // SteuerTab.tsx.
   const parsedLeerstandParam = leerstandParam !== null ? Number(leerstandParam) : NaN;
   const quote = Number.isFinite(parsedLeerstandParam) ? Math.min(100, Math.max(0, parsedLeerstandParam)) : defaultQuote;
+
+  // Geteilter Zukunfts-Leerstand mit der Steuer-Tab-Jahresübersicht (YearOverviewCard): wenn das
+  // hier gewählte Jahr mit ?prognoseJahr übereinstimmt, übernehmen wir deren ?prognoseQuote-Wert,
+  // sonst greift der property-eigene Standard (gleiche Formel wie YearOverviewCard's
+  // forecastDefaultQuote — bewusst NICHT overview.actualVacancyRateYear, das ist Card 1's eigener,
+  // anderer Default).
+  const forecastDefaultQuote = overview.actualVacancyRate !== null ? Math.round(overview.actualVacancyRate * 100) : 0;
+  const prognoseQuoteParam = searchParams.get('prognoseQuote');
+  const sharedForecastQuote =
+    year > currentYear && prognoseJahrParam !== null && Number(prognoseJahrParam) === year && prognoseQuoteParam !== null
+      ? Number(prognoseQuoteParam)
+      : NaN;
+  const forecastLeerstandQuote = Number.isFinite(sharedForecastQuote)
+    ? Math.min(100, Math.max(0, sharedForecastQuote)) / 100
+    : forecastDefaultQuote / 100;
 
   const forecast = computeCashflowForecastMonth(
     property,
@@ -61,9 +96,22 @@ export function CashflowTab({
   // A year picker lower bound of just the transfer year would hide a year where the loan
   // was already running (Kreditrate) but ownership hadn't transferred yet.
   const minYear = Math.min(economicTransferDate.getUTCFullYear(), loanStartDate.getUTCFullYear());
-  const yearTable = computeCashflowYearTable(property, statusEntries, extraordinaryCosts, year, today, loanDisbursements);
+  const yearTable = computeCashflowYearTable(
+    property,
+    statusEntries,
+    extraordinaryCosts,
+    year,
+    today,
+    loanDisbursements,
+    forecastLeerstandQuote
+  );
   const hasParking = property.parking_type !== 'nicht_vorhanden';
-  const steuerHref = `/properties/${property.id}/steuer${leerstandParam !== null ? `?leerstand=${encodeURIComponent(leerstandParam)}` : ''}`;
+  const steuerLinkParams = new URLSearchParams();
+  if (leerstandParam !== null) steuerLinkParams.set('leerstand', leerstandParam);
+  if (prognoseJahrParam !== null) steuerLinkParams.set('prognoseJahr', prognoseJahrParam);
+  if (prognoseQuoteParam !== null) steuerLinkParams.set('prognoseQuote', prognoseQuoteParam);
+  const steuerLinkQuery = steuerLinkParams.toString();
+  const steuerHref = `/properties/${property.id}/steuer${steuerLinkQuery ? `?${steuerLinkQuery}` : ''}`;
 
   return (
     <div className="flex flex-col gap-4">
