@@ -88,6 +88,10 @@ export function CashflowTab({
   // A year picker lower bound of just the transfer year would hide a year where the loan
   // was already running (Kreditrate) but ownership hadn't transferred yet.
   const minYear = Math.min(economicTransferDate.getUTCFullYear(), loanStartDate.getUTCFullYear());
+  // Gleiches Muster wie computeCashflowForecastMonth (Card 1): nur wenn der Regler vom
+  // Standard abweicht, wird der Override überhaupt weitergegeben — bei unberührtem Regler
+  // bleibt computeCashflowYearTable byte-identisch zu vorher.
+  const leerstandQuoteOverride = quote === defaultQuote ? undefined : quote / 100;
   const yearTable = computeCashflowYearTable(
     property,
     statusEntries,
@@ -95,7 +99,8 @@ export function CashflowTab({
     year,
     today,
     loanDisbursements,
-    forecastLeerstandQuote
+    forecastLeerstandQuote,
+    leerstandQuoteOverride
   );
   const hasParking = property.parking_type !== 'nicht_vorhanden';
   const steuerLinkParams = new URLSearchParams();
