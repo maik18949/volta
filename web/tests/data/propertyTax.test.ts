@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { fixtures as f } from '../calculations/fixtures';
 import { makeDate } from '@/lib/calculations/dateHelpers';
+import { interestForCalendarYear } from '@/lib/calculations/amortizationCalculator';
 import type { Database } from '@/lib/supabase/types';
 import { computeTaxCurrentYear, computeTaxForecastYear } from '@/lib/data/propertyTax';
 
@@ -166,7 +167,20 @@ describe('computeTaxCurrentYear', () => {
     const futureTransfer = makeProperty({ economic_transfer_date: '2027-01-01' });
     const result = computeTaxCurrentYear(futureTransfer, [], [], today);
     expect(result.transferInFuture).toBe(true);
-    expect(result.lineItems.taxableIncome).toBe(0);
+    // The current year (2026, from `today`) has zero ownership months since the transfer is
+    // in the future, but loan_start_date (2025-10-01, default) already started before 2026 —
+    // real interest is still deducted (Fall-B fix), everything ownership-dependent stays 0.
+    const interest2026 = interestForCalendarYear(
+      2026,
+      makeDate(2025, 10, 1),
+      futureTransfer.loan_amount,
+      futureTransfer.interest_rate,
+      futureTransfer.monthly_mortgage
+    );
+    expect(interest2026).toBeGreaterThan(0);
+    expect(result.lineItems.interest).toBeCloseTo(interest2026, 2);
+    expect(result.lineItems.income).toBe(0);
+    expect(result.lineItems.taxableIncome).toBeCloseTo(-interest2026, 2);
   });
 
   it('lineItems fields are individually wired correctly (insurance, other costs, and parking all nonzero)', () => {

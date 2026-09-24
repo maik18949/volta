@@ -210,6 +210,78 @@ describe('taxCalculator.annualTaxableIncomeBreakdown', () => {
     expect(breakdown.extraordinaryCostsDeductible).toBe(0);
   });
 
+  it('a year with the loan already running but zero ownership months still deducts real interest (Fall-B fix)', () => {
+    // f.loanStartDate = 2025-10-01, f.economicTransferDate = 2026-02-01 (baseInput) -> 2025 has
+    // an active loan for part of the year but zero ownership months all year.
+    const interest2025 = interestForCalendarYear(2025, f.loanStartDate, f.loanAmount, f.interestRate, f.monthlyMortgage);
+    const breakdown = annualTaxableIncomeBreakdown({
+      ...baseInput,
+      year: 2025,
+      statusHistory: [],
+      today: makeDate(2025, 12, 31),
+      extraordinaryCostsDeductibleYearly: 0,
+    });
+    expect(interest2025).toBeGreaterThan(0);
+    expect(breakdown.interest).toBeCloseTo(interest2025, 2);
+    expect(breakdown.income).toBe(0);
+    expect(breakdown.depreciation).toBe(0);
+    expect(breakdown.hoaNonRecoverableWE).toBe(0);
+    expect(breakdown.taxableIncome).toBeCloseTo(-interest2025, 2);
+  });
+
+  it('a year before the loan even started still returns zero interest (regression: Fall-B fix must not invent interest)', () => {
+    // year 2024 is before both ownership AND f.loanStartDate (2025-10-01).
+    const breakdown = annualTaxableIncomeBreakdown({
+      ...baseInput,
+      year: 2024,
+      statusHistory: [],
+      today: makeDate(2024, 12, 31),
+      extraordinaryCostsDeductibleYearly: 0,
+    });
+    expect(breakdown.interest).toBe(0);
+    expect(breakdown.taxableIncome).toBe(0);
+  });
+
+  it('disbursements: a year with only a non-deductible tranche and zero ownership months deducts nothing', () => {
+    // Mirrors the existing 'disbursements: excludes non-deductible-tranche interest' test's
+    // fixture, but queries 2025 — before economicTransferDate (2026-01-01) and before the
+    // deductible Hauptkredit tranche (2026-01-20) landed, only the non-deductible Hyposchutz
+    // tranche (2025-10-01) existed that year.
+    const disbursements = [
+      { date: makeDate(2025, 10, 1), amount: 2_734.45, deductible: false },
+      { date: makeDate(2026, 1, 20), amount: 278_665.55, deductible: true },
+    ];
+    const breakdown = annualTaxableIncomeBreakdown({
+      year: 2025,
+      statusHistory: [],
+      stellplatzStatusHistory: [],
+      economicTransferDate: makeDate(2026, 1, 1),
+      loanStartDate: makeDate(2025, 12, 1),
+      loanAmount: 281_400,
+      interestRate: 0.043,
+      monthlyMortgage: 1_242.85,
+      afaBasis: 0,
+      depreciationRate: 0.02,
+      hoaUnitNonRecoverableMonthly: 0,
+      hoaUnitRecoverableMonthly: 0,
+      hoaParkingNonRecoverableMonthly: 0,
+      hoaParkingRecoverableMonthly: 0,
+      propertyTaxUnitMonthly: 0,
+      propertyTaxParkingMonthly: 0,
+      propertyManagementMonthly: 0,
+      propertyInsuranceMonthly: 0,
+      otherCostsMonthly: 0,
+      coldRentMonthly: 999,
+      parkingRentMonthly: 0,
+      otherIncomeMonthly: 0,
+      today: makeDate(2025, 12, 31),
+      extraordinaryCostsDeductibleYearly: 0,
+      disbursements,
+    });
+    expect(breakdown.interest).toBe(0);
+    expect(breakdown.taxableIncome).toBe(0);
+  });
+
   it('without leerstandQuoteOverride, behaves exactly as before (regression guard)', () => {
     const input = {
       year: 2026,
