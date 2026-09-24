@@ -7,6 +7,7 @@ import { SectionLabel } from '@/components/ui/SectionLabel';
 import { YearPicker } from '@/components/ui/YearPicker';
 import { computeCashflowForecastMonth, computeCashflowYearTable } from '@/lib/data/propertyCashflow';
 import type { OverviewMetrics } from '@/lib/data/propertyOverview';
+import { initialYearFromParams, defaultForecastQuotePercent, effectiveForecastQuotePercent } from '@/lib/prognoseJahrParam';
 import { ForecastMonthCard } from './ForecastMonthCard';
 import { CashflowYearTable } from './CashflowYearTable';
 import type { Database } from '@/lib/supabase/types';
@@ -35,10 +36,7 @@ export function CashflowTab({
   const router = useRouter();
   const currentYear = today.getUTCFullYear();
   const prognoseJahrParam = searchParams.get('prognoseJahr');
-  const initialYear =
-    prognoseJahrParam !== null && Number(prognoseJahrParam) > currentYear && Number(prognoseJahrParam) <= currentYear + 1
-      ? Number(prognoseJahrParam)
-      : currentYear;
+  const initialYear = initialYearFromParams(searchParams, currentYear);
   const [year, setYearState] = useState(initialYear);
 
   function setYear(nextYear: number) {
@@ -72,15 +70,9 @@ export function CashflowTab({
   // sonst greift der property-eigene Standard (gleiche Formel wie YearOverviewCard's
   // forecastDefaultQuote — bewusst NICHT overview.actualVacancyRateYear, das ist Card 1's eigener,
   // anderer Default).
-  const forecastDefaultQuote = overview.actualVacancyRate !== null ? Math.round(overview.actualVacancyRate * 100) : 0;
+  const forecastDefaultQuote = defaultForecastQuotePercent(overview.actualVacancyRate);
   const prognoseQuoteParam = searchParams.get('prognoseQuote');
-  const sharedForecastQuote =
-    year > currentYear && prognoseJahrParam !== null && Number(prognoseJahrParam) === year && prognoseQuoteParam !== null
-      ? Number(prognoseQuoteParam)
-      : NaN;
-  const forecastLeerstandQuote = Number.isFinite(sharedForecastQuote)
-    ? Math.min(100, Math.max(0, sharedForecastQuote)) / 100
-    : forecastDefaultQuote / 100;
+  const forecastLeerstandQuote = effectiveForecastQuotePercent(searchParams, currentYear, year, forecastDefaultQuote) / 100;
 
   const forecast = computeCashflowForecastMonth(
     property,

@@ -7,6 +7,7 @@ import { YearPicker } from '@/components/ui/YearPicker';
 import { QuoteSlider } from '@/components/ui/QuoteSlider';
 import { computeTaxCurrentYear, computeTaxForecastYear, type TaxCurrentYearResult } from '@/lib/data/propertyTax';
 import type { OverviewMetrics } from '@/lib/data/propertyOverview';
+import { initialYearFromParams, defaultForecastQuotePercent, effectiveForecastQuotePercent } from '@/lib/prognoseJahrParam';
 import { CurrentYearSection } from './CurrentYearSection';
 import { ForecastSection } from './ForecastSection';
 import type { Database } from '@/lib/supabase/types';
@@ -60,21 +61,12 @@ export function YearOverviewCard({
   const loanStartDate = new Date(property.loan_start_date + 'T00:00:00Z');
   const minYear = Math.min(economicTransferDate.getUTCFullYear(), loanStartDate.getUTCFullYear());
 
-  const prognoseJahrParam = searchParams.get('prognoseJahr');
-  const initialYear =
-    prognoseJahrParam !== null && Number(prognoseJahrParam) > currentYear && Number(prognoseJahrParam) <= currentYear + 1
-      ? Number(prognoseJahrParam)
-      : currentYear;
+  const initialYear = initialYearFromParams(searchParams, currentYear);
   const [year, setYear] = useState(initialYear);
   const isFuture = year > currentYear;
 
-  const forecastDefaultQuote = overview.actualVacancyRate !== null ? Math.round(overview.actualVacancyRate * 100) : 0;
-  const prognoseQuoteParam = searchParams.get('prognoseQuote');
-  const sharedQuote =
-    isFuture && prognoseJahrParam !== null && Number(prognoseJahrParam) === year && prognoseQuoteParam !== null
-      ? Number(prognoseQuoteParam)
-      : NaN;
-  const forecastQuote = Number.isFinite(sharedQuote) ? Math.min(100, Math.max(0, sharedQuote)) : forecastDefaultQuote;
+  const forecastDefaultQuote = defaultForecastQuotePercent(overview.actualVacancyRate);
+  const forecastQuote = effectiveForecastQuotePercent(searchParams, currentYear, year, forecastDefaultQuote);
   const [liveForecastQuote, setLiveForecastQuote] = useState(forecastQuote);
   // Zuletzt tatsächlich per updateUrl in die URL committeter Wert — Referenzpunkt für die
   // Debounce-Logik unten (analog committedCurrentYearQuoteRef in SteuerTab.tsx).
