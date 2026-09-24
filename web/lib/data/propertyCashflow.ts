@@ -285,7 +285,7 @@ export function computeCashflowYearTable(
   year: number,
   today: Date = new Date(),
   disbursementRows: LoanDisbursementRow[] = [],
-  forecastLeerstandQuote: number = 0
+  forecastLeerstandQuote: number = 0 // 0 = Vollvermietung (Cashflow-Tab hat keinen eigenen Regler für Zukunftsjahre)
 ): CashflowYearTableResult {
   const { wohnung: statusHistory, stellplatz: stellplatzStatusHistory } = toUnitStatusHistories(statusEntryRows);
   const economicTransferDate = new Date(property.economic_transfer_date + 'T00:00:00Z');
@@ -367,6 +367,9 @@ export function computeCashflowYearTable(
           ? { ...ZERO_LINE_ITEMS, mortgage: mortgageAmount, cashflowBeforeTax: -mortgageAmount }
           : ZERO_LINE_ITEMS,
         extraordinaryCostRows: monthCostRows,
+        // A pre-ownership month that's ALSO in a future year stays null — deliberately out of
+        // scope (an already-obscure combination: property not yet transferred, viewed for a
+        // future year). See docs/superpowers/specs/2026-09-24-steuer-jahresuebersicht-design.md.
         cashflowAfterTax: hasMortgagePayment && !isFutureYear ? -mortgageAmount : null,
       });
       continue;
