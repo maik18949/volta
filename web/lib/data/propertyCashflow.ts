@@ -10,7 +10,7 @@ import {
   type CashflowLineItems,
 } from '@/lib/calculations/cashflowCalculator';
 import { hoaNonRecoverableMonthly } from '@/lib/calculations/kpiCalculator';
-import { computeTaxCurrentYear } from '@/lib/data/propertyTax';
+import { computeTaxCurrentYear, computeTaxForecastYear } from '@/lib/data/propertyTax';
 import type { LoanDisbursementRow } from '@/lib/data/loanDisbursements';
 
 type PropertyRow = Database['public']['Tables']['properties']['Row'];
@@ -284,7 +284,8 @@ export function computeCashflowYearTable(
   extraordinaryCostRows: ExtraordinaryCostRow[],
   year: number,
   today: Date = new Date(),
-  disbursementRows: LoanDisbursementRow[] = []
+  disbursementRows: LoanDisbursementRow[] = [],
+  forecastLeerstandQuote: number = 0
 ): CashflowYearTableResult {
   const { wohnung: statusHistory, stellplatz: stellplatzStatusHistory } = toUnitStatusHistories(statusEntryRows);
   const economicTransferDate = new Date(property.economic_transfer_date + 'T00:00:00Z');
@@ -323,6 +324,14 @@ export function computeCashflowYearTable(
     undefined,
     disbursementRows
   );
+
+  // Zukunftsjahre bekommen einen echten (statt fehlenden) Steuereffekt über dieselbe
+  // Funktion, die auch die Steuer-Tab-Jahresübersicht für Zukunftsjahre nutzt — mit der
+  // vom Aufrufer übergebenen Standard-Leerstandsquote, nicht mit einem eigenen Regler
+  // (der Cashflow-Tab hat keinen). Siehe docs/superpowers/specs/2026-09-24-steuer-jahresuebersicht-design.md.
+  const effectiveTaxEffectMonthly = isFutureYear
+    ? computeTaxForecastYear(property, year, forecastLeerstandQuote).taxEffectMonthly
+    : currentYearTaxEffectMonthly;
 
   const months: CashflowMonthColumn[] = [];
   let ownershipMonthCount = 0;
@@ -388,7 +397,7 @@ export function computeCashflowYearTable(
       statusLabelsTE: stellplatzStatusHistory.length === 0 ? [] : statusesForMonth(monthDate, stellplatzStatusHistory, today),
       lineItems,
       extraordinaryCostRows: monthCostRows,
-      cashflowAfterTax: isFutureYear ? null : lineItems.cashflowBeforeTax + currentYearTaxEffectMonthly,
+      cashflowAfterTax: lineItems.cashflowBeforeTax + effectiveTaxEffectMonthly,
     });
   }
 
@@ -424,7 +433,7 @@ export function computeCashflowYearTable(
     extraordinaryCostsAvgForYear:
       extraordinaryCostsEntryCountForYear >= 2 ? extraordinaryCostsTotalForYear / extraordinaryCostsEntryCountForYear : null,
     extraordinaryCostsEntryCountForYear,
-    taxEffectMonthly: isFutureYear ? null : currentYearTaxEffectMonthly,
+    taxEffectMonthly: effectiveTaxEffectMonthly,
     hoaUnitSplitWarning: !property.is_hoa_unit_split,
     hoaParkingSplitWarning: property.parking_type !== 'nicht_vorhanden' && !property.is_hoa_parking_split,
   };

@@ -3,7 +3,7 @@ import { fixtures as f } from '../calculations/fixtures';
 import { makeDate } from '@/lib/calculations/dateHelpers';
 import type { Database } from '@/lib/supabase/types';
 import { computeCashflowForecastMonth, computeCashflowYearTable } from '@/lib/data/propertyCashflow';
-import { computeTaxCurrentYear } from '@/lib/data/propertyTax';
+import { computeTaxCurrentYear, computeTaxForecastYear } from '@/lib/data/propertyTax';
 
 type PropertyRow = Database['public']['Tables']['properties']['Row'];
 type StatusEntryRow = Database['public']['Tables']['status_entries']['Row'];
@@ -312,12 +312,31 @@ describe('computeCashflowYearTable', () => {
     expect(june.lineItems.hoaRecoverableWE).toBe(0);
   });
 
-  it('a future year (beyond the current year) blanks taxEffectMonthly and every month\'s cashflowAfterTax', () => {
-    const result = computeCashflowYearTable(property, statusEntries, [], 2027, today);
+  it('a future year gets a real taxEffectMonthly from computeTaxForecastYear, using the passed forecastLeerstandQuote', () => {
+    const result = computeCashflowYearTable(property, statusEntries, [], 2027, today, [], 0.2);
+    const forecast = computeTaxForecastYear(property, 2027, 0.2);
     expect(result.isFutureYear).toBe(true);
-    expect(result.taxEffectMonthly).toBeNull();
+    expect(result.taxEffectMonthly).toBe(forecast.taxEffectMonthly);
     const june = result.months.find((m) => m.month === 6)!;
-    expect(june.cashflowAfterTax).toBeNull();
+    expect(june.cashflowAfterTax).toBeCloseTo(june.lineItems.cashflowBeforeTax + forecast.taxEffectMonthly, 6);
+  });
+
+  it('omitting forecastLeerstandQuote defaults to 0 (Vollvermietung assumption)', () => {
+    const withDefault = computeCashflowYearTable(property, statusEntries, [], 2027, today);
+    const withExplicitZero = computeCashflowYearTable(property, statusEntries, [], 2027, today, [], 0);
+    expect(withDefault).toEqual(withExplicitZero);
+  });
+
+  it('a different forecastLeerstandQuote changes the future year\'s taxEffectMonthly', () => {
+    const vollvermietung = computeCashflowYearTable(property, statusEntries, [], 2027, today, [], 0);
+    const volleLeerstand = computeCashflowYearTable(property, statusEntries, [], 2027, today, [], 1);
+    expect(volleLeerstand.taxEffectMonthly).not.toBe(vollvermietung.taxEffectMonthly);
+  });
+
+  it('the current/past year path is unaffected by forecastLeerstandQuote (regression guard)', () => {
+    const withoutQuote = computeCashflowYearTable(property, statusEntries, [], 2026, today);
+    const withQuote = computeCashflowYearTable(property, statusEntries, [], 2026, today, [], 1);
+    expect(withQuote).toEqual(withoutQuote);
   });
 
   it('the current year does not blank taxEffectMonthly, and it matches computeTaxCurrentYear', () => {
