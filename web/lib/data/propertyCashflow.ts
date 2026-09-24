@@ -402,12 +402,20 @@ export function computeCashflowYearTable(
       continue;
     }
 
-    const useScenarioBlend =
-      isFutureYear || (leerstandQuoteOverride !== undefined && monthDate.getTime() >= overrideFromMonth.getTime());
-    const rawLineItems = useScenarioBlend
+    // Single source of truth for "is this month blended, and at what quote" — see PR feedback
+    // on Task 1: this used to be a separately-computed useScenarioBlend boolean plus a ternary
+    // picking the quote at the call site, held together only by an unenforced invariant between
+    // the two (a leerstandQuoteOverride! that was safe only as long as both stayed in sync).
+    const scenarioQuoteForMonth: number | undefined = isFutureYear
+      ? forecastLeerstandQuote
+      : leerstandQuoteOverride !== undefined && monthDate.getTime() >= overrideFromMonth.getTime()
+        ? leerstandQuoteOverride
+        : undefined;
+    const useScenarioBlend = scenarioQuoteForMonth !== undefined;
+    const rawLineItems = scenarioQuoteForMonth !== undefined
       ? scenarioBlendLineItems(
           property,
-          isFutureYear ? forecastLeerstandQuote : leerstandQuoteOverride!,
+          scenarioQuoteForMonth,
           extraordinaryCostsThisMonth,
           hoaFeeNonRecoverableMonthly,
           hoaFeeParkingNonRecoverableMonthly

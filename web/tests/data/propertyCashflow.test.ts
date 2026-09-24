@@ -643,4 +643,27 @@ describe('computeCashflowYearTable — fully future years always use the scenari
     expect(june.lineItems.incomeWE).toBeCloseTo(f.coldRentMonthly * 0.6, 2);
     expect(june.statusLabelsWE).toEqual([]);
   });
+
+  it('pre-ownership months in an otherwise-blended future year stay at 0 income, not blended via forecastLeerstandQuote', () => {
+    // Transferred mid-way through the future year 2027 — months before the transfer are
+    // pre-ownership (ownerFraction <= 0, the early-continue branch) and must never reach the
+    // scenarioQuoteForMonth/scenarioBlendLineItems path, even though the year as a whole
+    // isFutureYear and would otherwise qualify for the blend. loan_start_date stays at its
+    // default (2025-10-01, before the transfer), so February is a hasMortgagePayment-only
+    // pre-ownership month — the case this early-continue branch exists for in the first place.
+    const midYearTransferProperty = makeProperty({ economic_transfer_date: '2027-06-01' });
+    const midYearTransferStatus = [makeStatusEntry({ date: '2027-06-01' })];
+    const result = computeCashflowYearTable(midYearTransferProperty, midYearTransferStatus, [], 2027, today, [], 0.4);
+
+    expect(result.isFutureYear).toBe(true);
+
+    const february = result.months.find((m) => m.month === 2)!;
+    expect(february.isOwned).toBe(false);
+    expect(february.hasMortgagePayment).toBe(true);
+    expect(february.lineItems.incomeWE).toBe(0);
+
+    const july = result.months.find((m) => m.month === 7)!;
+    expect(july.isOwned).toBe(true);
+    expect(july.lineItems.incomeWE).toBeCloseTo(f.coldRentMonthly * 0.6, 2);
+  });
 });
