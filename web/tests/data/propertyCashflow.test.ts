@@ -585,13 +585,18 @@ describe('computeCashflowYearTable — leerstandQuoteOverride (rest of current y
   const statusEntries = [makeStatusEntry()]; // vermietet from 2026-02-01
   const today = makeDate(2026, 8, 15); // August
 
-  it('the current month itself is never overridden, even with leerstandQuoteOverride set', () => {
-    const withOverride = computeCashflowYearTable(property, statusEntries, [], 2026, today, [], 0, 1);
-    const withoutOverride = computeCashflowYearTable(property, statusEntries, [], 2026, today, [], 0);
-    const augustWith = withOverride.months.find((m) => m.month === 8)!;
-    const augustWithout = withoutOverride.months.find((m) => m.month === 8)!;
-    expect(augustWith.lineItems.incomeWE).toBeCloseTo(augustWithout.lineItems.incomeWE, 2);
-    expect(augustWith.statusLabelsWE).toEqual(augustWithout.statusLabelsWE);
+  it('the current month IS included in the override once set, matching the existing tax mechanism (computeTaxCurrentYear)', () => {
+    const result = computeCashflowYearTable(property, statusEntries, [], 2026, today, [], 0, 1); // 100% leerstand, today = Aug 15
+    const august = result.months.find((m) => m.month === 8)!;
+    expect(august.lineItems.incomeWE).toBe(0);
+    expect(august.statusLabelsWE).toEqual([]);
+  });
+
+  it('a month before the current month is never overridden, regardless of leerstandQuoteOverride', () => {
+    const result = computeCashflowYearTable(property, statusEntries, [], 2026, today, [], 0, 1); // 100% leerstand, today = Aug 15
+    const july = result.months.find((m) => m.month === 7)!;
+    expect(july.lineItems.incomeWE).toBeCloseTo(f.coldRentMonthly, 2);
+    expect(july.statusLabelsWE).toEqual(['vermietet']);
   });
 
   it('months after the current month use the scenario blend once an override is set', () => {
