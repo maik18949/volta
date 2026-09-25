@@ -11,14 +11,20 @@ interface ReadonlySearchParamsLike {
   get(key: string): string | null;
 }
 
+/** How many years into the future the Cashflow- and Steuer-Jahresübersicht year-pickers allow
+ * navigating (`maxYear={currentYear + MAX_FORECAST_YEARS_AHEAD}` in both). Kept as a single
+ * exported constant so both pickers and `initialYearFromParams` below agree on the same bound —
+ * a year the shared `prognoseJahr` param names must always be representable in both tabs. */
+export const MAX_FORECAST_YEARS_AHEAD = 10;
+
 /** The initial year to show: `prognoseJahr` from the URL if it's a representable future year
- * (`currentYear < year <= currentYear + 1`, matching the Cashflow tab's own year-picker bound
- * both Jahresübersicht cards must stay within), else `currentYear`. */
+ * (`currentYear < year <= currentYear + MAX_FORECAST_YEARS_AHEAD`, matching the year-picker
+ * bound both Jahresübersicht cards must stay within), else `currentYear`. */
 export function initialYearFromParams(searchParams: ReadonlySearchParamsLike, currentYear: number): number {
   const prognoseJahrParam = searchParams.get('prognoseJahr');
   if (prognoseJahrParam === null) return currentYear;
   const parsed = Number(prognoseJahrParam);
-  return parsed > currentYear && parsed <= currentYear + 1 ? parsed : currentYear;
+  return parsed > currentYear && parsed <= currentYear + MAX_FORECAST_YEARS_AHEAD ? parsed : currentYear;
 }
 
 /** The default (no override) Leerstandsquote for a future year, as a 0-100 percent — derived

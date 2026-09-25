@@ -7,7 +7,12 @@ import { SectionLabel } from '@/components/ui/SectionLabel';
 import { YearPicker } from '@/components/ui/YearPicker';
 import { computeCashflowForecastMonth, computeCashflowYearTable } from '@/lib/data/propertyCashflow';
 import type { OverviewMetrics } from '@/lib/data/propertyOverview';
-import { initialYearFromParams, defaultForecastQuotePercent, effectiveForecastQuotePercent } from '@/lib/prognoseJahrParam';
+import {
+  initialYearFromParams,
+  defaultForecastQuotePercent,
+  effectiveForecastQuotePercent,
+  MAX_FORECAST_YEARS_AHEAD,
+} from '@/lib/prognoseJahrParam';
 import { ForecastMonthCard } from './ForecastMonthCard';
 import { CashflowYearTable } from './CashflowYearTable';
 import type { Database } from '@/lib/supabase/types';
@@ -120,7 +125,7 @@ export function CashflowTab({
       <Card>
         <div className="mb-3.5 flex items-center justify-between">
           <SectionLabel className="mb-0">Jahresübersicht</SectionLabel>
-          <YearPicker year={year} onChange={setYear} minYear={minYear} maxYear={currentYear + 1} />
+          <YearPicker year={year} onChange={setYear} minYear={minYear} maxYear={currentYear + MAX_FORECAST_YEARS_AHEAD} />
         </div>
         <CashflowYearTable result={yearTable} hasParking={hasParking} />
       </Card>

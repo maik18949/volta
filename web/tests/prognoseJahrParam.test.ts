@@ -20,8 +20,12 @@ describe('initialYearFromParams', () => {
     expect(initialYearFromParams(params({ prognoseJahr: '2027' }), 2026)).toBe(2027);
   });
 
-  it('clamps to currentYear when the URL year is beyond currentYear + 1', () => {
-    expect(initialYearFromParams(params({ prognoseJahr: '2028' }), 2026)).toBe(2026);
+  it('returns the URL year at the outer bound (currentYear + MAX_FORECAST_YEARS_AHEAD)', () => {
+    expect(initialYearFromParams(params({ prognoseJahr: '2036' }), 2026)).toBe(2036);
+  });
+
+  it('clamps to currentYear when the URL year is beyond currentYear + MAX_FORECAST_YEARS_AHEAD', () => {
+    expect(initialYearFromParams(params({ prognoseJahr: '2037' }), 2026)).toBe(2026);
   });
 
   it('rejects a past or current year in the param rather than using it as-is', () => {

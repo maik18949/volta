@@ -7,7 +7,12 @@ import { YearPicker } from '@/components/ui/YearPicker';
 import { QuoteSlider } from '@/components/ui/QuoteSlider';
 import { computeTaxCurrentYear, computeTaxForecastYear, type TaxCurrentYearResult } from '@/lib/data/propertyTax';
 import type { OverviewMetrics } from '@/lib/data/propertyOverview';
-import { initialYearFromParams, defaultForecastQuotePercent, effectiveForecastQuotePercent } from '@/lib/prognoseJahrParam';
+import {
+  initialYearFromParams,
+  defaultForecastQuotePercent,
+  effectiveForecastQuotePercent,
+  MAX_FORECAST_YEARS_AHEAD,
+} from '@/lib/prognoseJahrParam';
 import { CurrentYearSection } from './CurrentYearSection';
 import { ForecastSection } from './ForecastSection';
 import type { Database } from '@/lib/supabase/types';
@@ -142,7 +147,7 @@ export function YearOverviewCard({
             <span className="rounded-[5px] bg-slate-100 px-2 py-[3px] text-[11px] font-bold text-slate-700">Ist</span>
           )}
         </div>
-        <YearPicker year={year} onChange={handleYearChange} minYear={minYear} maxYear={currentYear + 1} />
+        <YearPicker year={year} onChange={handleYearChange} minYear={minYear} maxYear={currentYear + MAX_FORECAST_YEARS_AHEAD} />
       </div>
       {isFuture && (
         <div className="mb-3">
