@@ -60,7 +60,7 @@ function scenarioBlendLineItems(
 }
 
 /**
- * Cashflow tab Card 1 ("Prognose / Monat") — a settings-only typical month
+ * Cashflow tab Card 1 ("Laufendes Jahr / Monatlich") — a settings-only typical month
  * blended between a full vollvermietung and a full leerstand scenario by
  * `leerstandQuote` (0 = vollvermietung, 1 = leerstand), per
  * blendCashflowLineItems. That blend always applies to the line items above,

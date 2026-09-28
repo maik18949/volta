@@ -118,7 +118,7 @@ export function CashflowTab({
   return (
     <div className="flex flex-col gap-4">
       <Card>
-        <SectionLabel>Prognose / Monat</SectionLabel>
+        <SectionLabel>Laufendes Jahr / Monatlich</SectionLabel>
         <ForecastMonthCard result={forecast} hasParking={hasParking} quote={quote} steuerHref={steuerHref} />
       </Card>
 
