@@ -61,6 +61,20 @@ Immobilie automatisch anlegen lassen: Dokumente (Kaufvertrag, Exposé, Grundbuch
 **Bankanbindung**
 Automatischer Kontoabgleich für die Ist-Werte im Cashflow (Mieteingänge, Nebenkosten, Kreditraten) statt manueller Erfassung — über eine PSD2-lizenzierte Kontoschnittstelle (z. B. GoCardless Bank Account Data, FinAPI, Tink) statt einer Eigenentwicklung der Bankanbindung.
 
+**Investment-Rechner Neugestaltung**
+Der Investment-Rechner muss grundlegend neu gemacht werden.
+
+**Wizard: Summary/Zwischenwerte-Design überarbeiten**
+Beim Anlegen einer Immobilie ist das Design der Summary/Zwischenwerte unten auf der Seite sowie am Rand überarbeitungsbedürftig.
+
+### Offene Punkte
+
+**Allgemeine Performance:** Die App könnte insgesamt spürbar schneller laden — kein akuter Einzelfehler, sondern über mehrere Bereiche hinweg spürbar. Noch nicht systematisch untersucht (grober Check: was lädt langsam, wo).
+
+**URL-Race beim schnellen Tab-Wechsel (Leerstandsquote-Regler):** Der Reglerwert wird debounced (400ms) in die URL geschrieben. Wechselt man innerhalb dieser 400ms den Tab, greift der Sidebar-Link noch auf den alten, noch nicht committeten Wert zu — der frisch gesetzte Wert geht verloren. Mögliche Lösungen: Wert beim Verlassen der Seite sofort ohne Debounce committen, oder den letzten Live-Wert zusätzlich synchron (z. B. sessionStorage) verfügbar machen.
+
+**Fixbetrag-Option fehlt im Property-Wizard:** Der "Satz pro Monat"/"Fixbetrag für diesen Zeitraum"-Umschalter für Mietgarantie existiert bisher nur im Verlauf-Tab (`StatusEntryModal.tsx`), nicht im Onboarding-Schritt beim Anlegen einer Immobilie (`StepStatusOnboarding.tsx`), der weiterhin nur ein einzelnes monatliches Einnahmefeld hat.
+
 ## Vorgehen
 
 Volta ist ein Solo-Projekt. Architektur, Datenmodell und Produktentscheidungen werden selbst getätigt und durch Claude validiert. Implementierung liegt komplett bei Claude.
