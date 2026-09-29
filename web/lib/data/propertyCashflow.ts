@@ -314,15 +314,13 @@ export function computeCashflowYearTable(
   const isFutureYear = year > currentYear;
 
   // Identisch zu annualTaxableIncomeBreakdown's leerstandQuoteOverride.fromMonth-Formel
-  // (siehe lib/data/propertyTax.ts) — und wie dort schließt das den laufenden Monat (den, in
-  // dem "today" liegt) MIT ein, sobald ein Override gesetzt ist; er wird nicht ausgespart.
-  // Das ist auf der Steuer-Seite bewusstes, getestetes Verhalten (siehe
-  // tests/calculations/taxCalculator.test.ts, 'leerstandQuoteOverride blends only months from
-  // the given month onward, leaves earlier months as real Ist', wo fromMonth gleich dem
-  // aktuellen Monat von "today" ist und dieser Monat im Override enthalten ist). Card 2 spiegelt
-  // diesen Cutoff exakt, damit Cashflow und Steuer-Tab hier nicht auseinanderlaufen. makeDate
-  // erwartet einen 1-indizierten Monat; getUTCMonth() ist 0-indiziert, daher +1.
-  const overrideFromMonth = makeDate(today.getUTCFullYear(), today.getUTCMonth() + 1, 1);
+  // (siehe lib/data/propertyTax.ts) — der laufende Monat (der, in dem "today" liegt) bleibt
+  // ausgespart, der Override greift erst ab dem Folgemonat. Grund: Miete wird typischerweise im
+  // Voraus bezahlt, die Einnahmen für den laufenden Monat sind also schon geflossen, egal welche
+  // Annahme der Regler für die Zukunft trifft. Card 2 spiegelt diesen Cutoff exakt, damit Cashflow
+  // und Steuer-Tab hier nicht auseinanderlaufen. makeDate erwartet einen 1-indizierten Monat;
+  // getUTCMonth() ist 0-indiziert, daher +2 für den Folgemonat (+1 wäre der laufende Monat).
+  const overrideFromMonth = makeDate(today.getUTCFullYear(), today.getUTCMonth() + 2, 1);
 
   const hoaFeeNonRecoverableMonthly = hoaNonRecoverableMonthly(
     property.hoa_fee_total_monthly,

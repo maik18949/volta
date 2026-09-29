@@ -585,17 +585,18 @@ describe('computeCashflowYearTable — leerstandQuoteOverride (rest of current y
   const statusEntries = [makeStatusEntry()]; // vermietet from 2026-02-01
   const today = makeDate(2026, 8, 15); // August
 
-  it('the current month IS included in the override once set, matching the existing tax mechanism (computeTaxCurrentYear)', () => {
+  it('the current month is never overridden, even once an override is set (Miete im Voraus — rent for it has typically already been received)', () => {
     const result = computeCashflowYearTable(property, statusEntries, [], 2026, today, [], 0, 1); // 100% leerstand, today = Aug 15
     const august = result.months.find((m) => m.month === 8)!;
-    expect(august.lineItems.incomeWE).toBe(0);
-    expect(august.statusLabelsWE).toEqual([]);
+    expect(august.lineItems.incomeWE).toBeCloseTo(f.coldRentMonthly, 2);
+    expect(august.statusLabelsWE).toEqual(['vermietet']);
+    expect(august.isProjection).toBe(false);
   });
 
-  it('a scenario-blended current month is marked isProjection (regression: table legend says "kursiv = projiziert")', () => {
+  it('a scenario-blended month (the one right after today) is marked isProjection (regression: table legend says "kursiv = projiziert")', () => {
     const result = computeCashflowYearTable(property, statusEntries, [], 2026, today, [], 0, 1); // 100% leerstand, today = Aug 15
-    const august = result.months.find((m) => m.month === 8)!;
-    expect(august.isProjection).toBe(true);
+    const september = result.months.find((m) => m.month === 9)!;
+    expect(september.isProjection).toBe(true);
   });
 
   it('a month before the current month stays isProjection false, regardless of leerstandQuoteOverride', () => {
