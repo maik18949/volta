@@ -20,7 +20,7 @@ export function PercentField<T extends FieldValues>({
   className?: string;
 }) {
   const { field } = useController({ name, control });
-  const displayValue = typeof field.value === 'number' ? field.value * 100 : '';
+  const displayValue = typeof field.value === 'number' ? Number((field.value * 100).toFixed(6)) : '';
 
   return (
     <label className={twMerge('block', className)}>
