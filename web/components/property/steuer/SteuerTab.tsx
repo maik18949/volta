@@ -4,12 +4,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Card } from '@/components/ui/Card';
 import { SectionLabel } from '@/components/ui/SectionLabel';
-import { YearPicker } from '@/components/ui/YearPicker';
 import { QuoteSlider } from '@/components/ui/QuoteSlider';
-import { computeTaxCurrentYear, computeTaxForecastYear } from '@/lib/data/propertyTax';
+import { computeTaxCurrentYear } from '@/lib/data/propertyTax';
 import type { OverviewMetrics } from '@/lib/data/propertyOverview';
 import { CurrentYearSection } from './CurrentYearSection';
-import { ForecastSection } from './ForecastSection';
+import { YearOverviewCard } from './YearOverviewCard';
 import { AfaBasisCard } from './AfaBasisCard';
 import type { Database } from '@/lib/supabase/types';
 
@@ -35,8 +34,6 @@ export function SteuerTab({
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const currentYear = today.getUTCFullYear();
-  const [forecastYear, setForecastYear] = useState(currentYear + 1);
 
   const economicTransferDate = new Date(property.economic_transfer_date + 'T00:00:00Z');
   const hasParking = property.parking_type !== 'nicht_vorhanden';
@@ -108,11 +105,6 @@ export function SteuerTab({
     };
   }, [liveCurrentYearQuote, setCurrentYearQuote]);
 
-  // Prognose-Regler (Zukunftsjahre): Default = Leerstandsquote seit Kauf (Lebenszeit-Schnitt),
-  // rein lokaler State — kein anderer Tab braucht diesen Wert.
-  const forecastDefaultQuote = overview.actualVacancyRate !== null ? Math.round(overview.actualVacancyRate * 100) : 0;
-  const [forecastQuote, setForecastQuote] = useState(forecastDefaultQuote);
-
   // Nur überschreiben, wenn der (live, lokale) Reglerwert vom berechneten Default abweicht —
   // unverändert (Default unangetastet) liefert dies bit-identisch das bisherige
   // computeTaxCurrentYear-Ergebnis, exakt wie Card 2 im Cashflow-Tab es erwartet
@@ -125,7 +117,6 @@ export function SteuerTab({
         : computeTaxCurrentYear(property, statusEntries, extraordinaryCosts, today, undefined, loanDisbursements),
     [property, statusEntries, extraordinaryCosts, today, liveCurrentYearQuote, currentYearDefaultQuote, loanDisbursements]
   );
-  const forecastResult = computeTaxForecastYear(property, forecastYear, forecastQuote / 100);
 
   return (
     <div className="flex flex-col gap-4">
@@ -147,17 +138,16 @@ export function SteuerTab({
         </Card>
 
         <Card className="flex flex-col">
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-2.5">
-            <div className="flex items-center gap-2.5">
-              <SectionLabel className="mb-0">Prognose</SectionLabel>
-              <span className="rounded-[5px] bg-accent/[0.12] px-2 py-[3px] text-[11px] font-bold text-section-label">Prognose</span>
-            </div>
-            <YearPicker year={forecastYear} onChange={setForecastYear} minYear={currentYear + 1} />
-          </div>
-          <div className="mb-3">
-            <QuoteSlider label="Leerstandsquote" value={forecastQuote} defaultValue={forecastDefaultQuote} onChange={setForecastQuote} />
-          </div>
-          <ForecastSection result={forecastResult} hasParking={hasParking} />
+          <YearOverviewCard
+            property={property}
+            statusEntries={statusEntries}
+            extraordinaryCosts={extraordinaryCosts}
+            loanDisbursements={loanDisbursements}
+            today={today}
+            overview={overview}
+            currentYearResult={currentYearResult}
+            economicTransferDate={economicTransferDate}
+          />
         </Card>
       </div>
 

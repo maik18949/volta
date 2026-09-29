@@ -36,6 +36,8 @@ export function PropertySidebar({
   const searchParams = useSearchParams();
   const basePath = `/properties/${propertyId}`;
   const leerstandParam = searchParams.get('leerstand');
+  const prognoseJahrParam = searchParams.get('prognoseJahr');
+  const prognoseQuoteParam = searchParams.get('prognoseQuote');
 
   return (
     <aside className="flex w-[216px] shrink-0 flex-col border-r border-black/[0.07] bg-white">
@@ -54,8 +56,12 @@ export function PropertySidebar({
           // Der Leerstandsquote-Regler lebt nur in Cashflow/Steuer — nur dorthin mitgeben,
           // damit ein Link zu z.B. "Verlauf" keinen ungenutzten Query-Parameter bekommt.
           const carriesQuote = href === '/cashflow' || href === '/steuer';
-          const hrefWithQuery =
-            carriesQuote && leerstandParam !== null ? `${fullHref}?leerstand=${encodeURIComponent(leerstandParam)}` : fullHref;
+          const params = new URLSearchParams();
+          if (carriesQuote && leerstandParam !== null) params.set('leerstand', leerstandParam);
+          if (carriesQuote && prognoseJahrParam !== null) params.set('prognoseJahr', prognoseJahrParam);
+          if (carriesQuote && prognoseQuoteParam !== null) params.set('prognoseQuote', prognoseQuoteParam);
+          const query = params.toString();
+          const hrefWithQuery = query ? `${fullHref}?${query}` : fullHref;
           return (
             <Link
               key={href}

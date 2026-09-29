@@ -3,7 +3,7 @@ import { fixtures as f } from '../calculations/fixtures';
 import { makeDate } from '@/lib/calculations/dateHelpers';
 import type { Database } from '@/lib/supabase/types';
 import { computeCashflowForecastMonth, computeCashflowYearTable } from '@/lib/data/propertyCashflow';
-import { computeTaxCurrentYear } from '@/lib/data/propertyTax';
+import { computeTaxCurrentYear, computeTaxForecastYear } from '@/lib/data/propertyTax';
 
 type PropertyRow = Database['public']['Tables']['properties']['Row'];
 type StatusEntryRow = Database['public']['Tables']['status_entries']['Row'];
@@ -312,12 +312,31 @@ describe('computeCashflowYearTable', () => {
     expect(june.lineItems.hoaRecoverableWE).toBe(0);
   });
 
-  it('a future year (beyond the current year) blanks taxEffectMonthly and every month\'s cashflowAfterTax', () => {
-    const result = computeCashflowYearTable(property, statusEntries, [], 2027, today);
+  it('a future year gets a real taxEffectMonthly from computeTaxForecastYear, using the passed forecastLeerstandQuote', () => {
+    const result = computeCashflowYearTable(property, statusEntries, [], 2027, today, [], 0.2);
+    const forecast = computeTaxForecastYear(property, 2027, 0.2);
     expect(result.isFutureYear).toBe(true);
-    expect(result.taxEffectMonthly).toBeNull();
+    expect(result.taxEffectMonthly).toBe(forecast.taxEffectMonthly);
     const june = result.months.find((m) => m.month === 6)!;
-    expect(june.cashflowAfterTax).toBeNull();
+    expect(june.cashflowAfterTax).toBeCloseTo(june.lineItems.cashflowBeforeTax + forecast.taxEffectMonthly, 6);
+  });
+
+  it('omitting forecastLeerstandQuote defaults to 0 (Vollvermietung assumption)', () => {
+    const withDefault = computeCashflowYearTable(property, statusEntries, [], 2027, today);
+    const withExplicitZero = computeCashflowYearTable(property, statusEntries, [], 2027, today, [], 0);
+    expect(withDefault).toEqual(withExplicitZero);
+  });
+
+  it('a different forecastLeerstandQuote changes the future year\'s taxEffectMonthly', () => {
+    const vollvermietung = computeCashflowYearTable(property, statusEntries, [], 2027, today, [], 0);
+    const volleLeerstand = computeCashflowYearTable(property, statusEntries, [], 2027, today, [], 1);
+    expect(volleLeerstand.taxEffectMonthly).not.toBe(vollvermietung.taxEffectMonthly);
+  });
+
+  it('the current/past year path is unaffected by forecastLeerstandQuote (regression guard)', () => {
+    const withoutQuote = computeCashflowYearTable(property, statusEntries, [], 2026, today);
+    const withQuote = computeCashflowYearTable(property, statusEntries, [], 2026, today, [], 1);
+    expect(withQuote).toEqual(withoutQuote);
   });
 
   it('the current year does not blank taxEffectMonthly, and it matches computeTaxCurrentYear', () => {
@@ -558,5 +577,122 @@ describe('computeCashflowYearTable — Ø/Total include pre-ownership Kreditrate
     expect(result.mortgageMonthCount).toBe(0);
     expect(result.totalColumn).toBeNull();
     expect(result.avgColumn).toBeNull();
+  });
+});
+
+describe('computeCashflowYearTable — leerstandQuoteOverride (rest of current year)', () => {
+  const property = makeProperty();
+  const statusEntries = [makeStatusEntry()]; // vermietet from 2026-02-01
+  const today = makeDate(2026, 8, 15); // August
+
+  it('the current month is never overridden, even once an override is set (Miete im Voraus — rent for it has typically already been received)', () => {
+    const result = computeCashflowYearTable(property, statusEntries, [], 2026, today, [], 0, 1); // 100% leerstand, today = Aug 15
+    const august = result.months.find((m) => m.month === 8)!;
+    expect(august.lineItems.incomeWE).toBeCloseTo(f.coldRentMonthly, 2);
+    expect(august.statusLabelsWE).toEqual(['vermietet']);
+    expect(august.isProjection).toBe(false);
+  });
+
+  it('a scenario-blended month (the one right after today) is marked isProjection (regression: table legend says "kursiv = projiziert")', () => {
+    // Note: since the override cutoff now always excludes the current month (see the
+    // "never overridden" test above), any override-blended month is necessarily also later
+    // than today's month, so this invariant currently can't be violated independently of the
+    // plain date check — it's still worth asserting explicitly (documents the intent, guards
+    // against a future cutoff change reintroducing the gap this line was originally added for).
+    const result = computeCashflowYearTable(property, statusEntries, [], 2026, today, [], 0, 1); // 100% leerstand, today = Aug 15
+    const september = result.months.find((m) => m.month === 9)!;
+    expect(september.isProjection).toBe(true);
+  });
+
+  it('a month before the current month stays isProjection false, regardless of leerstandQuoteOverride', () => {
+    const result = computeCashflowYearTable(property, statusEntries, [], 2026, today, [], 0, 1); // 100% leerstand, today = Aug 15
+    const july = result.months.find((m) => m.month === 7)!;
+    expect(july.isProjection).toBe(false);
+  });
+
+  it('a month before the current month is never overridden, regardless of leerstandQuoteOverride', () => {
+    const result = computeCashflowYearTable(property, statusEntries, [], 2026, today, [], 0, 1); // 100% leerstand, today = Aug 15
+    const july = result.months.find((m) => m.month === 7)!;
+    expect(july.lineItems.incomeWE).toBeCloseTo(f.coldRentMonthly, 2);
+    expect(july.statusLabelsWE).toEqual(['vermietet']);
+  });
+
+  it('months after the current month use the scenario blend once an override is set', () => {
+    const result = computeCashflowYearTable(property, statusEntries, [], 2026, today, [], 0, 1); // 100% leerstand
+    const september = result.months.find((m) => m.month === 9)!;
+    expect(september.lineItems.incomeWE).toBe(0);
+    expect(september.statusLabelsWE).toEqual([]);
+  });
+
+  it('without leerstandQuoteOverride, months after today keep projecting the last known status (regression guard)', () => {
+    const result = computeCashflowYearTable(property, statusEntries, [], 2026, today);
+    const december = result.months.find((m) => m.month === 12)!;
+    expect(december.lineItems.incomeWE).toBeCloseTo(f.coldRentMonthly, 2);
+    expect(december.statusLabelsWE).toEqual(['vermietet']);
+  });
+
+  it('a partial quote blends income proportionally, not discretely', () => {
+    const result = computeCashflowYearTable(property, statusEntries, [], 2026, today, [], 0, 0.3);
+    const september = result.months.find((m) => m.month === 9)!;
+    expect(september.lineItems.incomeWE).toBeCloseTo(f.coldRentMonthly * 0.7, 2);
+  });
+
+  it('leerstandQuoteOverride also feeds the current-year tax effect, matching computeTaxCurrentYear with the same override', () => {
+    const result = computeCashflowYearTable(property, statusEntries, [], 2026, today, [], 0, 1);
+    const direct = computeTaxCurrentYear(property, statusEntries, [], today, 1);
+    expect(result.taxEffectMonthly).toBe(direct.taxEffectMonthly);
+  });
+
+  it('omitting leerstandQuoteOverride keeps the whole result byte-identical to before (regression guard)', () => {
+    const withExplicitUndefined = computeCashflowYearTable(property, statusEntries, [], 2026, today, [], 0, undefined);
+    const withoutArg = computeCashflowYearTable(property, statusEntries, [], 2026, today, [], 0);
+    expect(withExplicitUndefined).toEqual(withoutArg);
+  });
+
+  it('a December "today" leaves no month left in the same year for the override to apply to (documented edge case, not a bug)', () => {
+    // overrideFromMonth = 1st of the month after December = January of the FOLLOWING year, which
+    // never satisfies `monthDate >= overrideFromMonth` for any month within the requested year —
+    // so the override becomes a complete no-op once "today" is in December, consistent with
+    // "the current month is never overridden" leaving nothing left over to project.
+    const decemberToday = makeDate(2026, 12, 15);
+    const withOverride = computeCashflowYearTable(property, statusEntries, [], 2026, decemberToday, [], 0, 1); // 100% leerstand
+    const withoutOverride = computeCashflowYearTable(property, statusEntries, [], 2026, decemberToday);
+    expect(withOverride).toEqual(withoutOverride);
+  });
+});
+
+describe('computeCashflowYearTable — fully future years always use the scenario blend', () => {
+  const property = makeProperty();
+  const statusEntries = [makeStatusEntry()];
+  const today = makeDate(2026, 8, 15);
+
+  it('a future year with no leerstandQuoteOverride still uses the scenario blend (forecastLeerstandQuote), not real status projection', () => {
+    const result = computeCashflowYearTable(property, statusEntries, [], 2027, today, [], 0.4);
+    const june = result.months.find((m) => m.month === 6)!;
+    expect(june.lineItems.incomeWE).toBeCloseTo(f.coldRentMonthly * 0.6, 2);
+    expect(june.statusLabelsWE).toEqual([]);
+  });
+
+  it('pre-ownership months in an otherwise-blended future year stay at 0 income, not blended via forecastLeerstandQuote', () => {
+    // Transferred mid-way through the future year 2027 — months before the transfer are
+    // pre-ownership (ownerFraction <= 0, the early-continue branch) and must never reach the
+    // scenarioQuoteForMonth/scenarioBlendLineItems path, even though the year as a whole
+    // isFutureYear and would otherwise qualify for the blend. loan_start_date stays at its
+    // default (2025-10-01, before the transfer), so February is a hasMortgagePayment-only
+    // pre-ownership month — the case this early-continue branch exists for in the first place.
+    const midYearTransferProperty = makeProperty({ economic_transfer_date: '2027-06-01' });
+    const midYearTransferStatus = [makeStatusEntry({ date: '2027-06-01' })];
+    const result = computeCashflowYearTable(midYearTransferProperty, midYearTransferStatus, [], 2027, today, [], 0.4);
+
+    expect(result.isFutureYear).toBe(true);
+
+    const february = result.months.find((m) => m.month === 2)!;
+    expect(february.isOwned).toBe(false);
+    expect(february.hasMortgagePayment).toBe(true);
+    expect(february.lineItems.incomeWE).toBe(0);
+
+    const july = result.months.find((m) => m.month === 7)!;
+    expect(july.isOwned).toBe(true);
+    expect(july.lineItems.incomeWE).toBeCloseTo(f.coldRentMonthly * 0.6, 2);
   });
 });

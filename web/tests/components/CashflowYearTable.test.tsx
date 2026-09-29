@@ -102,3 +102,47 @@ describe('CashflowYearTable — Cashflow nach Steuern Ø/Total reconciliation', 
     expect(avg * mortgageMonthCount).toBeCloseTo(total, 2);
   });
 });
+
+describe('CashflowYearTable — future year rendering', () => {
+  it('renders the same Steuererstattung/Cashflow-nach-Steuern rows for a future year, not the old warning', () => {
+    const ownershipMonthCount = 12;
+    const mortgageMonthCount = 12;
+    const taxEffectMonthly = 250;
+    const totalCashflowBeforeTax = -6000;
+    const avgCashflowBeforeTax = totalCashflowBeforeTax / mortgageMonthCount;
+
+    const totalColumn: CashflowLineItems = { ...ZERO_LINE_ITEMS, mortgage: -6000, cashflowBeforeTax: totalCashflowBeforeTax };
+    const avgColumn: CashflowLineItems = { ...ZERO_LINE_ITEMS, mortgage: -500, cashflowBeforeTax: avgCashflowBeforeTax };
+
+    const months: CashflowMonthColumn[] = Array.from({ length: 12 }, (_, i) =>
+      makeMonth(i + 1, {
+        isOwned: true,
+        hasMortgagePayment: true,
+        lineItems: { ...ZERO_LINE_ITEMS, mortgage: -500, cashflowBeforeTax: -500 },
+        cashflowAfterTax: -500 + taxEffectMonthly,
+      })
+    );
+
+    const result: CashflowYearTableResult = {
+      year: 2027,
+      isFutureYear: true,
+      months,
+      ownershipMonthCount,
+      mortgageMonthCount,
+      avgColumn,
+      totalColumn,
+      extraordinaryCostsTotalForYear: 0,
+      extraordinaryCostsAvgForYear: null,
+      extraordinaryCostsEntryCountForYear: 0,
+      taxEffectMonthly,
+      hoaUnitSplitWarning: false,
+      hoaParkingSplitWarning: false,
+    };
+
+    render(<CashflowYearTable result={result} hasParking={false} />);
+
+    expect(screen.getByText('Steuererstattung Ø / Mon')).toBeInTheDocument();
+    expect(screen.getByText('Cashflow nach Steuern')).toBeInTheDocument();
+    expect(screen.queryByText(/Steuereffekt für Zukunftsjahre/)).not.toBeInTheDocument();
+  });
+});

@@ -265,43 +265,33 @@ export function CashflowYearTable({ result, hasParking }: { result: CashflowYear
               <SummaryCell items={result.totalColumn} select={(i) => i.cashflowBeforeTax} />
             </tr>
 
-            {result.isFutureYear ? (
-              <tr>
-                <td colSpan={columnCount} className="px-1.5 pt-2 text-[11px] text-warning">
-                  ⚠ Steuereffekt für Zukunftsjahre: Muss noch genauer nachgedacht werden wie wir das machen.
+            <tr className="text-accent">
+              <td className={`${TD_LABEL} text-accent`}>Steuererstattung Ø / Mon</td>
+              {result.months.map((col) => (
+                <td key={col.month} className={`${TD_VALUE} ${col.isOwned ? 'text-accent' : 'text-text-dim'}`}>
+                  {col.isOwned && result.taxEffectMonthly !== null ? formatCurrency(result.taxEffectMonthly) : '–'}
                 </td>
-              </tr>
-            ) : (
-              <>
-                <tr className="text-accent">
-                  <td className={`${TD_LABEL} text-accent`}>Steuererstattung Ø / Mon</td>
-                  {result.months.map((col) => (
-                    <td key={col.month} className={`${TD_VALUE} ${col.isOwned ? 'text-accent' : 'text-text-dim'}`}>
-                      {col.isOwned && result.taxEffectMonthly !== null ? formatCurrency(result.taxEffectMonthly) : '–'}
-                    </td>
-                  ))}
-                  <td className={TD_SUMMARY} />
-                  <td className={TD_SUMMARY} />
-                </tr>
-                <tr className="font-bold [&>td]:border-t-2 [&>td]:border-accent/25">
-                  <td className={`${TD_LABEL} text-text-primary`}>Cashflow nach Steuern</td>
-                  {result.months.map((col) => (
-                    <td
-                      key={col.month}
-                      className={`${TD_VALUE} ${col.cashflowAfterTax !== null ? amountColorClass(col.cashflowAfterTax) : 'text-text-dim'}`}
-                    >
-                      {col.cashflowAfterTax !== null ? formatCurrency(col.cashflowAfterTax) : '–'}
-                    </td>
-                  ))}
-                  <td className={`${TD_SUMMARY} ${afterTaxAvg !== null ? amountColorClass(afterTaxAvg) : 'text-text-dim'}`}>
-                    {afterTaxAvg !== null ? formatCurrency(afterTaxAvg) : '–'}
-                  </td>
-                  <td className={`${TD_SUMMARY} ${afterTaxTotal !== null ? amountColorClass(afterTaxTotal) : 'text-text-dim'}`}>
-                    {afterTaxTotal !== null ? formatCurrency(afterTaxTotal) : '–'}
-                  </td>
-                </tr>
-              </>
-            )}
+              ))}
+              <td className={TD_SUMMARY} />
+              <td className={TD_SUMMARY} />
+            </tr>
+            <tr className="font-bold [&>td]:border-t-2 [&>td]:border-accent/25">
+              <td className={`${TD_LABEL} text-text-primary`}>Cashflow nach Steuern</td>
+              {result.months.map((col) => (
+                <td
+                  key={col.month}
+                  className={`${TD_VALUE} ${col.cashflowAfterTax !== null ? amountColorClass(col.cashflowAfterTax) : 'text-text-dim'}`}
+                >
+                  {col.cashflowAfterTax !== null ? formatCurrency(col.cashflowAfterTax) : '–'}
+                </td>
+              ))}
+              <td className={`${TD_SUMMARY} ${afterTaxAvg !== null ? amountColorClass(afterTaxAvg) : 'text-text-dim'}`}>
+                {afterTaxAvg !== null ? formatCurrency(afterTaxAvg) : '–'}
+              </td>
+              <td className={`${TD_SUMMARY} ${afterTaxTotal !== null ? amountColorClass(afterTaxTotal) : 'text-text-dim'}`}>
+                {afterTaxTotal !== null ? formatCurrency(afterTaxTotal) : '–'}
+              </td>
+            </tr>
           </tbody>
         </table>
       </div>

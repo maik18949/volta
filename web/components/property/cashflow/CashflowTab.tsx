@@ -1,12 +1,18 @@
 'use client';
 
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { SectionLabel } from '@/components/ui/SectionLabel';
 import { YearPicker } from '@/components/ui/YearPicker';
 import { computeCashflowForecastMonth, computeCashflowYearTable } from '@/lib/data/propertyCashflow';
 import type { OverviewMetrics } from '@/lib/data/propertyOverview';
+import {
+  initialYearFromParams,
+  defaultForecastQuotePercent,
+  effectiveForecastQuotePercent,
+  MAX_FORECAST_YEARS_AHEAD,
+} from '@/lib/prognoseJahrParam';
 import { ForecastMonthCard } from './ForecastMonthCard';
 import { CashflowYearTable } from './CashflowYearTable';
 import type { Database } from '@/lib/supabase/types';
@@ -32,8 +38,25 @@ export function CashflowTab({
   loanDisbursements: LoanDisbursementRow[];
 }) {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const currentYear = today.getUTCFullYear();
-  const [year, setYear] = useState(currentYear);
+  const prognoseJahrParam = searchParams.get('prognoseJahr');
+  const initialYear = initialYearFromParams(searchParams, currentYear);
+  const [year, setYearState] = useState(initialYear);
+
+  function setYear(nextYear: number) {
+    setYearState(nextYear);
+    const params = new URLSearchParams(searchParams.toString());
+    if (nextYear > currentYear) {
+      params.set('prognoseJahr', String(nextYear));
+      params.delete('prognoseQuote'); // Cashflow hat keinen eigenen Regler -> immer Standardannahme
+    } else {
+      params.delete('prognoseJahr');
+      params.delete('prognoseQuote');
+    }
+    const query = params.toString();
+    router.replace(query ? `?${query}` : '?', { scroll: false });
+  }
 
   // Gleicher Default wie der "Laufendes Jahr"-Regler im Steuer-Tab — kein eigener
   // Regler mehr hier, nur Anzeige. Bewegt der Nutzer den Regler im Steuer-Tab, kommt
@@ -46,6 +69,15 @@ export function CashflowTab({
   // SteuerTab.tsx.
   const parsedLeerstandParam = leerstandParam !== null ? Number(leerstandParam) : NaN;
   const quote = Number.isFinite(parsedLeerstandParam) ? Math.min(100, Math.max(0, parsedLeerstandParam)) : defaultQuote;
+
+  // Geteilter Zukunfts-Leerstand mit der Steuer-Tab-Jahresübersicht (YearOverviewCard): wenn das
+  // hier gewählte Jahr mit ?prognoseJahr übereinstimmt, übernehmen wir deren ?prognoseQuote-Wert,
+  // sonst greift der property-eigene Standard (gleiche Formel wie YearOverviewCard's
+  // forecastDefaultQuote — bewusst NICHT overview.actualVacancyRateYear, das ist Card 1's eigener,
+  // anderer Default).
+  const forecastDefaultQuote = defaultForecastQuotePercent(overview.actualVacancyRate);
+  const prognoseQuoteParam = searchParams.get('prognoseQuote');
+  const forecastLeerstandQuote = effectiveForecastQuotePercent(searchParams, currentYear, year, forecastDefaultQuote) / 100;
 
   const forecast = computeCashflowForecastMonth(
     property,
@@ -61,21 +93,39 @@ export function CashflowTab({
   // A year picker lower bound of just the transfer year would hide a year where the loan
   // was already running (Kreditrate) but ownership hadn't transferred yet.
   const minYear = Math.min(economicTransferDate.getUTCFullYear(), loanStartDate.getUTCFullYear());
-  const yearTable = computeCashflowYearTable(property, statusEntries, extraordinaryCosts, year, today, loanDisbursements);
+  // Gleiches Muster wie computeCashflowForecastMonth (Card 1): nur wenn der Regler vom
+  // Standard abweicht, wird der Override überhaupt weitergegeben — bei unberührtem Regler
+  // bleibt computeCashflowYearTable byte-identisch zu vorher.
+  const leerstandQuoteOverride = quote === defaultQuote ? undefined : quote / 100;
+  const yearTable = computeCashflowYearTable(
+    property,
+    statusEntries,
+    extraordinaryCosts,
+    year,
+    today,
+    loanDisbursements,
+    forecastLeerstandQuote,
+    leerstandQuoteOverride
+  );
   const hasParking = property.parking_type !== 'nicht_vorhanden';
-  const steuerHref = `/properties/${property.id}/steuer${leerstandParam !== null ? `?leerstand=${encodeURIComponent(leerstandParam)}` : ''}`;
+  const steuerLinkParams = new URLSearchParams();
+  if (leerstandParam !== null) steuerLinkParams.set('leerstand', leerstandParam);
+  if (prognoseJahrParam !== null) steuerLinkParams.set('prognoseJahr', prognoseJahrParam);
+  if (prognoseQuoteParam !== null) steuerLinkParams.set('prognoseQuote', prognoseQuoteParam);
+  const steuerLinkQuery = steuerLinkParams.toString();
+  const steuerHref = `/properties/${property.id}/steuer${steuerLinkQuery ? `?${steuerLinkQuery}` : ''}`;
 
   return (
     <div className="flex flex-col gap-4">
       <Card>
-        <SectionLabel>Prognose / Monat</SectionLabel>
+        <SectionLabel>Laufendes Jahr / Monatlich</SectionLabel>
         <ForecastMonthCard result={forecast} hasParking={hasParking} quote={quote} steuerHref={steuerHref} />
       </Card>
 
       <Card>
         <div className="mb-3.5 flex items-center justify-between">
           <SectionLabel className="mb-0">Jahresübersicht</SectionLabel>
-          <YearPicker year={year} onChange={setYear} minYear={minYear} maxYear={currentYear + 1} />
+          <YearPicker year={year} onChange={setYear} minYear={minYear} maxYear={currentYear + MAX_FORECAST_YEARS_AHEAD} />
         </div>
         <CashflowYearTable result={yearTable} hasParking={hasParking} />
       </Card>

@@ -98,13 +98,23 @@ export function annualTaxableIncomeBreakdown(input: AnnualTaxableIncomeBreakdown
       ownershipMonths.push(d);
     }
   }
-  if (ownershipMonths.length === 0) return ZERO_TAX_LINE_ITEMS;
-  const stellplatzHistory = input.stellplatzStatusHistory ?? input.statusHistory;
-
   const interestYear =
     input.disbursements && input.disbursements.length > 0
       ? stagedInterestForCalendarYear(input.year, input.disbursements, input.interestRate, input.monthlyMortgage).deductible
       : interestForCalendarYear(input.year, input.loanStartDate, input.loanAmount, input.interestRate, input.monthlyMortgage);
+
+  if (ownershipMonths.length === 0) {
+    // A calendar year entirely before economicTransferDate still deducts real interest if the
+    // loan had already started that year (interestForCalendarYear/stagedInterestForCalendarYear
+    // are computed purely from loan timing, independent of ownership) — everything
+    // ownership-dependent (income, AfA, Nebenkosten) stays 0, mirroring propertyCashflow.ts's
+    // pre-transfer Kreditrate handling. See docs/superpowers/specs/2026-09-24-steuer-jahresuebersicht-design.md.
+    // `0 - interestYear`, not `-interestYear`: avoids producing -0 when interestYear is exactly 0,
+    // which would fail a `toBe(0)` assertion (Object.is(-0, 0) is false).
+    return { ...ZERO_TAX_LINE_ITEMS, interest: interestYear, taxableIncome: 0 - interestYear };
+  }
+
+  const stellplatzHistory = input.stellplatzStatusHistory ?? input.statusHistory;
 
   const afaYear = isAcquisitionYear
     ? (input.afaBasis * input.depreciationRate / 12) * ownershipMonths.length

@@ -221,7 +221,7 @@ export interface CashflowScenarioInput {
 }
 
 /**
- * Card 1 ("Prognose / Monat") basis — a full settings-only month for a chosen
+ * Card 1 ("Laufendes Jahr / Monatlich") basis — a full settings-only month for a chosen
  * scenario, no status history. Vollvermietung: full income, tenant pays
  * recoverable WE costs (0 owner-borne). Leerstand: zero income, owner bears
  * the full recoverable WE costs. Parking (TE) costs are always owner-borne

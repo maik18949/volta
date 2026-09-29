@@ -50,6 +50,13 @@ export interface TaxCurrentYearResult {
  * omitted or empty, interest is computed the original way from loanAmount/
  * loanStartDate; when tranches exist, non-deductible-tranche interest is
  * excluded from the deducted Werbungskosten-Zinsen.
+ *
+ * `yearOverride` is optional and additive too — omitted, `year` is today's calendar year
+ * (existing behavior, byte-identical). When provided, `year` becomes that value instead, and
+ * `leerstandQuoteOverride` (the "rest of this year" what-if) is only actually applied when the
+ * requested year is genuinely today's calendar year — a past year has no "rest of the year"
+ * to project, it's plain Ist. `yearOverride` isn't intended for future years — use
+ * `computeTaxForecastYear` for those.
  */
 export function computeTaxCurrentYear(
   property: PropertyRow,
@@ -57,12 +64,13 @@ export function computeTaxCurrentYear(
   extraordinaryCostRows: ExtraordinaryCostRow[],
   today: Date = new Date(),
   leerstandQuoteOverride?: number,
-  disbursementRows: LoanDisbursementRow[] = []
+  disbursementRows: LoanDisbursementRow[] = [],
+  yearOverride?: number
 ): TaxCurrentYearResult {
   const { wohnung: statusHistory, stellplatz: stellplatzStatusHistory } = toUnitStatusHistories(statusEntryRows);
   const economicTransferDate = new Date(property.economic_transfer_date + 'T00:00:00Z');
   const loanStartDate = new Date(property.loan_start_date + 'T00:00:00Z');
-  const year = today.getUTCFullYear();
+  const year = yearOverride ?? today.getUTCFullYear();
 
   const hoaFeeNonRecoverableMonthly = hoaNonRecoverableMonthly(
     property.hoa_fee_total_monthly,
@@ -111,9 +119,13 @@ export function computeTaxCurrentYear(
     otherIncomeMonthly: property.other_income_monthly,
     today,
     extraordinaryCostsDeductibleYearly: deductibleExtraordinaryCostsForYear(extraordinaryCostRows, year),
+    // both halves required: a past/future requested year must never get a "rest of year" projection
+    // fromMonth is the month AFTER today's, not today's own — rent is typically paid in advance
+    // (Miete im Voraus), so the current month's income has usually already been received by the
+    // time the user sets an override, regardless of what the override assumes going forward.
     leerstandQuoteOverride:
-      leerstandQuoteOverride !== undefined
-        ? { fromMonth: makeDate(today.getUTCFullYear(), today.getUTCMonth() + 1, 1), quote: leerstandQuoteOverride }
+      leerstandQuoteOverride !== undefined && year === today.getUTCFullYear()
+        ? { fromMonth: makeDate(today.getUTCFullYear(), today.getUTCMonth() + 2, 1), quote: leerstandQuoteOverride }
         : undefined,
   });
 

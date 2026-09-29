@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { fixtures as f } from '../calculations/fixtures';
 import { makeDate } from '@/lib/calculations/dateHelpers';
+import { interestForCalendarYear } from '@/lib/calculations/amortizationCalculator';
 import type { Database } from '@/lib/supabase/types';
 import { computeTaxCurrentYear, computeTaxForecastYear } from '@/lib/data/propertyTax';
 
@@ -166,7 +167,20 @@ describe('computeTaxCurrentYear', () => {
     const futureTransfer = makeProperty({ economic_transfer_date: '2027-01-01' });
     const result = computeTaxCurrentYear(futureTransfer, [], [], today);
     expect(result.transferInFuture).toBe(true);
-    expect(result.lineItems.taxableIncome).toBe(0);
+    // The current year (2026, from `today`) has zero ownership months since the transfer is
+    // in the future, but loan_start_date (2025-10-01, default) already started before 2026 —
+    // real interest is still deducted (Fall-B fix), everything ownership-dependent stays 0.
+    const interest2026 = interestForCalendarYear(
+      2026,
+      makeDate(2025, 10, 1),
+      futureTransfer.loan_amount,
+      futureTransfer.interest_rate,
+      futureTransfer.monthly_mortgage
+    );
+    expect(interest2026).toBeGreaterThan(0);
+    expect(result.lineItems.interest).toBeCloseTo(interest2026, 2);
+    expect(result.lineItems.income).toBe(0);
+    expect(result.lineItems.taxableIncome).toBeCloseTo(-interest2026, 2);
   });
 
   it('lineItems fields are individually wired correctly (insurance, other costs, and parking all nonzero)', () => {
@@ -205,6 +219,37 @@ describe('computeTaxCurrentYear', () => {
     const a = computeTaxCurrentYear(property, statusEntries, [], today);
     const b = computeTaxCurrentYear(property, statusEntries, [], today);
     expect(a).toEqual(b);
+  });
+
+  it('yearOverride switches which year is computed, without touching today-based defaults', () => {
+    const result = computeTaxCurrentYear(property, statusEntries, [], today, undefined, [], 2025);
+    expect(result.year).toBe(2025);
+  });
+
+  it('a past year (yearOverride) with the loan already running deducts real interest instead of returning zero (Fall-B fix reachable here too)', () => {
+    const result = computeTaxCurrentYear(property, statusEntries, [], today, undefined, [], 2025);
+    expect(result.lineItems.interest).toBeGreaterThan(0);
+    expect(result.lineItems.taxableIncome).toBeLessThan(0);
+  });
+
+  it('leerstandQuoteOverride is ignored for any year other than the real current year', () => {
+    // today is 2026-06-15, so 2026 is the real current year; 2025 is not, even though
+    // yearOverride requests it explicitly.
+    const withoutQuoteOverride = computeTaxCurrentYear(property, statusEntries, [], today, undefined, [], 2025);
+    const withQuoteOverride = computeTaxCurrentYear(property, statusEntries, [], today, 1, [], 2025);
+    expect(withQuoteOverride).toEqual(withoutQuoteOverride);
+  });
+
+  it('leerstandQuoteOverride still applies when yearOverride explicitly names the real current year', () => {
+    const withoutYearOverride = computeTaxCurrentYear(property, statusEntries, [], today, 1);
+    const withExplicitCurrentYear = computeTaxCurrentYear(property, statusEntries, [], today, 1, [], 2026);
+    expect(withExplicitCurrentYear).toEqual(withoutYearOverride);
+  });
+
+  it('omitting yearOverride is byte-identical to before (regression guard)', () => {
+    const withoutOverride = computeTaxCurrentYear(property, statusEntries, [], today);
+    const withUndefinedOverride = computeTaxCurrentYear(property, statusEntries, [], today, undefined, [], undefined);
+    expect(withUndefinedOverride).toEqual(withoutOverride);
   });
 });
 

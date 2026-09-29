@@ -10,7 +10,7 @@ import {
   type CashflowLineItems,
 } from '@/lib/calculations/cashflowCalculator';
 import { hoaNonRecoverableMonthly } from '@/lib/calculations/kpiCalculator';
-import { computeTaxCurrentYear } from '@/lib/data/propertyTax';
+import { computeTaxCurrentYear, computeTaxForecastYear } from '@/lib/data/propertyTax';
 import type { LoanDisbursementRow } from '@/lib/data/loanDisbursements';
 
 type PropertyRow = Database['public']['Tables']['properties']['Row'];
@@ -24,7 +24,43 @@ export interface CashflowForecastMonthResult {
 }
 
 /**
- * Cashflow tab Card 1 ("Prognose / Monat") — a settings-only typical month
+ * A single month's line items for a hypothetical Vollvermietung/Leerstand blend at `quote`
+ * (0 = vollvermietung, 1 = leerstand) — shared by Card 1 (always blended) and Card 2's
+ * not-yet-passed months (blended only when a Leerstandsquote override applies). See
+ * docs/superpowers/specs/2026-09-24-cashflow-leerstand-szenario-design.md.
+ */
+function scenarioBlendLineItems(
+  property: PropertyRow,
+  quote: number,
+  extraordinaryCostsThisMonth: number,
+  hoaFeeNonRecoverableMonthly: number,
+  hoaFeeParkingNonRecoverableMonthly: number
+): CashflowLineItems {
+  const scenarioInputBase = {
+    coldRentMonthly: property.cold_rent_monthly,
+    parkingRentMonthly: property.parking_rent_monthly,
+    otherIncomeMonthly: property.other_income_monthly,
+    monthlyMortgage: property.monthly_mortgage,
+    hoaFeeNonRecoverableMonthly,
+    hoaFeeMaintenanceReserveMonthly: property.hoa_fee_maintenance_reserve_monthly,
+    hoaFeeRecoverableMonthly: property.hoa_fee_recoverable_monthly,
+    propertyTaxAnnual: property.property_tax_annual,
+    propertyInsuranceAnnual: property.property_insurance_annual,
+    propertyManagementAnnual: property.property_management_annual,
+    otherCostsMonthly: property.other_costs_monthly,
+    hoaFeeParkingNonRecoverableMonthly,
+    hoaFeeParkingMaintenanceReserveMonthly: property.hoa_fee_parking_maintenance_reserve_monthly,
+    hoaFeeParkingRecoverableMonthly: property.hoa_fee_parking_recoverable_monthly,
+    propertyTaxParkingAnnual: property.property_tax_parking_annual,
+    extraordinaryCostsThisMonth,
+  };
+  const vollvermietungLineItems = cashflowLineItemsForScenario({ scenario: 'vollvermietung', ...scenarioInputBase });
+  const leerstandLineItems = cashflowLineItemsForScenario({ scenario: 'leerstand', ...scenarioInputBase });
+  return blendCashflowLineItems(vollvermietungLineItems, leerstandLineItems, quote);
+}
+
+/**
+ * Cashflow tab Card 1 ("Laufendes Jahr / Monatlich") — a settings-only typical month
  * blended between a full vollvermietung and a full leerstand scenario by
  * `leerstandQuote` (0 = vollvermietung, 1 = leerstand), per
  * blendCashflowLineItems. That blend always applies to the line items above,
@@ -70,28 +106,7 @@ export function computeCashflowForecastMonth(
     property.hoa_fee_parking_maintenance_reserve_monthly
   );
 
-  const scenarioInputBase = {
-    coldRentMonthly: property.cold_rent_monthly,
-    parkingRentMonthly: property.parking_rent_monthly,
-    otherIncomeMonthly: property.other_income_monthly,
-    monthlyMortgage: property.monthly_mortgage,
-    hoaFeeNonRecoverableMonthly,
-    hoaFeeMaintenanceReserveMonthly: property.hoa_fee_maintenance_reserve_monthly,
-    hoaFeeRecoverableMonthly: property.hoa_fee_recoverable_monthly,
-    propertyTaxAnnual: property.property_tax_annual,
-    propertyInsuranceAnnual: property.property_insurance_annual,
-    propertyManagementAnnual: property.property_management_annual,
-    otherCostsMonthly: property.other_costs_monthly,
-    hoaFeeParkingNonRecoverableMonthly,
-    hoaFeeParkingMaintenanceReserveMonthly: property.hoa_fee_parking_maintenance_reserve_monthly,
-    hoaFeeParkingRecoverableMonthly: property.hoa_fee_parking_recoverable_monthly,
-    propertyTaxParkingAnnual: property.property_tax_parking_annual,
-    extraordinaryCostsThisMonth: 0,
-  };
-
-  const vollvermietungLineItems = cashflowLineItemsForScenario({ scenario: 'vollvermietung', ...scenarioInputBase });
-  const leerstandLineItems = cashflowLineItemsForScenario({ scenario: 'leerstand', ...scenarioInputBase });
-  const lineItems = blendCashflowLineItems(vollvermietungLineItems, leerstandLineItems, leerstandQuote);
+  const lineItems = scenarioBlendLineItems(property, leerstandQuote, 0, hoaFeeNonRecoverableMonthly, hoaFeeParkingNonRecoverableMonthly);
 
   const { taxEffectMonthly } =
     leerstandQuote === defaultLeerstandQuote
@@ -284,7 +299,9 @@ export function computeCashflowYearTable(
   extraordinaryCostRows: ExtraordinaryCostRow[],
   year: number,
   today: Date = new Date(),
-  disbursementRows: LoanDisbursementRow[] = []
+  disbursementRows: LoanDisbursementRow[] = [],
+  forecastLeerstandQuote: number = 0, // 0 = Vollvermietung (Cashflow-Tab hat keinen eigenen Regler für Zukunftsjahre)
+  leerstandQuoteOverride?: number
 ): CashflowYearTableResult {
   const { wohnung: statusHistory, stellplatz: stellplatzStatusHistory } = toUnitStatusHistories(statusEntryRows);
   const economicTransferDate = new Date(property.economic_transfer_date + 'T00:00:00Z');
@@ -295,6 +312,18 @@ export function computeCashflowYearTable(
   const mortgageStartDate = loanStartDate.getTime() < economicTransferDate.getTime() ? loanStartDate : economicTransferDate;
   const currentYear = today.getUTCFullYear();
   const isFutureYear = year > currentYear;
+
+  // Identisch zu annualTaxableIncomeBreakdown's leerstandQuoteOverride.fromMonth-Formel
+  // (siehe lib/data/propertyTax.ts) — der laufende Monat (der, in dem "today" liegt) bleibt
+  // ausgespart, der Override greift erst ab dem Folgemonat. Grund: Miete wird typischerweise im
+  // Voraus bezahlt, die Einnahmen für den laufenden Monat sind also schon geflossen, egal welche
+  // Annahme der Regler für die Zukunft trifft. Card 2 spiegelt diesen Cutoff exakt, damit Cashflow
+  // und Steuer-Tab hier nicht auseinanderlaufen. makeDate erwartet einen 1-indizierten Monat;
+  // getUTCMonth() ist 0-indiziert, daher +2 für den Folgemonat (+1 wäre der laufende Monat).
+  // Randfall Dezember: der Folgemonat liegt dann im nächsten Kalenderjahr, wodurch der Override
+  // für das angefragte Jahr komplett wirkungslos wird — beabsichtigt (kein Monat mehr übrig, den
+  // man ab dem Folgemonat noch überschreiben könnte), kein Bug.
+  const overrideFromMonth = makeDate(today.getUTCFullYear(), today.getUTCMonth() + 2, 1);
 
   const hoaFeeNonRecoverableMonthly = hoaNonRecoverableMonthly(
     property.hoa_fee_total_monthly,
@@ -320,9 +349,17 @@ export function computeCashflowYearTable(
     statusEntryRows,
     extraordinaryCostRows,
     today,
-    undefined,
+    leerstandQuoteOverride,
     disbursementRows
   );
+
+  // Zukunftsjahre bekommen einen echten (statt fehlenden) Steuereffekt über dieselbe
+  // Funktion, die auch die Steuer-Tab-Jahresübersicht für Zukunftsjahre nutzt — mit der
+  // vom Aufrufer übergebenen Standard-Leerstandsquote, nicht mit einem eigenen Regler
+  // (der Cashflow-Tab hat keinen). Siehe docs/superpowers/specs/2026-09-24-steuer-jahresuebersicht-design.md.
+  const effectiveTaxEffectMonthly = isFutureYear
+    ? computeTaxForecastYear(property, year, forecastLeerstandQuote).taxEffectMonthly
+    : currentYearTaxEffectMonthly;
 
   const months: CashflowMonthColumn[] = [];
   let ownershipMonthCount = 0;
@@ -358,21 +395,42 @@ export function computeCashflowYearTable(
           ? { ...ZERO_LINE_ITEMS, mortgage: mortgageAmount, cashflowBeforeTax: -mortgageAmount }
           : ZERO_LINE_ITEMS,
         extraordinaryCostRows: monthCostRows,
+        // A pre-ownership month that's ALSO in a future year stays null — deliberately out of
+        // scope (an already-obscure combination: property not yet transferred, viewed for a
+        // future year). See docs/superpowers/specs/2026-09-24-steuer-jahresuebersicht-design.md.
         cashflowAfterTax: hasMortgagePayment && !isFutureYear ? -mortgageAmount : null,
       });
       continue;
     }
 
-    const rawLineItems = lineItemsForMonth(
-      property,
-      statusHistory,
-      stellplatzStatusHistory,
-      monthDate,
-      today,
-      extraordinaryCostsThisMonth,
-      hoaFeeNonRecoverableMonthly,
-      hoaFeeParkingNonRecoverableMonthly
-    );
+    // Single source of truth for "is this month blended, and at what quote" — see PR feedback
+    // on Task 1: this used to be a separately-computed useScenarioBlend boolean plus a ternary
+    // picking the quote at the call site, held together only by an unenforced invariant between
+    // the two (a leerstandQuoteOverride! that was safe only as long as both stayed in sync).
+    const scenarioQuoteForMonth: number | undefined = isFutureYear
+      ? forecastLeerstandQuote
+      : leerstandQuoteOverride !== undefined && monthDate.getTime() >= overrideFromMonth.getTime()
+        ? leerstandQuoteOverride
+        : undefined;
+    const useScenarioBlend = scenarioQuoteForMonth !== undefined;
+    const rawLineItems = scenarioQuoteForMonth !== undefined
+      ? scenarioBlendLineItems(
+          property,
+          scenarioQuoteForMonth,
+          extraordinaryCostsThisMonth,
+          hoaFeeNonRecoverableMonthly,
+          hoaFeeParkingNonRecoverableMonthly
+        )
+      : lineItemsForMonth(
+          property,
+          statusHistory,
+          stellplatzStatusHistory,
+          monthDate,
+          today,
+          extraordinaryCostsThisMonth,
+          hoaFeeNonRecoverableMonthly,
+          hoaFeeParkingNonRecoverableMonthly
+        );
     const lineItems = scaleLineItems(rawLineItems, ownerFraction);
 
     ownershipMonthCount += ownerFraction;
@@ -381,14 +439,15 @@ export function computeCashflowYearTable(
 
     months.push({
       month: m,
-      isProjection: statusHistory.length === 0 || monthDate.getTime() > firstDayOfMonth(today).getTime(),
+      isProjection: useScenarioBlend || statusHistory.length === 0 || monthDate.getTime() > firstDayOfMonth(today).getTime(),
       isOwned: true,
       hasMortgagePayment: true,
-      statusLabelsWE: statusHistory.length === 0 ? [] : statusesForMonth(monthDate, statusHistory, today),
-      statusLabelsTE: stellplatzStatusHistory.length === 0 ? [] : statusesForMonth(monthDate, stellplatzStatusHistory, today),
+      statusLabelsWE: useScenarioBlend || statusHistory.length === 0 ? [] : statusesForMonth(monthDate, statusHistory, today),
+      statusLabelsTE:
+        useScenarioBlend || stellplatzStatusHistory.length === 0 ? [] : statusesForMonth(monthDate, stellplatzStatusHistory, today),
       lineItems,
       extraordinaryCostRows: monthCostRows,
-      cashflowAfterTax: isFutureYear ? null : lineItems.cashflowBeforeTax + currentYearTaxEffectMonthly,
+      cashflowAfterTax: lineItems.cashflowBeforeTax + effectiveTaxEffectMonthly,
     });
   }
 
@@ -424,7 +483,7 @@ export function computeCashflowYearTable(
     extraordinaryCostsAvgForYear:
       extraordinaryCostsEntryCountForYear >= 2 ? extraordinaryCostsTotalForYear / extraordinaryCostsEntryCountForYear : null,
     extraordinaryCostsEntryCountForYear,
-    taxEffectMonthly: isFutureYear ? null : currentYearTaxEffectMonthly,
+    taxEffectMonthly: effectiveTaxEffectMonthly,
     hoaUnitSplitWarning: !property.is_hoa_unit_split,
     hoaParkingSplitWarning: property.parking_type !== 'nicht_vorhanden' && !property.is_hoa_parking_split,
   };
