@@ -320,6 +320,9 @@ export function computeCashflowYearTable(
   // Annahme der Regler für die Zukunft trifft. Card 2 spiegelt diesen Cutoff exakt, damit Cashflow
   // und Steuer-Tab hier nicht auseinanderlaufen. makeDate erwartet einen 1-indizierten Monat;
   // getUTCMonth() ist 0-indiziert, daher +2 für den Folgemonat (+1 wäre der laufende Monat).
+  // Randfall Dezember: der Folgemonat liegt dann im nächsten Kalenderjahr, wodurch der Override
+  // für das angefragte Jahr komplett wirkungslos wird — beabsichtigt (kein Monat mehr übrig, den
+  // man ab dem Folgemonat noch überschreiben könnte), kein Bug.
   const overrideFromMonth = makeDate(today.getUTCFullYear(), today.getUTCMonth() + 2, 1);
 
   const hoaFeeNonRecoverableMonthly = hoaNonRecoverableMonthly(

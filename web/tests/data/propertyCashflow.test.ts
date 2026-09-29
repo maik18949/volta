@@ -594,6 +594,11 @@ describe('computeCashflowYearTable — leerstandQuoteOverride (rest of current y
   });
 
   it('a scenario-blended month (the one right after today) is marked isProjection (regression: table legend says "kursiv = projiziert")', () => {
+    // Note: since the override cutoff now always excludes the current month (see the
+    // "never overridden" test above), any override-blended month is necessarily also later
+    // than today's month, so this invariant currently can't be violated independently of the
+    // plain date check — it's still worth asserting explicitly (documents the intent, guards
+    // against a future cutoff change reintroducing the gap this line was originally added for).
     const result = computeCashflowYearTable(property, statusEntries, [], 2026, today, [], 0, 1); // 100% leerstand, today = Aug 15
     const september = result.months.find((m) => m.month === 9)!;
     expect(september.isProjection).toBe(true);
@@ -642,6 +647,17 @@ describe('computeCashflowYearTable — leerstandQuoteOverride (rest of current y
     const withExplicitUndefined = computeCashflowYearTable(property, statusEntries, [], 2026, today, [], 0, undefined);
     const withoutArg = computeCashflowYearTable(property, statusEntries, [], 2026, today, [], 0);
     expect(withExplicitUndefined).toEqual(withoutArg);
+  });
+
+  it('a December "today" leaves no month left in the same year for the override to apply to (documented edge case, not a bug)', () => {
+    // overrideFromMonth = 1st of the month after December = January of the FOLLOWING year, which
+    // never satisfies `monthDate >= overrideFromMonth` for any month within the requested year —
+    // so the override becomes a complete no-op once "today" is in December, consistent with
+    // "the current month is never overridden" leaving nothing left over to project.
+    const decemberToday = makeDate(2026, 12, 15);
+    const withOverride = computeCashflowYearTable(property, statusEntries, [], 2026, decemberToday, [], 0, 1); // 100% leerstand
+    const withoutOverride = computeCashflowYearTable(property, statusEntries, [], 2026, decemberToday);
+    expect(withOverride).toEqual(withoutOverride);
   });
 });
 
