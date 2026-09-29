@@ -43,9 +43,23 @@ Responsive Umsetzung aller Ansichten (Portfolio, Objektdetail, Wizard, Rechner) 
 **Vision: Makler-Portal**
 Eigenes Portal, über das Makler ihre Objekte einpflegen und Interessenten diese direkt einsehen können — eine mögliche Erweiterung über die private Portfolioverwaltung hinaus.
 
-### Offene Punkte
+**Degressive AfA**
+Neben der linearen AfA optional degressive Abschreibung als Berechnungsvariante anbieten.
 
-**Steuer-Jahresgrenze bei früher Kreditrate:** Wird eine Kreditrate schon vor dem wirtschaftlichen Übergang abgebucht (Darlehensbeginn liegt vor dem Übergangsdatum) und fällt das in ein anderes Kalenderjahr als der Übergang selbst, wird der darin enthaltene abzugsfähige Zins aktuell nicht als Werbungskosten berücksichtigt — die Steuerberechnung für ein Jahr ganz vor dem Übergang liefert pauschal 0. Betrifft nur Fälle mit einer abzugsfähigen (nicht z. B. reinen Versicherungs-)Tranche in diesem Zeitraum; aktuell nirgends im UI sichtbar, da vergangene Jahre im Steuer-Tab ohnehin nicht einsehbar sind.
+**Bundesland-Erkennung aus PLZ**
+Bundesland automatisch aus der Postleitzahl der Immobilie ableiten statt manueller Auswahl.
+
+**Grunderwerbsteuer automatisch nach Bundesland**
+Grunderwerbsteuersatz automatisch anhand des (erkannten) Bundeslands vorschlagen statt manueller Eingabe.
+
+**Gebäudeanteil prozentual auswählbar**
+Neben der Eingabe von Grundstücks-/Gebäudewert in Euro einen Switcher übers Feld anbieten, um den Gebäudeanteil stattdessen direkt als Prozentsatz einzugeben — einfacher, wenn die genauen Werte aus der Kaufpreisaufteilung nicht bekannt sind.
+
+**KI-Objekterfassung**
+Immobilie automatisch anlegen lassen: Dokumente (Kaufvertrag, Exposé, Grundbuchauszug) hochladen, KI extrahiert die relevanten Stammdaten (Adresse, Kaufpreis, Wohnfläche, Baujahr etc.) und legt das Objekt vorausgefüllt an — Nutzer prüft und bestätigt nur noch.
+
+**Bankanbindung**
+Automatischer Kontoabgleich für die Ist-Werte im Cashflow (Mieteingänge, Nebenkosten, Kreditraten) statt manueller Erfassung — über eine PSD2-lizenzierte Kontoschnittstelle (z. B. GoCardless Bank Account Data, FinAPI, Tink) statt einer Eigenentwicklung der Bankanbindung.
 
 ## Vorgehen
 
