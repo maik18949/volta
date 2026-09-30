@@ -39,6 +39,11 @@ describe('lookupState', () => {
 
   it('ignores surrounding whitespace', () => {
     expect(lookupState(' 01099 ')).toEqual({ kind: 'unique', state: 'Sachsen' });
+    expect(lookupState('\t01099\n')).toEqual({ kind: 'unique', state: 'Sachsen' });
+  });
+
+  it('accepts ASCII digits only (full-width digits are unknown)', () => {
+    expect(lookupState('\uFF10\uFF11\uFF10\uFF19\uFF19')).toEqual({ kind: 'unknown' });
   });
 });
 
@@ -62,6 +67,9 @@ describe('generated table integrity', () => {
         }
       }
     }
+    // The totals below (8256 = 8230 unique + 26 ambiguous) are pinned to the current
+    // source CSV; they come from the generator's console output. Update them on a
+    // deliberate regeneration from a new CSV.
     expect(seen.size + Object.keys(AMBIGUOUS_PLZ).length).toBe(8256);
     expect(Object.keys(AMBIGUOUS_PLZ)).toHaveLength(26);
   });
