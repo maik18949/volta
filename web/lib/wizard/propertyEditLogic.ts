@@ -1,5 +1,6 @@
 import { mapToPropertyInsert, n, nOrNull, type WizardFormValues } from './wizardLogic';
 import type { Database, TablesUpdate } from '@/lib/supabase/types';
+import { normalizeState } from '@/lib/data/landTransferTaxRates';
 
 type PropertyRow = Database['public']['Tables']['properties']['Row'];
 
@@ -23,7 +24,7 @@ export function mapPropertyToEditFormValues(property: PropertyRow): PropertyEdit
     address: property.address,
     city: property.city,
     postalCode: property.postal_code,
-    state: property.state,
+    state: normalizeState(property.state) || property.state,
     propertyType: property.property_type,
     acquisitionType: property.acquisition_type,
     yearBuilt: property.year_built,
@@ -48,6 +49,8 @@ export function mapPropertyToEditFormValues(property: PropertyRow): PropertyEdit
     purchasePriceUnit: property.purchase_price_unit,
     purchasePriceParking: property.purchase_price_parking,
     landTransferTax: property.land_transfer_tax,
+    // A saved value is never overwritten when the edit form opens.
+    landTransferTaxMode: 'manual',
     notaryCosts: property.notary_costs,
     landRegistryCosts: property.land_registry_costs,
     agentFee: property.agent_fee,

@@ -14,6 +14,13 @@ describe('formatters', () => {
     expect(formatPercent(0.04297)).toBe('4,3 %');
   });
 
+  it('formatPercent renders Grunderwerbsteuer rates with one decimal', () => {
+    expect(formatPercent(3.5 / 100)).toMatch(/^3,5\s%$/);
+    expect(formatPercent(5 / 100)).toMatch(/^5,0\s%$/);
+    expect(formatPercent(5.5 / 100)).toMatch(/^5,5\s%$/);
+    expect(formatPercent(6.5 / 100)).toMatch(/^6,5\s%$/);
+  });
+
   it('formatDate formats as de-DE short date', () => {
     expect(formatDate(new Date(Date.UTC(2026, 1, 1)))).toBe('01.02.2026');
   });

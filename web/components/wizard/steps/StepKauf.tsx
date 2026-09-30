@@ -1,25 +1,56 @@
 'use client';
 
+import { useId, type ReactNode } from 'react';
 import { useFormContext, useWatch } from 'react-hook-form';
 import { CurrencyField } from '@/components/ui/CurrencyField';
 import { TextField } from '@/components/ui/TextField';
+import { FieldHint } from '@/components/ui/fieldStyles';
 import { CalcSummary, FormCard, FormGrid, FormHint, FormSection } from '@/components/ui/FormLayout';
 import { closingCostsTotal, totalInvestment as computeTotalInvestment } from '@/lib/calculations/kpiCalculator';
-import { formatCurrency } from '@/lib/formatters';
-import type { WizardFormValues } from '@/lib/wizard/wizardLogic';
+import { landTransferTaxRatePercent, suggestLandTransferTax } from '@/lib/data/landTransferTaxRates';
+import { formatCurrency, formatPercent } from '@/lib/formatters';
+import { totalPurchasePrice, type WizardFormValues } from '@/lib/wizard/wizardLogic';
 
 function safeNum(value: number | undefined): number {
   return typeof value === 'number' && !Number.isNaN(value) ? value : 0;
 }
 
 export function StepKauf() {
-  const { register, control } = useFormContext<WizardFormValues>();
+  const { register, control, setValue } = useFormContext<WizardFormValues>();
+  const taxHintId = useId();
   const parkingType = useWatch({ control, name: 'parkingType' });
   const values = useWatch({ control });
 
-  const purchasePriceUnit = safeNum(values.purchasePriceUnit);
-  const purchasePriceParking = parkingType !== 'nicht_vorhanden' ? safeNum(values.purchasePriceParking) : 0;
-  const purchasePrice = purchasePriceUnit + purchasePriceParking;
+  const purchasePrice = totalPurchasePrice({
+    purchasePriceUnit: values.purchasePriceUnit ?? 0,
+    purchasePriceParking: values.purchasePriceParking ?? 0,
+    parkingType,
+  });
+
+  const state = values.state ?? '';
+  const landTransferTax = safeNum(values.landTransferTax);
+  const suggestion = suggestLandTransferTax(state, purchasePrice);
+  const ratePercent = landTransferTaxRatePercent(state);
+  const rateText = ratePercent === null ? '' : formatPercent(ratePercent / 100);
+
+  // Kept in the form state (UI-only, never persisted) so it survives step navigation. Unknown counts as manual.
+  const taxMode = useWatch({ control, name: 'landTransferTaxMode' }) ?? 'manual';
+
+  let taxHint: ReactNode;
+  let showReset = false;
+  if (suggestion === null) {
+    taxHint = 'Bundesland wählen, dann erscheint ein Vorschlag.';
+  } else if (taxMode === 'auto' || suggestion === landTransferTax) {
+    // A manual value that equals the suggestion shows the plain "(Vorschlag)" hint, without a reset button.
+    taxHint = `${state} ${rateText} (Vorschlag)`;
+  } else {
+    showReset = true;
+    taxHint = (
+      <>
+        {state} {rateText} wären {formatCurrency(suggestion)} <span aria-hidden="true">·</span>
+      </>
+    );
+  }
   const closingCosts = closingCostsTotal(
     safeNum(values.landTransferTax),
     safeNum(values.notaryCosts),
@@ -45,7 +76,21 @@ export function StepKauf() {
 
       <FormCard title="Kaufnebenkosten">
         <FormGrid>
-          <CurrencyField label="Grunderwerbsteuer" name="landTransferTax" register={register} />
+          <div>
+            <CurrencyField label="Grunderwerbsteuer" name="landTransferTax" register={register} onUserEdit={() => setValue('landTransferTaxMode', 'manual')} describedBy={taxHintId} />
+            <div className="flex flex-wrap items-baseline gap-x-1.5">
+              <FieldHint id={taxHintId}>{taxHint}</FieldHint>
+              {showReset && (
+                <button
+                  type="button"
+                  className="mt-1.5 text-[12px] font-semibold text-accent underline hover:no-underline"
+                  onClick={() => setValue('landTransferTaxMode', 'auto')}
+                >
+                  Zurücksetzen
+                </button>
+              )}
+            </div>
+          </div>
           <CurrencyField label="Notarkosten" name="notaryCosts" register={register} />
           <CurrencyField label="Grundbuchkosten" name="landRegistryCosts" register={register} />
           <CurrencyField label="Maklerprovision" name="agentFee" register={register} />

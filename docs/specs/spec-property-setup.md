@@ -30,7 +30,7 @@ Name *:         [Textfeld]                z.B. "ETW Dresden Neustadt"
 Adresse *:      [Textfeld]
 Stadt *:        [Textfeld]
 PLZ:            [Textfeld]
-Bundesland:     [Textfeld]
+Bundesland:     [Picker]   16 Länder; wird bei vollständiger PLZ (5 Ziffern) vorbelegt, bei PLZ in zwei Ländern leer + Hinweis, jederzeit änderbar
 Typ:            [Picker] Apartment / Haus / Mehrfamilienhaus / ...
 Erwerb:         [Picker] Kauf / Erbschaft / Schenkung
 Baujahr:        [Textfeld]
@@ -93,7 +93,7 @@ Wenn parkingType != .nichtVorhanden:
   Gesamtkaufpreis:        [readonly = WE + TE]
 
 ━━━━ KAUFNEBENKOSTEN ━━━━
-Grunderwerbsteuer:           [Währungsfeld]
+Grunderwerbsteuer:           [Währungsfeld]  Vorschlag = Landessatz × Gesamtkaufpreis (Wohnung + Stellplatz), überschreibbar, "Zurücksetzen" stellt den Vorschlag wieder her
 Notarkosten:                 [Währungsfeld]
 Grundbuchkosten:             [Währungsfeld]
 Maklerprovision:             [Währungsfeld]  → agentFee
@@ -208,6 +208,8 @@ Anfangs-LTV:            XX%       (mit Benchmark-Farbe)
 ```
 Gebäudewert (aus Regierungs-Excel) *:     [Währungsfeld]
 Grundstückswert (aus Regierungs-Excel) *: [Währungsfeld]
+                                          Switcher [€ | %]: im %-Modus ein Feld "Gebäudeanteil" (0–100 %),
+                                          Grundstückswert = Rest; gespeichert wird immer in Euro
 AfA-Satz *:        [Prozentfeld]  z.B. 2% (Altbau) oder 3% (Neubau ab 2023)
 Grenzsteuersatz *: [Prozentfeld]
 

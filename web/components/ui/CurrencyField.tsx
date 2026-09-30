@@ -12,6 +12,8 @@ export function CurrencyField<T extends FieldValues>({
   required = false,
   hint,
   className,
+  onUserEdit,
+  describedBy,
 }: {
   label: ReactNode;
   name: Path<T>;
@@ -19,6 +21,10 @@ export function CurrencyField<T extends FieldValues>({
   required?: boolean;
   hint?: string;
   className?: string;
+  /** Called when the user edits the field (not for programmatic setValue). */
+  onUserEdit?: () => void;
+  /** id of an element (e.g. a hint) that describes the input for screen readers. */
+  describedBy?: string;
 }) {
   return (
     <label className={twMerge('block', className)}>
@@ -27,9 +33,10 @@ export function CurrencyField<T extends FieldValues>({
         <input
           type="number"
           step="0.01"
+          aria-describedby={describedBy}
           className={SUFFIXED_INPUT_CLASS}
           onFocus={(e) => e.target.select()}
-          {...register(name, { valueAsNumber: true })}
+          {...register(name, { valueAsNumber: true, onChange: onUserEdit ? () => onUserEdit() : undefined })}
         />
       </SuffixedInputBox>
     </label>

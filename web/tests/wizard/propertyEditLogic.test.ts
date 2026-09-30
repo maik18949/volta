@@ -99,6 +99,16 @@ describe('mapPropertyToEditFormValues', () => {
     expect(values.currentMarketValue).toBe(320_000);
   });
 
+  it('opens the Grunderwerbsteuer in manual mode so a saved value is never overwritten', () => {
+    expect(mapPropertyToEditFormValues(makeProperty()).landTransferTaxMode).toBe('manual');
+  });
+
+  it('does not write the UI-only Grunderwerbsteuer mode to the update', () => {
+    const update = mapEditFormValuesToPropertyUpdate(mapPropertyToEditFormValues(makeProperty()));
+    expect(Object.keys(update).filter((key) => key.startsWith('land_transfer'))).toEqual(['land_transfer_tax']);
+    expect(update).not.toHaveProperty('landTransferTaxMode');
+  });
+
   it('a round trip through mapEditFormValuesToPropertyUpdate reproduces the original core fields', () => {
     const property = makeProperty();
     const values = mapPropertyToEditFormValues(property);
@@ -162,5 +172,39 @@ describe('mapEditFormValuesToPropertyUpdate', () => {
     const update = mapEditFormValuesToPropertyUpdate(values);
     expect(update.purchase_price_parking).toBe(0);
     expect(update.parking_rent_monthly).toBe(0);
+  });
+});
+
+describe('mapPropertyToEditFormValues state normalization', () => {
+  it('maps spelling variants of a Bundesland to the canonical name', () => {
+    expect(mapPropertyToEditFormValues(makeProperty({ state: ' sachsen ' })).state).toBe('Sachsen');
+  });
+
+  it('keeps an unrecognized free-text value instead of dropping it', () => {
+    expect(mapPropertyToEditFormValues(makeProperty({ state: 'NRW' })).state).toBe('NRW');
+  });
+
+  const roundTripState = (state: string) =>
+    mapEditFormValuesToPropertyUpdate(mapPropertyToEditFormValues(makeProperty({ state }))).state;
+
+  it('round-trips a spelling variant through the autosave mapping as the canonical name', () => {
+    expect(roundTripState(' sachsen ')).toBe('Sachsen');
+  });
+
+  it('round-trips an unmappable legacy value unchanged so autosave never drops it', () => {
+    expect(roundTripState('NRW')).toBe('NRW');
+  });
+
+  it('keeps an already canonical Bundesland unchanged', () => {
+    expect(mapPropertyToEditFormValues(makeProperty({ state: 'Bayern' })).state).toBe('Bayern');
+  });
+
+  it('keeps an empty state empty and trims a whitespace-only state to empty on save', () => {
+    expect(mapPropertyToEditFormValues(makeProperty({ state: '' })).state).toBe('');
+    expect(roundTripState('  ')).toBe('');
+  });
+
+  it('maps an ASCII transliteration to the umlaut name', () => {
+    expect(mapPropertyToEditFormValues(makeProperty({ state: 'thueringen' })).state).toBe('Thüringen');
   });
 });

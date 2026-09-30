@@ -10,6 +10,7 @@ import {
 import { updateProperty } from '@/lib/data/propertyActions';
 import { SectionNav } from '@/components/ui/SectionNav';
 import { FormCard } from '@/components/ui/FormLayout';
+import { useLandTransferTaxAutoSync } from '@/components/wizard/useLandTransferTaxAutoSync';
 import { StepStammdaten } from '@/components/wizard/steps/StepStammdaten';
 import { StepObjektdaten } from '@/components/wizard/steps/StepObjektdaten';
 import { StepKauf } from '@/components/wizard/steps/StepKauf';
@@ -60,6 +61,8 @@ export function PropertyEditForm({
 
   const form = useForm<PropertyEditFormValues>({ defaultValues: mapPropertyToEditFormValues(property) });
   const { watch, control } = form;
+  // Manual on load, so this writes nothing until the user resets the Grunderwerbsteuer to automatic.
+  useLandTransferTaxAutoSync(form);
 
   // Mirror the autosave state into the detail header ("Gespeichert" next to the title) and
   // clear it again when the user leaves the tab.

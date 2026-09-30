@@ -43,6 +43,8 @@ export interface WizardFormValues {
   purchasePriceUnit: number;
   purchasePriceParking: number;
   landTransferTax: number;
+  /** UI-only, never persisted (not part of the `properties` insert): whether landTransferTax follows the Bundesland suggestion. */
+  landTransferTaxMode: 'auto' | 'manual';
   notaryCosts: number;
   landRegistryCosts: number;
   agentFee: number;
@@ -131,6 +133,7 @@ export function makeWizardDefaultValues(today: Date): WizardFormValues {
     purchasePriceUnit: 0,
     purchasePriceParking: 0,
     landTransferTax: 0,
+    landTransferTaxMode: 'auto',
     notaryCosts: 0,
     landRegistryCosts: 0,
     agentFee: 0,
@@ -215,6 +218,15 @@ export function canFinish(values: WizardFormValues): boolean {
     values.buildingValue > 0 &&
     values.landValue > 0
   );
+}
+
+/** Gesamtkaufpreis: Kaufpreis Wohnung plus Kaufpreis Stellplatz (nur wenn ein Stellplatz existiert). NaN zaehlt als 0. */
+export function totalPurchasePrice(
+  values: Pick<WizardFormValues, 'purchasePriceUnit' | 'purchasePriceParking' | 'parkingType'>
+): number {
+  const num = (value: number | undefined) => (typeof value === 'number' && !Number.isNaN(value) ? value : 0);
+  const parking = values.parkingType !== 'nicht_vorhanden' ? num(values.purchasePriceParking) : 0;
+  return num(values.purchasePriceUnit) + parking;
 }
 
 export function n(value: number): number {

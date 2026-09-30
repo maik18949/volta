@@ -46,15 +46,6 @@ Eigenes Portal, über das Makler ihre Objekte einpflegen und Interessenten diese
 **Degressive AfA**
 Neben der linearen AfA optional degressive Abschreibung als Berechnungsvariante anbieten.
 
-**Bundesland-Erkennung aus PLZ**
-Bundesland automatisch aus der Postleitzahl der Immobilie ableiten statt manueller Auswahl.
-
-**Grunderwerbsteuer automatisch nach Bundesland**
-Grunderwerbsteuersatz automatisch anhand des (erkannten) Bundeslands vorschlagen statt manueller Eingabe.
-
-**Gebäudeanteil prozentual auswählbar**
-Neben der Eingabe von Grundstücks-/Gebäudewert in Euro einen Switcher übers Feld anbieten, um den Gebäudeanteil stattdessen direkt als Prozentsatz einzugeben — einfacher, wenn die genauen Werte aus der Kaufpreisaufteilung nicht bekannt sind.
-
 **KI-Objekterfassung**
 Immobilie automatisch anlegen lassen: Dokumente (Kaufvertrag, Exposé, Grundbuchauszug) hochladen, KI extrahiert die relevanten Stammdaten (Adresse, Kaufpreis, Wohnfläche, Baujahr etc.) und legt das Objekt vorausgefüllt an — Nutzer prüft und bestätigt nur noch.
 
