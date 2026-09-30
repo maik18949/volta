@@ -11,6 +11,7 @@ export function SelectField<T extends FieldValues>({
   options,
   emptyOption,
   registerOptions,
+  describedBy,
   required = false,
   className,
 }: {
@@ -21,13 +22,15 @@ export function SelectField<T extends FieldValues>({
   /** Label for an empty "" option (registers as null via registerOptions.setValueAs, if given). */
   emptyOption?: string;
   registerOptions?: RegisterOptions<T, Path<T>>;
+  /** id of an element (e.g. a FieldHint) describing this select. */
+  describedBy?: string;
   required?: boolean;
   className?: string;
 }) {
   return (
     <label className={twMerge('block', className)}>
       <FieldLabel label={label} required={required} />
-      <select {...register(name, registerOptions)} className={FIELD_INPUT_CLASS}>
+      <select {...register(name, registerOptions)} aria-describedby={describedBy} className={FIELD_INPUT_CLASS}>
         {emptyOption !== undefined && <option value="">{emptyOption}</option>}
         {options.map(([value, optionLabel]) => (
           <option key={value} value={value}>

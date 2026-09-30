@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useId, useRef } from 'react';
 import { useFormContext, useWatch } from 'react-hook-form';
 import { TextField } from '@/components/ui/TextField';
 import { SelectField } from '@/components/ui/SelectField';
+import { FieldHint } from '@/components/ui/fieldStyles';
 import { TextAreaField } from '@/components/ui/TextAreaField';
 import { FormCard, FormGrid, FormSection } from '@/components/ui/FormLayout';
 import { STATE_NAMES, isStateName } from '@/lib/data/landTransferTaxRates';
@@ -44,6 +45,7 @@ export function StepStammdaten() {
   // A saved free-text value we can't map stays selectable so autosave never silently drops it.
   if (state && !isStateName(state)) stateOptions.push([state, `${state} (bitte prüfen)`]);
   const hint = postalCodeHint(postalCode, state);
+  const hintId = useId();
 
   return (
     <FormSection>
@@ -54,12 +56,17 @@ export function StepStammdaten() {
           <TextField label="Stadt" name="city" register={register} required />
           <TextField label="PLZ" name="postalCode" register={register} />
           <div>
-            <SelectField label="Bundesland" name="state" register={register} options={stateOptions} emptyOption="Bitte wählen" />
-            {hint && (
-              <p className={hint.tone === 'warn' ? 'mt-1.5 text-[12px] font-medium text-amber-800' : 'mt-1.5 text-[12px] text-text-dim'}>
-                {hint.text}
-              </p>
-            )}
+            <SelectField
+              label="Bundesland"
+              name="state"
+              register={register}
+              options={stateOptions}
+              emptyOption="Bitte wählen"
+              describedBy={hintId}
+            />
+            <FieldHint id={hintId} tone={hint?.tone}>
+              {hint?.text}
+            </FieldHint>
           </div>
           <SelectField label="Objekttyp" name="propertyType" register={register} options={PROPERTY_TYPES} />
           <TextField label="Baujahr" name="yearBuilt" register={register} type="number" />

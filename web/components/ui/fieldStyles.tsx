@@ -15,6 +15,26 @@ export function FieldLabel({ label, required, hint }: { label: ReactNode; requir
   );
 }
 
+export type FieldHintTone = 'info' | 'warn';
+
+/**
+ * Hint line under a field. Always mounted (live regions that mount together with their content are often not
+ * announced); with nothing to say it is an empty, margin-less status element.
+ */
+export function FieldHint({ id, tone = 'info', children }: { id?: string; tone?: FieldHintTone; children?: ReactNode }) {
+  const hasContent = children !== undefined && children !== null && children !== false && children !== '';
+  const className = !hasContent
+    ? undefined
+    : tone === 'warn'
+      ? 'mt-1.5 text-[12px] font-medium text-amber-800'
+      : 'mt-1.5 text-[12px] text-text-dim';
+  return (
+    <p role="status" id={id} className={className}>
+      {children}
+    </p>
+  );
+}
+
 /** Wraps an input with a suffix unit (€, %, €/m²) inside the same bordered box. */
 export function SuffixedInputBox({ children, suffix }: { children: ReactNode; suffix: string }) {
   return (
