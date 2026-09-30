@@ -99,7 +99,7 @@ export function StepKauf() {
         <div className="mt-4 border-t border-black/[0.06] pt-4">
           <FormGrid>
             <CurrencyField label="Renovierung gesamt" name="renovationModernizationCosts" register={register} />
-            <CurrencyField label="davon AfA-relevant" name="renovationAfaEligible" register={register} />
+            <CurrencyField label="davon steuerlich absetzbar" name="renovationAfaEligible" register={register} />
           </FormGrid>
         </div>
       </FormCard>
