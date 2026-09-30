@@ -81,7 +81,7 @@ Das Textfeld `state` wird zum Dropdown mit den 16 Ländern (Platzhalter „Bitte
 | uneindeutig | Land leeren | „PLZ liegt in Hessen und Rheinland-Pfalz – bitte wählen" |
 | unbekannt | Land unverändert | „Gültige Postleitzahl eingeben" |
 
-Bei weniger als 5 Ziffern erscheint kein Hinweis. Das Dropdown bleibt jederzeit von Hand änderbar; die Grunderwerbsteuer richtet sich immer nach dem Dropdown-Wert.
+Bei weniger als 5 Ziffern erscheint kein Hinweis. Das Dropdown bleibt jederzeit von Hand änderbar; die Grunderwerbsteuer richtet sich immer nach dem Dropdown-Wert. Die Hinweise unter dem Dropdown werden Screenreadern angesagt (`role="status"`, `aria-describedby`). Ein nicht erkennbarer gespeicherter Freitext bleibt als Option „<Text> (bitte prüfen)" wählbar.
 
 ### 2.2 Grunderwerbsteuer-Vorschlag (Feature 2)
 
@@ -89,10 +89,10 @@ Bei weniger als 5 Ziffern erscheint kein Hinweis. Das Dropdown bleibt jederzeit 
 
 Vorschlag = Satz des gewählten Bundeslands × Gesamtkaufpreis (Kaufpreis Wohnung + Kaufpreis Stellplatz, wie der bestehende `purchasePrice`), auf Cent gerundet. Zwei Zustände:
 
-- **Automatisch:** Feld wird bei Änderung von Bundesland oder Kaufpreis neu befüllt. Hinweis: „Sachsen 5,5 % (Vorschlag)".
-- **Manuell:** Sobald der Nutzer das Feld ändert. Hinweis: „Sachsen 5,5 % wären 9.625 € · Zurücksetzen". „Zurücksetzen" wechselt zurück in „Automatisch".
+- **Automatisch:** Feld wird bei Änderung von Bundesland oder Kaufpreis neu befüllt. Hinweis: „Sachsen 5,5 % (Vorschlag)" (Satz über den Prozentformatter der App, z. B. „Baden-Württemberg 5,0 % (Vorschlag)").
+- **Manuell:** Sobald der Nutzer das Feld ändert. Hinweis: „<Land> <Satz> wären <Betrag> · Zurücksetzen" (z. B. „Sachsen 5,5 % wären 9.625 € · Zurücksetzen"). „Zurücksetzen" wechselt zurück in „Automatisch".
 
-Startzustand: neues Objekt im Wizard „Automatisch"; bestehendes Objekt im Bearbeiten-Formular „Manuell", damit gespeicherte Werte nie überschrieben werden. Ohne Bundesland: kein Vorschlag, Hinweis „Bundesland wählen, dann erscheint ein Vorschlag." Der Modus wird nicht persistiert.
+Startzustand: neues Objekt im Wizard „Automatisch"; bestehendes Objekt im Bearbeiten-Formular „Manuell", damit gespeicherte Werte nie überschrieben werden. Ohne Bundesland: kein Vorschlag, Hinweis „Bundesland wählen, dann erscheint ein Vorschlag." Der Modus wird nicht persistiert. Im Wizard wird der Startzustand aus den Werten abgeleitet (Automatisch, wenn das Feld 0 ist oder dem Vorschlag entspricht), weil der Schritt bei der Navigation neu montiert wird und einen manuellen Wert sonst überschreiben würde. Bekannte Einschränkung: Ein bewusst eingegebener Wert 0 gilt beim erneuten Montieren (Zurück-/Vorwärts-Navigieren) als leer und erhält wieder den Vorschlag. Der Hinweis unter dem Feld wird Screenreadern angesagt (`role="status"`, `aria-describedby`).
 
 ### 2.3 Gebäudeanteil (Feature 3)
 
@@ -101,7 +101,7 @@ Startzustand: neues Objekt im Wizard „Automatisch"; bestehendes Objekt im Bear
 Segment-Switcher „€ | %" im Kopf der Karte „AfA & Steuer". Standard: „€".
 
 - **€-Modus:** unverändert (zwei Euro-Felder, Abweichungswarnung ±5 %).
-- **%-Modus:** ein Prozentfeld „Gebäudeanteil" (0 bis 100, bis zwei Nachkommastellen). Gebäudewert = Gesamtkaufpreis × Anteil, Grundstückswert = Gesamtkaufpreis − Gebäudewert; beide als Euro-Beträge in die bestehenden Formularfelder `buildingValue`/`landValue` geschrieben, Grundstückswert nur lesbar angezeigt. Die Abweichungswarnung entfällt. Ändert sich der Kaufpreis, bleibt der Prozentsatz erhalten und die Euro-Werte werden neu berechnet.
+- **%-Modus:** ein Prozentfeld „Gebäudeanteil" (0 bis 100, bis zwei Nachkommastellen; Textfeld mit Dezimal-Tastatur `inputMode="decimal"`, akzeptiert „." oder „," als Dezimaltrenner, höchstens 3 Vorkomma- und 2 Nachkommastellen, ungültige Tastenanschläge werden ignoriert). Gebäudewert = Gesamtkaufpreis × Anteil, Grundstückswert = Gesamtkaufpreis − Gebäudewert; beide als Euro-Beträge in die bestehenden Formularfelder `buildingValue`/`landValue` geschrieben, Grundstückswert nur lesbar angezeigt. Die Abweichungswarnung entfällt. Ändert sich der Kaufpreis, bleibt der Prozentsatz erhalten und die Euro-Werte werden neu berechnet.
 - **Umschalten € → %:** Anteil = Gebäudewert / Gesamtkaufpreis (bei Kaufpreis 0: leeres Feld).
 - **Umschalten % → €:** die berechneten Euro-Werte stehen in den Feldern, nichts geht verloren.
 
@@ -114,7 +114,7 @@ Der Switcher-Zustand ist reiner UI-State. Die AfA-Berechnung und `canFinish` (Ge
 - PLZ mit 5 Ziffern ohne Treffer: „Gültige Postleitzahl eingeben", Bundesland bleibt.
 - PLZ in zwei Ländern: Land leer, Hinweis mit beiden Kandidaten.
 - Kaufpreis 0: Vorschlag 0 €, keine Fehlermeldung.
-- Gespeichertes `state` nicht erkennbar (`normalizeState` liefert leer): Dropdown leer, kein Vorschlag, gespeicherter Wert wird erst durch eine Auswahl ersetzt.
+- Gespeichertes `state` nicht erkennbar (`normalizeState` liefert leer): der Text bleibt als zusätzliche Dropdown-Option „<Text> (bitte prüfen)" erhalten, damit der Autosave ihn nicht überschreibt; kein Vorschlag, bis ein Land gewählt ist.
 - Rundung: Prozentwerte werden vor der Anzeige gerundet (kein 3,4000000000000004, vgl. `PercentField`-Fix), Euro-Werte auf Cent.
 
 ---
