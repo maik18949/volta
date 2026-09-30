@@ -43,6 +43,8 @@ export interface WizardFormValues {
   purchasePriceUnit: number;
   purchasePriceParking: number;
   landTransferTax: number;
+  /** UI-only, never persisted (not part of the `properties` insert): whether landTransferTax follows the Bundesland suggestion. */
+  landTransferTaxMode: 'auto' | 'manual';
   notaryCosts: number;
   landRegistryCosts: number;
   agentFee: number;
@@ -131,6 +133,7 @@ export function makeWizardDefaultValues(today: Date): WizardFormValues {
     purchasePriceUnit: 0,
     purchasePriceParking: 0,
     landTransferTax: 0,
+    landTransferTaxMode: 'auto',
     notaryCosts: 0,
     landRegistryCosts: 0,
     agentFee: 0,

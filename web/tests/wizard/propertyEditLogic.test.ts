@@ -99,6 +99,15 @@ describe('mapPropertyToEditFormValues', () => {
     expect(values.currentMarketValue).toBe(320_000);
   });
 
+  it('opens the Grunderwerbsteuer in manual mode so a saved value is never overwritten', () => {
+    expect(mapPropertyToEditFormValues(makeProperty()).landTransferTaxMode).toBe('manual');
+  });
+
+  it('does not write the UI-only Grunderwerbsteuer mode to the update', () => {
+    const update = mapEditFormValuesToPropertyUpdate(mapPropertyToEditFormValues(makeProperty()));
+    expect(Object.keys(update).filter((key) => key.startsWith('land_transfer'))).toEqual(['land_transfer_tax']);
+  });
+
   it('a round trip through mapEditFormValuesToPropertyUpdate reproduces the original core fields', () => {
     const property = makeProperty();
     const values = mapPropertyToEditFormValues(property);

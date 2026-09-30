@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
-import { describe, it, expect, afterEach } from 'vitest';
+import { describe, it, expect, afterEach, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
 import { StepKauf } from '@/components/wizard/steps/StepKauf';
 import { makeWizardDefaultValues, type WizardFormValues } from '@/lib/wizard/wizardLogic';
@@ -15,11 +15,20 @@ function useWizardForm(overrides: Partial<WizardFormValues>) {
   });
 }
 
-function Harness({ overrides = {}, taxStartsManual = false }: { overrides?: Partial<WizardFormValues>; taxStartsManual?: boolean }) {
+// Edit-form style: a saved value is opened in manual mode (see mapPropertyToEditFormValues).
+const EDIT_FORM: Partial<WizardFormValues> = { landTransferTaxMode: 'manual' };
+
+function Harness({ overrides = {}, onFormChange }: { overrides?: Partial<WizardFormValues>; onFormChange?: () => void }) {
   const form = useWizardForm(overrides);
+  const { watch } = form;
+  useEffect(() => {
+    if (!onFormChange) return;
+    const subscription = watch(() => onFormChange());
+    return () => subscription.unsubscribe();
+  }, [watch, onFormChange]);
   return (
     <FormProvider {...form}>
-      <StepKauf taxStartsManual={taxStartsManual} />
+      <StepKauf />
     </FormProvider>
   );
 }
@@ -91,14 +100,8 @@ describe('StepKauf Grunderwerbsteuer suggestion', () => {
     expect(screen.queryByRole('button', { name: 'Zurücksetzen' })).not.toBeInTheDocument();
   });
 
-  it('never overwrites a saved value when taxStartsManual is set', async () => {
-    render(<Harness taxStartsManual overrides={{ state: 'Sachsen', purchasePriceUnit: 175000, landTransferTax: 1234 }} />);
-    expect(taxField()).toHaveValue(1234);
-    expect(screen.getByRole('button', { name: 'Zurücksetzen' })).toBeInTheDocument();
-  });
-
-  it('starts manual in the wizard when the current value differs from the suggestion', () => {
-    render(<Harness overrides={{ state: 'Sachsen', purchasePriceUnit: 175000, landTransferTax: 1234 }} />);
+  it('never overwrites a saved value in an edit form (mode manual)', async () => {
+    render(<Harness overrides={{ ...EDIT_FORM, state: 'Sachsen', purchasePriceUnit: 175000, landTransferTax: 1234 }} />);
     expect(taxField()).toHaveValue(1234);
     expect(screen.getByRole('button', { name: 'Zurücksetzen' })).toBeInTheDocument();
   });
@@ -109,8 +112,8 @@ describe('StepKauf Grunderwerbsteuer suggestion', () => {
     expect(taxField()).toHaveValue(0);
   });
 
-  it('keeps a saved value equal to the suggestion when taxStartsManual is set', async () => {
-    render(<Harness taxStartsManual overrides={{ state: 'Sachsen', purchasePriceUnit: 175000, landTransferTax: 9625 }} />);
+  it('keeps a saved value equal to the suggestion in an edit form (mode manual)', async () => {
+    render(<Harness overrides={{ ...EDIT_FORM, state: 'Sachsen', purchasePriceUnit: 175000, landTransferTax: 9625 }} />);
     expect(taxField()).toHaveValue(9625);
 
     fireEvent.change(priceField(), { target: { value: '200000' } });
@@ -119,7 +122,7 @@ describe('StepKauf Grunderwerbsteuer suggestion', () => {
     expect(taxField()).toHaveValue(9625);
   });
 
-  it('follows the price when the value equals the suggestion without taxStartsManual', async () => {
+  it('follows the price in automatic mode when the value equals the suggestion', async () => {
     render(<Harness overrides={{ state: 'Sachsen', purchasePriceUnit: 175000, landTransferTax: 9625 }} />);
     expect(taxField()).toHaveValue(9625);
 
@@ -173,8 +176,7 @@ describe('StepKauf Grunderwerbsteuer suggestion', () => {
     expect(hint).toHaveTextContent(/Sachsen 5,5\s% \(Vorschlag\)/);
   });
 
-  // Documented limitation: the start mode is derived from the values, and 0 means "empty".
-  it('documented behaviour: a tax of 0 is treated as empty on remount and gets the suggestion', async () => {
+  it('keeps a user-typed 0 across a remount because the mode is manual', async () => {
     render(<ControlledHarness overrides={{ state: 'Sachsen', purchasePriceUnit: 175000 }} />);
     await waitFor(() => expect(taxField()).toHaveValue(9625));
     fireEvent.change(taxField(), { target: { value: '0' } });
@@ -183,8 +185,47 @@ describe('StepKauf Grunderwerbsteuer suggestion', () => {
     fireEvent.click(screen.getByRole('button', { name: 'remount step' }));
     fireEvent.click(screen.getByRole('button', { name: 'remount step' }));
 
-    await waitFor(() => expect(taxField()).toHaveValue(9625));
+    expect(taxField()).toHaveValue(0);
+    expect(screen.getByRole('button', { name: 'Zurücksetzen' })).toBeInTheDocument();
+  });
+
+  it('follows a Bundesland change made while the step was unmounted (wizard: back to step 1)', async () => {
+    render(<ControlledHarness overrides={{ state: 'Sachsen', purchasePriceUnit: 100000 }} />);
+    await waitFor(() => expect(taxField()).toHaveValue(5500));
+
+    fireEvent.click(screen.getByRole('button', { name: 'remount step' }));
+    fireEvent.click(screen.getByRole('button', { name: 'select Bayern' }));
+    fireEvent.click(screen.getByRole('button', { name: 'remount step' }));
+
+    await waitFor(() => expect(taxField()).toHaveValue(3500));
+    expect(screen.getByText(/Bayern 3,5\s% \(Vorschlag\)/)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Zurücksetzen' })).not.toBeInTheDocument();
+  });
+
+  it('keeps a manual value when the Bundesland changes while the step was unmounted and shows the new amount', async () => {
+    render(<ControlledHarness overrides={{ state: 'Sachsen', purchasePriceUnit: 100000 }} />);
+    await waitFor(() => expect(taxField()).toHaveValue(5500));
+    fireEvent.change(taxField(), { target: { value: '8000' } });
+
+    fireEvent.click(screen.getByRole('button', { name: 'remount step' }));
+    fireEvent.click(screen.getByRole('button', { name: 'select Bayern' }));
+    fireEvent.click(screen.getByRole('button', { name: 'remount step' }));
+
+    await waitFor(() => expect(screen.getByText(/Bayern 3,5\s% wären 3\.500,00/)).toBeInTheDocument());
+    expect(taxField()).toHaveValue(8000);
+  });
+
+  it('does not write to the form on mount in an edit form (no extra autosave)', async () => {
+    const onFormChange = vi.fn();
+    render(
+      <Harness
+        onFormChange={onFormChange}
+        overrides={{ ...EDIT_FORM, state: 'Sachsen', purchasePriceUnit: 175000, landTransferTax: 1234 }}
+      />
+    );
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(taxField()).toHaveValue(1234);
+    expect(onFormChange).not.toHaveBeenCalled();
   });
 
   it('keeps the computed amount when the Bundesland is cleared in automatic mode', async () => {

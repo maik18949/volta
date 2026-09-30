@@ -27,6 +27,10 @@ describe('makeWizardDefaultValues', () => {
     expect(values.parkingType).toBe('nicht_vorhanden');
     expect(values.fixedInterestPeriodYears).toBe(10);
   });
+
+  it('starts the Grunderwerbsteuer in automatic mode', () => {
+    expect(makeWizardDefaultValues(today).landTransferTaxMode).toBe('auto');
+  });
 });
 
 describe('requiresStatusOnboarding', () => {
@@ -100,6 +104,11 @@ describe('mapToPropertyInsert', () => {
     expect(insert.name).toBe('ETW');
     expect(insert.purchase_price_unit).toBe(100_000);
     expect(insert).not.toHaveProperty('user_id');
+  });
+
+  it('does not persist the UI-only Grunderwerbsteuer mode', () => {
+    const insert = mapToPropertyInsert(makeValues({ landTransferTaxMode: 'manual' }));
+    expect(Object.keys(insert).filter((key) => key.startsWith('land_transfer'))).toEqual(['land_transfer_tax']);
   });
 
   it('zeroes out parking fields when parkingType is nicht_vorhanden, even if stale values remain in the form', () => {

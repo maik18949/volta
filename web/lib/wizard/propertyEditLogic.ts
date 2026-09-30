@@ -49,6 +49,8 @@ export function mapPropertyToEditFormValues(property: PropertyRow): PropertyEdit
     purchasePriceUnit: property.purchase_price_unit,
     purchasePriceParking: property.purchase_price_parking,
     landTransferTax: property.land_transfer_tax,
+    // A saved value is never overwritten when the edit form opens.
+    landTransferTaxMode: 'manual',
     notaryCosts: property.notary_costs,
     landRegistryCosts: property.land_registry_costs,
     agentFee: property.agent_fee,

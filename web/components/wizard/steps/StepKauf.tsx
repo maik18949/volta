@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useId, useState, type ReactNode } from 'react';
+import { useEffect, useId, type ReactNode } from 'react';
 import { useFormContext, useWatch } from 'react-hook-form';
 import { CurrencyField } from '@/components/ui/CurrencyField';
 import { TextField } from '@/components/ui/TextField';
@@ -15,7 +15,7 @@ function safeNum(value: number | undefined): number {
   return typeof value === 'number' && !Number.isNaN(value) ? value : 0;
 }
 
-export function StepKauf({ taxStartsManual = false }: { taxStartsManual?: boolean }) {
+export function StepKauf() {
   const { register, control, setValue } = useFormContext<WizardFormValues>();
   const taxHintId = useId();
   const parkingType = useWatch({ control, name: 'parkingType' });
@@ -31,13 +31,8 @@ export function StepKauf({ taxStartsManual = false }: { taxStartsManual?: boolea
   const ratePercent = landTransferTaxRatePercent(state);
   const rateText = ratePercent === null ? '' : formatPercent(ratePercent / 100);
 
-  // The wizard remounts this step on navigation, so derive the start mode from the values:
-  // automatic only while the field is empty or still equals the suggestion. The edit form
-  // always starts manual so a saved value is never overwritten.
-  // Known limitation: 0 counts as empty, so a deliberately typed 0 is not preserved across a re-mount.
-  const [taxMode, setTaxMode] = useState<'auto' | 'manual'>(() =>
-    taxStartsManual ? 'manual' : landTransferTax === 0 || landTransferTax === suggestion ? 'auto' : 'manual'
-  );
+  // Kept in the form state (UI-only, never persisted) so it survives step navigation. Unknown counts as manual.
+  const taxMode = useWatch({ control, name: 'landTransferTaxMode' }) ?? 'manual';
 
   // Only writes in automatic mode; a user edit switches to manual first (onUserEdit).
   useEffect(() => {
@@ -56,7 +51,7 @@ export function StepKauf({ taxStartsManual = false }: { taxStartsManual?: boolea
     taxHint = (
       <>
         {state} {rateText} wären {formatCurrency(suggestion)} ·{' '}
-        <button type="button" className="font-semibold text-accent underline hover:no-underline" onClick={() => setTaxMode('auto')}>
+        <button type="button" className="font-semibold text-accent underline hover:no-underline" onClick={() => setValue('landTransferTaxMode', 'auto')}>
           Zurücksetzen
         </button>
       </>
@@ -88,7 +83,7 @@ export function StepKauf({ taxStartsManual = false }: { taxStartsManual?: boolea
       <FormCard title="Kaufnebenkosten">
         <FormGrid>
           <div>
-            <CurrencyField label="Grunderwerbsteuer" name="landTransferTax" register={register} onUserEdit={() => setTaxMode('manual')} describedBy={taxHintId} />
+            <CurrencyField label="Grunderwerbsteuer" name="landTransferTax" register={register} onUserEdit={() => setValue('landTransferTaxMode', 'manual')} describedBy={taxHintId} />
             <FieldHint id={taxHintId}>{taxHint}</FieldHint>
           </div>
           <CurrencyField label="Notarkosten" name="notaryCosts" register={register} />
