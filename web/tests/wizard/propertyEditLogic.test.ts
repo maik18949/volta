@@ -173,4 +173,28 @@ describe('mapPropertyToEditFormValues state normalization', () => {
   it('keeps an unrecognized free-text value instead of dropping it', () => {
     expect(mapPropertyToEditFormValues(makeProperty({ state: 'NRW' })).state).toBe('NRW');
   });
+
+  const roundTripState = (state: string) =>
+    mapEditFormValuesToPropertyUpdate(mapPropertyToEditFormValues(makeProperty({ state }))).state;
+
+  it('round-trips a spelling variant through the autosave mapping as the canonical name', () => {
+    expect(roundTripState(' sachsen ')).toBe('Sachsen');
+  });
+
+  it('round-trips an unmappable legacy value unchanged so autosave never drops it', () => {
+    expect(roundTripState('NRW')).toBe('NRW');
+  });
+
+  it('keeps an already canonical Bundesland unchanged', () => {
+    expect(mapPropertyToEditFormValues(makeProperty({ state: 'Bayern' })).state).toBe('Bayern');
+  });
+
+  it('keeps an empty state empty and trims a whitespace-only state to empty on save', () => {
+    expect(mapPropertyToEditFormValues(makeProperty({ state: '' })).state).toBe('');
+    expect(roundTripState('  ')).toBe('');
+  });
+
+  it('maps an ASCII transliteration to the umlaut name', () => {
+    expect(mapPropertyToEditFormValues(makeProperty({ state: 'thueringen' })).state).toBe('Thüringen');
+  });
 });
