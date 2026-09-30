@@ -8,6 +8,10 @@ export interface PlzTable {
 }
 
 const EXPECTED_HEADER = 'Ort;Plz;Bundesland';
+const RANGES_PER_LINE = 8;
+
+/** Locale-unabhängiger Vergleich (UTF-16-Code-Units), damit die Ausgabe deterministisch ist. */
+const compareText = (a: string, b: string): number => (a < b ? -1 : a > b ? 1 : 0);
 
 /** Bekannte Tippfehler in der Quelldatei. */
 const STATE_TYPOS: Record<string, string> = {
@@ -16,18 +20,19 @@ const STATE_TYPOS: Record<string, string> = {
 
 export function parsePostcodeCsv(csv: string): PlzTable {
   const lines = csv.replace(/^\uFEFF/, '').split(/\r?\n/);
-  const header = lines.shift() ?? '';
+  const [header = '', ...rows] = lines;
   if (header.trim() !== EXPECTED_HEADER) {
     throw new Error(`Unexpected CSV header: "${header}" (expected "${EXPECTED_HEADER}")`);
   }
 
   const statesByPlz = new Map<string, Set<string>>();
-  for (const line of lines) {
+  for (const line of rows) {
     if (!line.trim()) continue;
-    const [, rawPlz = '', rawState = ''] = line.split(';');
-    const plzText = rawPlz.trim();
-    const stateText = rawState.trim();
-    if (!plzText && !stateText) continue; // ";;" rows in the source file
+    const columns = line.split(';');
+    if (columns.every((column) => !column.trim())) continue; // ";;" rows in the source file
+    if (columns.length !== 3) throw new Error(`Malformed row: ${line}`);
+    const plzText = columns[1].trim();
+    const stateText = columns[2].trim();
 
     if (!/^\d{1,5}$/.test(plzText)) throw new Error(`Invalid PLZ in line: ${line}`);
     const plz = plzText.padStart(5, '0');
@@ -39,11 +44,13 @@ export function parsePostcodeCsv(csv: string): PlzTable {
     statesByPlz.set(plz, set);
   }
 
+  if (statesByPlz.size === 0) throw new Error('CSV contains no data rows');
+
   const unique = new Map<string, string>();
   const ambiguous = new Map<string, string[]>();
   for (const [plz, states] of statesByPlz) {
     if (states.size === 1) unique.set(plz, [...states][0]);
-    else ambiguous.set(plz, [...states].sort((a, b) => a.localeCompare(b, 'de')));
+    else ambiguous.set(plz, [...states].sort(compareText));
   }
   return { unique, ambiguous };
 }
@@ -67,16 +74,21 @@ export function renderTableModule(table: PlzTable, sourceNote: string): string {
     numbersByState.set(state, list);
   }
 
-  const stateLines = [...numbersByState.keys()]
-    .sort((a, b) => a.localeCompare(b, 'de'))
-    .map((state) => {
-      const sorted = numbersByState.get(state)!.sort((a, b) => a - b);
-      return `  ${JSON.stringify(state)}: ${JSON.stringify(toRanges(sorted))},`;
+  const stateLines = [...numbersByState.entries()]
+    .sort(([a], [b]) => compareText(a, b))
+    .flatMap(([state, numbers]) => {
+      const ranges = toRanges(numbers.sort((a, b) => a - b)).map((range) => JSON.stringify(range));
+      const chunks: string[] = [];
+      for (let i = 0; i < ranges.length; i += RANGES_PER_LINE) {
+        chunks.push(ranges.slice(i, i + RANGES_PER_LINE).join(','));
+      }
+      const body = chunks.map((chunk, i) => `    ${chunk}${i < chunks.length - 1 ? ',' : ''}`);
+      return [`  ${JSON.stringify(state)}: [`, ...body, '  ],'];
     });
 
-  const ambiguousLines = [...table.ambiguous.keys()]
-    .sort()
-    .map((plz) => `  ${JSON.stringify(plz)}: ${JSON.stringify(table.ambiguous.get(plz))},`);
+  const ambiguousLines = [...table.ambiguous.entries()]
+    .sort(([a], [b]) => compareText(a, b))
+    .map(([plz, states]) => `  ${JSON.stringify(plz)}: ${JSON.stringify(states)},`);
 
   return [
     '/* eslint-disable */',
