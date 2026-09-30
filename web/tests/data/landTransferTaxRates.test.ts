@@ -81,7 +81,7 @@ describe('normalizeState', () => {
     expect(normalizeState('Thueringen')).toBe('Thüringen');
     expect(normalizeState('sachsen-anhalt')).toBe('Sachsen-Anhalt');
     // decomposed umlaut (u + combining diaeresis)
-    expect(normalizeState('Thüringen')).toBe('Thüringen');
+    expect(normalizeState('Thu\u0308ringen')).toBe('Thüringen');
   });
 
   it('returns an empty string for unrecognized text', () => {
