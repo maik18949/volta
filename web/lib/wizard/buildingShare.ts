@@ -26,7 +26,7 @@ const PERCENT_INPUT = /^(\d{0,3})(?:[.,](\d{0,2}))?$/;
 
 /**
  * Parst die Texteingabe des Prozentfelds (ganze Prozent). Erlaubt '.' oder ',' als Dezimaltrenner,
- * hoechstens 3 Vorkomma- und 2 Nachkommastellen; '' ergibt 0. Ungueltige Eingabe ergibt null
+ * höchstens 3 Vorkomma- und 2 Nachkommastellen; '' ergibt 0. Ungültige Eingabe ergibt null
  * (Aufrufer ignorieren sie). Begrenzt NICHT auf 0..100 - das macht `valuesFromBuildingShare`.
  */
 export function parsePercentInput(text: string): number | null {
@@ -39,7 +39,7 @@ export function parsePercentInput(text: string): number | null {
   return Number(`${whole === '' ? '0' : whole}.${fraction === '' ? '0' : fraction}`);
 }
 
-/** Anzeigetext fuer das Prozentfeld (deutsches Dezimalkomma), z. B. 80.71 -> '80,71', 80 -> '80'. */
+/** Anzeigetext für das Prozentfeld (deutsches Dezimalkomma), z. B. 80.71 -> '80,71', 80 -> '80'. */
 export function formatPercentInput(percent: number): string {
   return String(percent).replace('.', ',');
 }

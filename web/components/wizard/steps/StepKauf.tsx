@@ -42,18 +42,17 @@ export function StepKauf() {
   }, [taxMode, suggestion, landTransferTax, setValue]);
 
   let taxHint: ReactNode;
+  let showReset = false;
   if (suggestion === null) {
     taxHint = 'Bundesland wählen, dann erscheint ein Vorschlag.';
   } else if (taxMode === 'auto' || suggestion === landTransferTax) {
     // A manual value that equals the suggestion shows the plain "(Vorschlag)" hint, without a reset button.
     taxHint = `${state} ${rateText} (Vorschlag)`;
   } else {
+    showReset = true;
     taxHint = (
       <>
-        {state} {rateText} wären {formatCurrency(suggestion)} ·{' '}
-        <button type="button" className="font-semibold text-accent underline hover:no-underline" onClick={() => setValue('landTransferTaxMode', 'auto')}>
-          Zurücksetzen
-        </button>
+        {state} {rateText} wären {formatCurrency(suggestion)} <span aria-hidden="true">·</span>
       </>
     );
   }
@@ -84,7 +83,18 @@ export function StepKauf() {
         <FormGrid>
           <div>
             <CurrencyField label="Grunderwerbsteuer" name="landTransferTax" register={register} onUserEdit={() => setValue('landTransferTaxMode', 'manual')} describedBy={taxHintId} />
-            <FieldHint id={taxHintId}>{taxHint}</FieldHint>
+            <div className="flex flex-wrap items-baseline gap-x-1.5">
+              <FieldHint id={taxHintId}>{taxHint}</FieldHint>
+              {showReset && (
+                <button
+                  type="button"
+                  className="mt-1.5 text-[12px] font-semibold text-accent underline hover:no-underline"
+                  onClick={() => setValue('landTransferTaxMode', 'auto')}
+                >
+                  Zurücksetzen
+                </button>
+              )}
+            </div>
           </div>
           <CurrencyField label="Notarkosten" name="notaryCosts" register={register} />
           <CurrencyField label="Grundbuchkosten" name="landRegistryCosts" register={register} />

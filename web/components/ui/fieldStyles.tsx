@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import type { HintTone } from '@/lib/hintTone';
 
 /** Shared input look for text/number/select/textarea fields (Volta Setup / Immobiliendaten design). */
 export const FIELD_INPUT_CLASS =
@@ -15,13 +16,11 @@ export function FieldLabel({ label, required, hint }: { label: ReactNode; requir
   );
 }
 
-export type FieldHintTone = 'info' | 'warn';
-
 /**
  * Hint line under a field. Always mounted (live regions that mount together with their content are often not
  * announced); with nothing to say it is an empty, margin-less status element.
  */
-export function FieldHint({ id, tone = 'info', children }: { id?: string; tone?: FieldHintTone; children?: ReactNode }) {
+export function FieldHint({ id, tone = 'info', children }: { id?: string; tone?: HintTone; children?: ReactNode }) {
   const hasContent = children !== undefined && children !== null && children !== false && children !== '';
   const className = !hasContent
     ? undefined

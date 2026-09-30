@@ -87,10 +87,15 @@ describe('BuildingShareFields', () => {
     expect(values()).toEqual({ b: 100000, l: 100000 });
   });
 
-  it('clamps a percentage above 100', () => {
+  it('ignores a percentage above 100 and accepts exactly 100', () => {
     render(<Harness price={1000} building={800} land={200} />);
     fireEvent.click(screen.getByRole('button', { name: '%' }));
-    fireEvent.change(screen.getByLabelText(/^Gebäudeanteil/), { target: { value: '150' } });
+    const field = screen.getByLabelText(/^Gebäudeanteil/);
+    fireEvent.change(field, { target: { value: '150' } });
+    expect(field).toHaveValue('80');
+    expect(values()).toEqual({ b: 800, l: 200 });
+    fireEvent.change(field, { target: { value: '100' } });
+    expect(field).toHaveValue('100');
     expect(values()).toEqual({ b: 1000, l: 0 });
   });
 

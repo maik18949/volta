@@ -176,6 +176,19 @@ describe('StepKauf Grunderwerbsteuer suggestion', () => {
     expect(hint).toHaveTextContent(/Sachsen 5,5\s% \(Vorschlag\)/);
   });
 
+  it('keeps the reset button outside the status region and announces only the text', async () => {
+    render(<Harness overrides={{ state: 'Sachsen', purchasePriceUnit: 175000 }} />);
+    await waitFor(() => expect(taxField()).toHaveValue(9625));
+    fireEvent.change(taxField(), { target: { value: '8000' } });
+    fireEvent.change(priceField(), { target: { value: '200000' } });
+    const button = await screen.findByRole('button', { name: 'Zurücksetzen' });
+    const hint = document.getElementById(taxField().getAttribute('aria-describedby') as string) as HTMLElement;
+    expect(hint).toHaveAttribute('role', 'status');
+    expect(hint).not.toContainElement(button);
+    expect(hint).toHaveTextContent(/^Sachsen 5,5\s% wären 11\.000,00\s€\s·$/);
+    expect(hint.querySelector('[aria-hidden="true"]')).toHaveTextContent('·');
+  });
+
   it('keeps a user-typed 0 across a remount because the mode is manual', async () => {
     render(<ControlledHarness overrides={{ state: 'Sachsen', purchasePriceUnit: 175000 }} />);
     await waitFor(() => expect(taxField()).toHaveValue(9625));

@@ -1,12 +1,11 @@
 import { lookupState } from '@/lib/data/plzLookup';
+import type { HintTone } from '@/lib/hintTone';
 
 export type PostalCodeStateUpdate = { action: 'set'; state: string } | { action: 'clear' } | { action: 'keep' };
 
-export type PostalCodeHintTone = 'info' | 'warn';
-
 export interface PostalCodeHint {
   text: string;
-  tone: PostalCodeHintTone;
+  tone: HintTone;
 }
 
 function isCompletePostalCode(postalCode: string): boolean {

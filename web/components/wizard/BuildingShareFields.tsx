@@ -26,9 +26,9 @@ function segmentClass(active: boolean): string {
  * Gebäude-/Grundstückswert wahlweise in € (zwei Felder) oder als Gebäudeanteil in % (Grundstück = Rest).
  * Gespeichert wird immer in Euro (`buildingValue`/`landValue`); der Modus ist reiner UI-State.
  * Rendert in einem `FormGrid` (Fragment mit Switcher-Zeile + Feldern).
- * `landLabel` wird nur im €-Modus verwendet (im %-Modus heisst das Feld "Grundstückswert (Rest)").
+ * `landLabel` wird nur im €-Modus verwendet (im %-Modus heißt das Feld "Grundstückswert (Rest)").
  * Annahme: Im %-Modus besitzt diese Komponente `buildingValue`/`landValue`. Werden sie dort an anderer Stelle
- * geaendert, muss der Modus gewechselt werden, damit der Prozentwert neu synchronisiert wird.
+ * geändert, muss der Modus gewechselt werden, damit der Prozentwert neu synchronisiert wird.
  */
 export function BuildingShareFields({
   purchasePrice,
@@ -112,7 +112,7 @@ export function BuildingShareFields({
                 value={percentText}
                 onChange={(e) => {
                   const parsed = parsePercentInput(e.target.value);
-                  if (parsed === null) return;
+                  if (parsed === null || parsed > 100) return;
                   setPercentText(e.target.value);
                   applyPercent(parsed, purchasePrice);
                 }}
