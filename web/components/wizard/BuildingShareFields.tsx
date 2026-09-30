@@ -5,7 +5,7 @@ import { useFormContext, useWatch } from 'react-hook-form';
 import { CurrencyField } from '@/components/ui/CurrencyField';
 import { ReadOnlyField } from '@/components/ui/ReadOnlyField';
 import { FieldLabel, SUFFIXED_INPUT_CLASS, SuffixedInputBox } from '@/components/ui/fieldStyles';
-import { buildingSharePercent, clampPercent, valuesFromBuildingShare } from '@/lib/wizard/buildingShare';
+import { buildingSharePercent, clampPercent, formatPercentInput, parsePercentInput, valuesFromBuildingShare } from '@/lib/wizard/buildingShare';
 import { formatCurrency } from '@/lib/formatters';
 import type { WizardFormValues } from '@/lib/wizard/wizardLogic';
 
@@ -15,12 +15,20 @@ function safeNum(value: number | undefined): number {
   return typeof value === 'number' && !Number.isNaN(value) ? value : 0;
 }
 
-const SEGMENT_BASE = 'px-3 py-1 text-[12px] font-semibold';
+const SEGMENT_BASE =
+  'px-3 py-1 text-[12px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent/40';
+
+function segmentClass(active: boolean): string {
+  return `${SEGMENT_BASE} ${active ? 'bg-accent text-white' : 'bg-white text-text-secondary hover:bg-black/[0.04]'}`;
+}
 
 /**
  * Gebäude-/Grundstückswert wahlweise in € (zwei Felder) oder als Gebäudeanteil in % (Grundstück = Rest).
  * Gespeichert wird immer in Euro (`buildingValue`/`landValue`); der Modus ist reiner UI-State.
  * Rendert in einem `FormGrid` (Fragment mit Switcher-Zeile + Feldern).
+ * `landLabel` wird nur im €-Modus verwendet (im %-Modus heisst das Feld "Grundstückswert (Rest)").
+ * Annahme: Im %-Modus besitzt diese Komponente `buildingValue`/`landValue`. Werden sie dort an anderer Stelle
+ * geaendert, muss der Modus gewechselt werden, damit der Prozentwert neu synchronisiert wird.
  */
 export function BuildingShareFields({
   purchasePrice,
@@ -39,10 +47,10 @@ export function BuildingShareFields({
   const previousPrice = useRef(purchasePrice);
 
   const applyPercent = useCallback(
-    (text: string, price: number) => {
-      const values = price > 0 ? valuesFromBuildingShare(text.trim() === '' ? 0 : Number(text), price) : { buildingValue: 0, landValue: 0 };
-      setValue('buildingValue', values.buildingValue);
-      setValue('landValue', values.landValue);
+    (percent: number, price: number) => {
+      const values = price > 0 ? valuesFromBuildingShare(percent, price) : { buildingValue: 0, landValue: 0 };
+      setValue('buildingValue', values.buildingValue, { shouldDirty: true });
+      setValue('landValue', values.landValue, { shouldDirty: true });
     },
     [setValue]
   );
@@ -51,14 +59,14 @@ export function BuildingShareFields({
   useEffect(() => {
     if (previousPrice.current === purchasePrice) return;
     previousPrice.current = purchasePrice;
-    if (mode === 'pct') applyPercent(percentText, purchasePrice);
+    if (mode === 'pct') applyPercent(parsePercentInput(percentText) ?? 0, purchasePrice);
   }, [purchasePrice, mode, percentText, applyPercent]);
 
   function switchTo(next: Mode) {
     if (next === mode) return;
     if (next === 'pct') {
       const percent = buildingSharePercent(safeNum(getValues('buildingValue')), purchasePrice);
-      setPercentText(percent === null ? '' : String(clampPercent(percent)));
+      setPercentText(percent === null ? '' : formatPercentInput(clampPercent(percent)));
     }
     setMode(next);
   }
@@ -67,12 +75,12 @@ export function BuildingShareFields({
     <>
       <div className="flex items-center justify-between gap-3 sm:col-span-2">
         <span className="text-[13px] font-semibold text-text-secondary">Aufteilung Gebäude / Grundstück</span>
-        <div role="group" aria-label="Eingabeart" className="inline-flex overflow-hidden rounded-[8px] border border-black/[0.12]">
+        <div role="group" aria-label="Eingabeart Gebäudeanteil" className="inline-flex overflow-hidden rounded-[8px] border border-black/[0.12]">
           <button
             type="button"
             aria-pressed={mode === 'eur'}
             onClick={() => switchTo('eur')}
-            className={`${SEGMENT_BASE} ${mode === 'eur' ? 'bg-accent text-white' : 'bg-white text-text-secondary hover:bg-black/[0.04]'}`}
+            className={segmentClass(mode === 'eur')}
           >
             €
           </button>
@@ -80,7 +88,7 @@ export function BuildingShareFields({
             type="button"
             aria-pressed={mode === 'pct'}
             onClick={() => switchTo('pct')}
-            className={`${SEGMENT_BASE} ${mode === 'pct' ? 'bg-accent text-white' : 'bg-white text-text-secondary hover:bg-black/[0.04]'}`}
+            className={segmentClass(mode === 'pct')}
           >
             %
           </button>
@@ -98,14 +106,15 @@ export function BuildingShareFields({
             <FieldLabel label="Gebäudeanteil" required hint={`= ${formatCurrency(buildingValue)}`} />
             <SuffixedInputBox suffix="%">
               <input
-                type="number"
-                step="0.01"
-                min={0}
-                max={100}
+                type="text"
+                inputMode="decimal"
+                autoComplete="off"
                 value={percentText}
                 onChange={(e) => {
+                  const parsed = parsePercentInput(e.target.value);
+                  if (parsed === null) return;
                   setPercentText(e.target.value);
-                  applyPercent(e.target.value, purchasePrice);
+                  applyPercent(parsed, purchasePrice);
                 }}
                 onFocus={(e) => e.target.select()}
                 className={SUFFIXED_INPUT_CLASS}
