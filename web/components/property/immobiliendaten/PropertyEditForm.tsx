@@ -126,7 +126,7 @@ export function PropertyEditForm({
               }
             />
           )}
-          {activeSection === 'kauf' && <StepKauf />}
+          {activeSection === 'kauf' && <StepKauf taxStartsManual />}
           {activeSection === 'einnahmen' && <StepEinnahmen />}
           {activeSection === 'kosten' && <StepKosten />}
           {activeSection === 'finanzierung' && <StepFinanzierung />}
