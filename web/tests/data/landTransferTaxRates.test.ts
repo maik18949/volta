@@ -8,6 +8,7 @@ import {
   normalizeState,
 } from '@/lib/data/landTransferTaxRates';
 
+// Intentionally duplicated from the data module: this test pins the agreed rates — do not import the table here.
 const EXPECTED_RATES: Array<[string, number]> = [
   ['Baden-Württemberg', 5],
   ['Bayern', 3.5],
@@ -79,6 +80,8 @@ describe('normalizeState', () => {
     expect(normalizeState('THÜRINGEN')).toBe('Thüringen');
     expect(normalizeState('Thueringen')).toBe('Thüringen');
     expect(normalizeState('sachsen-anhalt')).toBe('Sachsen-Anhalt');
+    // decomposed umlaut (u + combining diaeresis)
+    expect(normalizeState('Thüringen')).toBe('Thüringen');
   });
 
   it('returns an empty string for unrecognized text', () => {

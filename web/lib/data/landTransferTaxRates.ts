@@ -41,8 +41,9 @@ export function suggestLandTransferTax(state: string, purchasePrice: number): nu
   return Math.round(purchasePrice * rate) / 100;
 }
 
+// The ü -> ue fold is the only special case because ü is the only umlaut in the Bundesland names.
 function fold(text: string): string {
-  return text.trim().toLowerCase().replace(/ü/g, 'ue').replace(/\s+/g, ' ');
+  return text.normalize('NFC').trim().toLowerCase().replace(/ü/g, 'ue').replace(/\s+/g, ' ');
 }
 
 /** Bildet Freitext auf den kanonischen Ländernamen ab; leer, wenn nicht erkennbar. */
