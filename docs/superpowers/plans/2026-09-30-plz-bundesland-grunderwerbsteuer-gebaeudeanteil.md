@@ -26,12 +26,12 @@ Die Code-Blöcke in den Tasks unten sind der **ursprüngliche Plan**. Die Branch
 - **Hinweis-Region:** „Zurücksetzen" steht außerhalb der `role="status"`-Region; der Statustext lautet „<Land> <Satz> wären <Betrag> ·" mit `aria-hidden` am Punkt.
 - **Gebäudeanteil in %:** Textfeld (`inputMode="decimal"`), „." oder „," erlaubt, höchstens 3 Vorkomma- und 2 Nachkommastellen; Werte über 100 und ungültige Tastenanschläge werden ignoriert (Text und Euro-Werte bleiben). `parsePercentInput`/`formatPercentInput` liegen in `lib/wizard/buildingShare.ts`.
 - **PLZ-Tabelle:** Die `// Quelle:`-Zeile hat kein Erzeugungsdatum (byte-reproduzierbar); Quelle Gist pmdroid/6ae8286a494cafce82b6ea5f6cc2362a, bereinigt. Kein `/* eslint-disable */`-Header, stattdessen `globalIgnores` in `eslint.config.mjs`. Der Generator (`scripts/generatePlzTable.ts`) löst den Ausgabepfad relativ zum Skript auf und überschreibt nicht bei leerer/unvollständiger Tabelle; der Builder umbricht die Ausgabe (max. 8 Bereiche pro Zeile) und sortiert per Code-Unit-Vergleich. `plzTableBuilder` und `generatePlzTable` wurden gegenüber den Task-Code-Blöcken gehärtet.
+- **Grunderwerbsteuer-Sync:** Der Vorschlag wird nicht in `StepKauf`, sondern vom Hook `components/wizard/useLandTransferTaxAutoSync.ts` an der Formularwurzel geschrieben (Wizard und Bearbeiten-Formular). Er folgt so auch Bundesland-/Stellplatz-Änderungen, während der Kauf-Schritt nicht offen ist. Gesamtkaufpreis über `totalPurchasePrice` in `lib/wizard/wizardLogic.ts`.
 - **Hinweis-Typen:** `HintTone` liegt geteilt in `lib/hintTone.ts`; die Komponente `FieldHint` in `components/ui/fieldStyles.tsx`.
 - **Felder:** `CurrencyField` hat `onUserEdit` und `describedBy`; `SelectField` hat `describedBy`.
 - **Satzanzeige:** Sätze werden über `formatPercent` angezeigt, z. B. „5,0 %", „3,5 %".
 - **Tests:** Label-Selektoren sind Regexe, weil das `<label>` den „€"/„%"-Suffix mit umschließt. Mehrere Tests wurden in Nachfolge-Commits nachgeschärft (u. a. Building-Share-Tests, Round-Trip über das Edit-Mapping, Modus über Schritt-Navigation).
 
----
 ---
 
 ## File Structure

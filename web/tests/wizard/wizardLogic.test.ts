@@ -125,6 +125,7 @@ describe('mapToPropertyInsert', () => {
   it('does not persist the UI-only Grunderwerbsteuer mode', () => {
     const insert = mapToPropertyInsert(makeValues({ landTransferTaxMode: 'manual' }));
     expect(Object.keys(insert).filter((key) => key.startsWith('land_transfer'))).toEqual(['land_transfer_tax']);
+    expect(insert).not.toHaveProperty('landTransferTaxMode');
   });
 
   it('zeroes out parking fields when parkingType is nicht_vorhanden, even if stale values remain in the form', () => {

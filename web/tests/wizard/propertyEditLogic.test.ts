@@ -106,6 +106,7 @@ describe('mapPropertyToEditFormValues', () => {
   it('does not write the UI-only Grunderwerbsteuer mode to the update', () => {
     const update = mapEditFormValuesToPropertyUpdate(mapPropertyToEditFormValues(makeProperty()));
     expect(Object.keys(update).filter((key) => key.startsWith('land_transfer'))).toEqual(['land_transfer_tax']);
+    expect(update).not.toHaveProperty('landTransferTaxMode');
   });
 
   it('a round trip through mapEditFormValuesToPropertyUpdate reproduces the original core fields', () => {

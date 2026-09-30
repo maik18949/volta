@@ -27,7 +27,8 @@ const PERCENT_INPUT = /^(\d{0,3})(?:[.,](\d{0,2}))?$/;
 /**
  * Parst die Texteingabe des Prozentfelds (ganze Prozent). Erlaubt '.' oder ',' als Dezimaltrenner,
  * höchstens 3 Vorkomma- und 2 Nachkommastellen; '' ergibt 0. Ungültige Eingabe ergibt null
- * (Aufrufer ignorieren sie). Begrenzt NICHT auf 0..100 - das macht `valuesFromBuildingShare`.
+ * (Aufrufer ignorieren sie). Begrenzt NICHT auf 0..100: der Aufrufer ignoriert Werte ueber 100;
+ * `clampPercent` in `valuesFromBuildingShare` ist nur ein Sicherheitsnetz.
  */
 export function parsePercentInput(text: string): number | null {
   const trimmed = text.trim();

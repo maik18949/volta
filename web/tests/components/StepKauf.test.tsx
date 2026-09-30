@@ -22,8 +22,19 @@ function useWizardForm(overrides: Partial<WizardFormValues>) {
 // Edit-form style: a saved value is opened in manual mode (see mapPropertyToEditFormValues).
 const EDIT_FORM: Partial<WizardFormValues> = { landTransferTaxMode: 'manual' };
 
-function Harness({ overrides = {}, onFormChange }: { overrides?: Partial<WizardFormValues>; onFormChange?: () => void }) {
+// `deferStep` mounts the step only after a click, so a `onFormChange` subscription exists before its mount effects run
+// (like the edit form's section switch).
+function Harness({
+  overrides = {},
+  onFormChange,
+  deferStep = false,
+}: {
+  overrides?: Partial<WizardFormValues>;
+  onFormChange?: () => void;
+  deferStep?: boolean;
+}) {
   const form = useWizardForm(overrides);
+  const [showStep, setShowStep] = useState(!deferStep);
   const { watch } = form;
   useEffect(() => {
     if (!onFormChange) return;
@@ -32,7 +43,12 @@ function Harness({ overrides = {}, onFormChange }: { overrides?: Partial<WizardF
   }, [watch, onFormChange]);
   return (
     <FormProvider {...form}>
-      <StepKauf />
+      {deferStep && (
+        <button type="button" onClick={() => setShowStep(true)}>
+          show Kauf
+        </button>
+      )}
+      {showStep && <StepKauf />}
     </FormProvider>
   );
 }
@@ -236,13 +252,30 @@ describe('StepKauf Grunderwerbsteuer suggestion', () => {
     const onFormChange = vi.fn();
     render(
       <Harness
+        deferStep
         onFormChange={onFormChange}
         overrides={{ ...EDIT_FORM, state: 'Sachsen', purchasePriceUnit: 175000, landTransferTax: 1234 }}
       />
     );
+    fireEvent.click(screen.getByRole('button', { name: 'show Kauf' }));
     await new Promise((resolve) => setTimeout(resolve, 50));
     expect(taxField()).toHaveValue(1234);
     expect(onFormChange).not.toHaveBeenCalled();
+  });
+
+  it('treats an unknown mode as manual and keeps a saved value', () => {
+    render(
+      <Harness
+        overrides={{
+          state: 'Sachsen',
+          purchasePriceUnit: 175000,
+          landTransferTax: 1234,
+          landTransferTaxMode: undefined as unknown as WizardFormValues['landTransferTaxMode'],
+        }}
+      />
+    );
+    expect(taxField()).toHaveValue(1234);
+    expect(screen.getByRole('button', { name: 'Zurücksetzen' })).toBeInTheDocument();
   });
 
   it('keeps the computed amount when the Bundesland is cleared in automatic mode', async () => {
