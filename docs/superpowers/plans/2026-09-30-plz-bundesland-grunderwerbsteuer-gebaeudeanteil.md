@@ -13,10 +13,25 @@
 **Abweichungen vom Spec (Implementierungsdetails, bewusst so):**
 
 1. Ein bestehender `state`-Freitext, den `normalizeState` nicht erkennt (z. B. „NRW"), wird **nicht** verworfen. Er bleibt als zusätzliche Dropdown-Option „NRW (bitte prüfen)" erhalten. Sonst würde der Autosave des Bearbeiten-Formulars ihn bei der nächsten Änderung stillschweigend mit `''` überschreiben.
-2. `StepKauf` bekommt die Prop `taxStartsManual` (nur das Bearbeiten-Formular setzt sie). Im Wizard wird der Startzustand aus den Werten abgeleitet („Automatisch", wenn die Steuer 0 ist oder dem Vorschlag entspricht), weil der Schritt beim Zurück-/Vorwärts-Navigieren neu montiert wird und einen manuellen Wert sonst überschreiben würde.
+2. Der Grunderwerbsteuer-Modus ist das nicht persistierte Formularfeld `landTransferTaxMode: 'auto' | 'manual'` in `WizardFormValues` (Wizard-Default `auto`, Bearbeiten-Formular lädt `manual`). Es gibt keine Prop `taxStartsManual` und keine aus den Werten abgeleitete Startlogik; der Modus überlebt die Schritt-Navigation (siehe „Abweichungen bei der Umsetzung").
 
 **Konventionen:** Alle Befehle aus dem Verzeichnis `web/` dieses Worktrees. Tests mit `pnpm vitest run <datei>`. Komponententests beginnen mit `// @vitest-environment jsdom` und rufen `cleanup` in `afterEach`. Commit-Nachrichten enden mit der Zeile `Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>`.
 
+
+## Abweichungen bei der Umsetzung (Stand nach den Reviews)
+
+Die Code-Blöcke in den Tasks unten sind der **ursprüngliche Plan**. Die Branch-Historie (`git log faff2e9..HEAD`) und der Code sind maßgeblich. Abweichungen:
+
+- **Grunderwerbsteuer-Modus:** Statt `taxStartsManual` und Ableitung aus den Werten gibt es das nicht persistierte Formularfeld `landTransferTaxMode: 'auto' | 'manual'` (`wizardLogic.ts`, Wizard-Default `auto`; `propertyEditLogic.ts` lädt `manual`). `StepKauf` liest/setzt es über RHF (`onUserEdit` -> `manual`, „Zurücksetzen" -> `auto`). Es überlebt die Schritt-Navigation: Der Vorschlag folgt einer Bundesland-Änderung auf einem früheren Schritt, ein eingegebener Wert 0 bleibt 0. Die Einschränkung „0 gilt beim Re-Mount als leer" entfällt. `mapToPropertyInsert` schreibt das Feld nicht.
+- **Hinweis-Region:** „Zurücksetzen" steht außerhalb der `role="status"`-Region; der Statustext lautet „<Land> <Satz> wären <Betrag> ·" mit `aria-hidden` am Punkt.
+- **Gebäudeanteil in %:** Textfeld (`inputMode="decimal"`), „." oder „," erlaubt, höchstens 3 Vorkomma- und 2 Nachkommastellen; Werte über 100 und ungültige Tastenanschläge werden ignoriert (Text und Euro-Werte bleiben). `parsePercentInput`/`formatPercentInput` liegen in `lib/wizard/buildingShare.ts`.
+- **PLZ-Tabelle:** Die `// Quelle:`-Zeile hat kein Erzeugungsdatum (byte-reproduzierbar); Quelle Gist pmdroid/6ae8286a494cafce82b6ea5f6cc2362a, bereinigt. Kein `/* eslint-disable */`-Header, stattdessen `globalIgnores` in `eslint.config.mjs`. Der Generator (`scripts/generatePlzTable.ts`) löst den Ausgabepfad relativ zum Skript auf und überschreibt nicht bei leerer/unvollständiger Tabelle; der Builder umbricht die Ausgabe (max. 8 Bereiche pro Zeile) und sortiert per Code-Unit-Vergleich. `plzTableBuilder` und `generatePlzTable` wurden gegenüber den Task-Code-Blöcken gehärtet.
+- **Hinweis-Typen:** `HintTone` liegt geteilt in `lib/hintTone.ts`; die Komponente `FieldHint` in `components/ui/fieldStyles.tsx`.
+- **Felder:** `CurrencyField` hat `onUserEdit` und `describedBy`; `SelectField` hat `describedBy`.
+- **Satzanzeige:** Sätze werden über `formatPercent` angezeigt, z. B. „5,0 %", „3,5 %".
+- **Tests:** Label-Selektoren sind Regexe, weil das `<label>` den „€"/„%"-Suffix mit umschließt. Mehrere Tests wurden in Nachfolge-Commits nachgeschärft (u. a. Building-Share-Tests, Round-Trip über das Edit-Mapping, Modus über Schritt-Navigation).
+
+---
 ---
 
 ## File Structure
@@ -30,13 +45,15 @@
 | `lib/data/plzLookup.ts` | neu | `lookupState(plz)` über der generierten Tabelle |
 | `lib/wizard/postalCodeState.ts` | neu | Reaktion aufs Dropdown und Hinweistext bei PLZ-Änderung |
 | `lib/wizard/buildingShare.ts` | neu | Prozent ↔ Euro-Rechnung für den Gebäudeanteil |
-| `lib/wizard/propertyEditLogic.ts` | ändern | `state` beim Laden normalisieren |
+| `lib/hintTone.ts` | neu | geteilter Typ `HintTone` |
+| `lib/wizard/wizardLogic.ts` | ändern | Formularfeld `landTransferTaxMode` (Default `auto`, nicht persistiert) |
+| `lib/wizard/propertyEditLogic.ts` | ändern | `state` beim Laden normalisieren; `landTransferTaxMode: 'manual'` |
 | `components/ui/CurrencyField.tsx` | ändern | optionale Prop `onUserEdit` |
 | `components/wizard/BuildingShareFields.tsx` | neu | €/%-Switcher + Felder |
 | `components/wizard/steps/StepStammdaten.tsx` | ändern | Bundesland-Dropdown + PLZ-Logik |
 | `components/wizard/steps/StepKauf.tsx` | ändern | Steuervorschlag, Modus, Hinweis |
 | `components/wizard/steps/StepAfaSteuer.tsx` | ändern | nutzt `BuildingShareFields` |
-| `components/property/immobiliendaten/PropertyEditForm.tsx` | ändern | `<StepKauf taxStartsManual />` |
+| `components/property/immobiliendaten/PropertyEditForm.tsx` | ändern | `<StepKauf />` (Modus kommt aus dem geladenen Formularwert) |
 | `package.json` | ändern | Script `generate:plz` |
 | `../README.md` | ändern | drei Roadmap-Einträge entfernen |
 | `../docs/specs/spec-property-setup.md`, `../docs/specs/spec-immobiliendaten-tab.md` | ändern | Feldbeschreibungen Bundesland, Grunderwerbsteuer, Gebäude-/Grundstückswert nachziehen |
@@ -346,7 +363,7 @@ const STATE_TYPOS: Record<string, string> = {
 };
 
 export function parsePostcodeCsv(csv: string): PlzTable {
-  const lines = csv.replace(/^﻿/, '').split(/\r?\n/);
+  const lines = csv.replace(/^\uFEFF/, '').split(/\r?\n/);
   const header = lines.shift() ?? '';
   if (header.trim() !== EXPECTED_HEADER) {
     throw new Error(`Unexpected CSV header: "${header}" (expected "${EXPECTED_HEADER}")`);
