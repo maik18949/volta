@@ -6,6 +6,14 @@ describe('stateUpdateForPostalCode', () => {
     expect(stateUpdateForPostalCode('01099')).toEqual({ action: 'set', state: 'Sachsen' });
   });
 
+  it('sets the unique state regardless of the currently chosen state', () => {
+    expect(stateUpdateForPostalCode('80331')).toEqual({ action: 'set', state: 'Bayern' });
+  });
+
+  it('ignores surrounding whitespace', () => {
+    expect(stateUpdateForPostalCode(' 01099 ')).toEqual({ action: 'set', state: 'Sachsen' });
+  });
+
   it('clears the state for an ambiguous PLZ', () => {
     expect(stateUpdateForPostalCode('65326')).toEqual({ action: 'clear' });
   });
@@ -41,5 +49,9 @@ describe('postalCodeHint', () => {
   it('confirms detection only while the state still matches the PLZ', () => {
     expect(postalCodeHint('01099', 'Sachsen')).toEqual({ text: 'Aus PLZ erkannt', tone: 'info' });
     expect(postalCodeHint('01099', 'Bayern')).toBeNull();
+  });
+
+  it('ignores surrounding whitespace', () => {
+    expect(postalCodeHint(' 01099 ', 'Sachsen')).toEqual({ text: 'Aus PLZ erkannt', tone: 'info' });
   });
 });
