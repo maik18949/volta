@@ -33,6 +33,10 @@ describe('parsePostcodeCsv', () => {
     expect(table.unique.size + table.ambiguous.size).toBe(5);
   });
 
+  it('strips a leading BOM from the header', () => {
+    expect(() => parsePostcodeCsv('\uFEFF' + CSV)).not.toThrow();
+  });
+
   it('throws on an unexpected header', () => {
     expect(() => parsePostcodeCsv('Ort,Plz\nX,1')).toThrow(/header/i);
   });

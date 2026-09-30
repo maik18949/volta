@@ -15,7 +15,7 @@ const STATE_TYPOS: Record<string, string> = {
 };
 
 export function parsePostcodeCsv(csv: string): PlzTable {
-  const lines = csv.replace(/^﻿/, '').split(/\r?\n/);
+  const lines = csv.replace(/^\uFEFF/, '').split(/\r?\n/);
   const header = lines.shift() ?? '';
   if (header.trim() !== EXPECTED_HEADER) {
     throw new Error(`Unexpected CSV header: "${header}" (expected "${EXPECTED_HEADER}")`);
