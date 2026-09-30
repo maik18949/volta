@@ -220,6 +220,15 @@ export function canFinish(values: WizardFormValues): boolean {
   );
 }
 
+/** Gesamtkaufpreis: Kaufpreis Wohnung plus Kaufpreis Stellplatz (nur wenn ein Stellplatz existiert). NaN zaehlt als 0. */
+export function totalPurchasePrice(
+  values: Pick<WizardFormValues, 'purchasePriceUnit' | 'purchasePriceParking' | 'parkingType'>
+): number {
+  const num = (value: number | undefined) => (typeof value === 'number' && !Number.isNaN(value) ? value : 0);
+  const parking = values.parkingType !== 'nicht_vorhanden' ? num(values.purchasePriceParking) : 0;
+  return num(values.purchasePriceUnit) + parking;
+}
+
 export function n(value: number): number {
   return Number.isNaN(value) ? 0 : value;
 }

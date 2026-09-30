@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useId, type ReactNode } from 'react';
+import { useId, type ReactNode } from 'react';
 import { useFormContext, useWatch } from 'react-hook-form';
 import { CurrencyField } from '@/components/ui/CurrencyField';
 import { TextField } from '@/components/ui/TextField';
@@ -9,7 +9,7 @@ import { CalcSummary, FormCard, FormGrid, FormHint, FormSection } from '@/compon
 import { closingCostsTotal, totalInvestment as computeTotalInvestment } from '@/lib/calculations/kpiCalculator';
 import { landTransferTaxRatePercent, suggestLandTransferTax } from '@/lib/data/landTransferTaxRates';
 import { formatCurrency, formatPercent } from '@/lib/formatters';
-import type { WizardFormValues } from '@/lib/wizard/wizardLogic';
+import { totalPurchasePrice, type WizardFormValues } from '@/lib/wizard/wizardLogic';
 
 function safeNum(value: number | undefined): number {
   return typeof value === 'number' && !Number.isNaN(value) ? value : 0;
@@ -21,9 +21,11 @@ export function StepKauf() {
   const parkingType = useWatch({ control, name: 'parkingType' });
   const values = useWatch({ control });
 
-  const purchasePriceUnit = safeNum(values.purchasePriceUnit);
-  const purchasePriceParking = parkingType !== 'nicht_vorhanden' ? safeNum(values.purchasePriceParking) : 0;
-  const purchasePrice = purchasePriceUnit + purchasePriceParking;
+  const purchasePrice = totalPurchasePrice({
+    purchasePriceUnit: values.purchasePriceUnit ?? 0,
+    purchasePriceParking: values.purchasePriceParking ?? 0,
+    parkingType,
+  });
 
   const state = values.state ?? '';
   const landTransferTax = safeNum(values.landTransferTax);
@@ -33,13 +35,6 @@ export function StepKauf() {
 
   // Kept in the form state (UI-only, never persisted) so it survives step navigation. Unknown counts as manual.
   const taxMode = useWatch({ control, name: 'landTransferTaxMode' }) ?? 'manual';
-
-  // Only writes in automatic mode; a user edit switches to manual first (onUserEdit).
-  useEffect(() => {
-    if (taxMode === 'auto' && suggestion !== null && suggestion !== landTransferTax) {
-      setValue('landTransferTax', suggestion);
-    }
-  }, [taxMode, suggestion, landTransferTax, setValue]);
 
   let taxHint: ReactNode;
   let showReset = false;

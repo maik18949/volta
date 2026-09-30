@@ -6,6 +6,7 @@ import {
   canProceedFromStep,
   canFinish,
   totalSteps,
+  totalPurchasePrice,
   mapToPropertyInsert,
   mapToStatusEntryInserts,
   type WizardFormValues,
@@ -30,6 +31,21 @@ describe('makeWizardDefaultValues', () => {
 
   it('starts the Grunderwerbsteuer in automatic mode', () => {
     expect(makeWizardDefaultValues(today).landTransferTaxMode).toBe('auto');
+  });
+});
+
+describe('totalPurchasePrice', () => {
+  it('adds the parking price when a parking space exists', () => {
+    expect(totalPurchasePrice({ purchasePriceUnit: 175000, purchasePriceParking: 25000, parkingType: 'tiefgarage' })).toBe(200000);
+  });
+
+  it('ignores a stale parking price when there is no parking space', () => {
+    expect(totalPurchasePrice({ purchasePriceUnit: 175000, purchasePriceParking: 25000, parkingType: 'nicht_vorhanden' })).toBe(175000);
+  });
+
+  it('treats NaN as 0', () => {
+    expect(totalPurchasePrice({ purchasePriceUnit: NaN, purchasePriceParking: 25000, parkingType: 'tiefgarage' })).toBe(25000);
+    expect(totalPurchasePrice({ purchasePriceUnit: 100, purchasePriceParking: NaN, parkingType: 'tiefgarage' })).toBe(100);
   });
 });
 

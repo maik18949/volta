@@ -4,15 +4,19 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { useEffect, useState } from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
 import { StepKauf } from '@/components/wizard/steps/StepKauf';
+import { useLandTransferTaxAutoSync } from '@/components/wizard/useLandTransferTaxAutoSync';
 import { makeWizardDefaultValues, type WizardFormValues } from '@/lib/wizard/wizardLogic';
 import { makeDate } from '@/lib/calculations/dateHelpers';
 
 afterEach(cleanup);
 
+// Like the production form roots: the auto-sync hook lives at the root, not in the step.
 function useWizardForm(overrides: Partial<WizardFormValues>) {
-  return useForm<WizardFormValues>({
+  const form = useForm<WizardFormValues>({
     defaultValues: { ...makeWizardDefaultValues(makeDate(2026, 7, 25)), ...overrides },
   });
+  useLandTransferTaxAutoSync(form);
+  return form;
 }
 
 // Edit-form style: a saved value is opened in manual mode (see mapPropertyToEditFormValues).

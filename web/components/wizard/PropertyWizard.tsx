@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { useForm, useWatch, FormProvider } from 'react-hook-form';
+import { useLandTransferTaxAutoSync } from './useLandTransferTaxAutoSync';
 import { useRouter } from 'next/navigation';
 import {
   type WizardFormValues,
@@ -47,6 +48,7 @@ export function PropertyWizard() {
 
   const form = useForm<WizardFormValues>({ defaultValues: makeWizardDefaultValues(today) });
   const { control } = form;
+  useLandTransferTaxAutoSync(form);
   // defaultValues fully populates every field, so after mount this is never
   // actually partial — the cast keeps the pure wizardLogic functions (which
   // take a complete WizardFormValues) usable without a second parallel type.
