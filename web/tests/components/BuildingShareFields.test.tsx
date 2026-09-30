@@ -56,6 +56,26 @@ describe('BuildingShareFields', () => {
     expect(screen.getByLabelText(/Grundstückswert/)).toHaveValue(formatCurrency(87500));
   });
 
+  it('shows the remainder (not the building value) as read-only land value', () => {
+    render(<Harness price={175000} building={140000} land={35000} />);
+    fireEvent.click(screen.getByRole('button', { name: '%' }));
+    fireEvent.change(screen.getByLabelText(/Gebäudeanteil/), { target: { value: '30' } });
+    expect(values()).toEqual({ b: 52500, l: 122500 });
+    const land = screen.getByLabelText(/Grundstückswert/);
+    expect(land).toHaveValue(formatCurrency(122500));
+    expect(land).not.toHaveValue(formatCurrency(52500));
+  });
+
+  it.each([
+    ['negative', -1000],
+    ['NaN', Number.NaN],
+  ])('writes 0/0 and never negative or NaN euro values for a %s purchase price', (_name, price) => {
+    render(<Harness price={price} building={0} land={0} />);
+    fireEvent.click(screen.getByRole('button', { name: '%' }));
+    fireEvent.change(screen.getByLabelText(/Gebäudeanteil/), { target: { value: '40' } });
+    expect(values()).toEqual({ b: 0, l: 0 });
+  });
+
   it('keeps the percentage and recalculates when the purchase price changes', () => {
     const { rerender } = render(<Harness price={175000} building={140000} land={35000} />);
     fireEvent.click(screen.getByRole('button', { name: '%' }));
