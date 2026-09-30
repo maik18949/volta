@@ -94,6 +94,8 @@ export function mapPropertyToEditFormValues(property: PropertyRow): PropertyEdit
     firstStatusDate: property.economic_transfer_date,
     firstStatus: 'vermietet',
     firstStatusIncome: null,
+    firstStatusAmountKind: 'rate',
+    firstStatusPeriodEndDate: '',
     firstStatusNotes: '',
 
     vacancyRateAssumption: property.vacancy_rate_assumption,

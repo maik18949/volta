@@ -95,9 +95,13 @@ export function StepKauf() {
           <CurrencyField label="Grundbuchkosten" name="landRegistryCosts" register={register} />
           <CurrencyField label="Maklerprovision" name="agentFee" register={register} />
           <CurrencyField label="Gutachterkosten" name="appraisalCosts" register={register} />
-          <CurrencyField label="Renovierung gesamt" name="renovationModernizationCosts" register={register} />
-          <CurrencyField label="davon aktivierungspflichtig" name="renovationAfaEligible" register={register} />
         </FormGrid>
+        <div className="mt-4 border-t border-black/[0.06] pt-4">
+          <FormGrid>
+            <CurrencyField label="Renovierung gesamt" name="renovationModernizationCosts" register={register} />
+            <CurrencyField label="davon steuerlich absetzbar" name="renovationAfaEligible" register={register} />
+          </FormGrid>
+        </div>
       </FormCard>
 
       <CalcSummary

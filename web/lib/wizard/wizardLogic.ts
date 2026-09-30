@@ -93,6 +93,8 @@ export interface WizardFormValues {
   firstStatusDate: string;
   firstStatus: PropertyStatus;
   firstStatusIncome: number | null;
+  firstStatusAmountKind: 'rate' | 'fixed';
+  firstStatusPeriodEndDate: string;
   firstStatusNotes: string;
 }
 
@@ -177,6 +179,8 @@ export function makeWizardDefaultValues(today: Date): WizardFormValues {
     firstStatusDate: todayStr,
     firstStatus: 'vermietet',
     firstStatusIncome: null,
+    firstStatusAmountKind: 'rate',
+    firstStatusPeriodEndDate: '',
     firstStatusNotes: '',
   };
 }
@@ -334,18 +338,21 @@ export function mapToStatusEntryInserts(
 ): Array<Omit<TablesInsert<'status_entries'>, 'property_id'>> {
   if (!requiresStatusOnboarding(values, today)) return [];
 
+  const isMietgarantie = values.firstStatus === 'mietgarantie';
+  const isFixedAmount = isMietgarantie && values.firstStatusAmountKind === 'fixed';
   const wohnungEntry: Omit<TablesInsert<'status_entries'>, 'property_id'> = {
     date: values.firstStatusDate,
     status: values.firstStatus,
-    income_actual_monthly: values.firstStatus === 'mietgarantie' ? nOrNull(values.firstStatusIncome) : null,
+    income_actual_monthly: isMietgarantie ? nOrNull(values.firstStatusIncome) : null,
+    income_is_fixed_amount: isFixedAmount,
+    income_period_end_date: isFixedAmount ? values.firstStatusPeriodEndDate : null,
     notes: values.firstStatusNotes,
     unit: 'wohnung',
   };
 
   if (values.parkingType === 'nicht_vorhanden') return [wohnungEntry];
-  const stellplatzEntry: Omit<TablesInsert<'status_entries'>, 'property_id'> =
-    values.firstStatus === 'mietgarantie'
-      ? { ...wohnungEntry, unit: 'stellplatz', income_actual_monthly: null }
-      : { ...wohnungEntry, unit: 'stellplatz' };
+  const stellplatzEntry: Omit<TablesInsert<'status_entries'>, 'property_id'> = isMietgarantie
+    ? { ...wohnungEntry, unit: 'stellplatz', income_actual_monthly: null, income_is_fixed_amount: false, income_period_end_date: null }
+    : { ...wohnungEntry, unit: 'stellplatz' };
   return [wohnungEntry, stellplatzEntry];
 }
