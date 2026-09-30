@@ -52,7 +52,7 @@ type PropertyStatus = 'vermietet' | 'leerstand' | 'mietgarantie';    // mietgara
 name: string;
 address: string;
 city: string;
-state: string;
+state: string;                            // kanonischer Ländername (16 Bundesländer), vorbelegt aus postalCode
 postalCode: string;
 propertyType: PropertyType;
 acquisitionType: AcquisitionType;      // Kauf / Erbschaft / Schenkung
@@ -91,7 +91,7 @@ purchaseDate: string;                    // Kaufdatum / Datum Erbschaft / Schenk
 economicTransferDate: string;            // Wirtschaftlicher Übergang — AfA-Startpunkt
 purchasePriceUnit: number;                // Kaufpreis Wohnung
 purchasePriceParking: number;             // Kaufpreis Stellplatz (nur wenn parkingType != 'nicht_vorhanden')
-landTransferTax: number;                  // Grunderwerbsteuer
+landTransferTax: number;                  // Grunderwerbsteuer (Vorschlag: Landessatz × Gesamtkaufpreis, überschreibbar)
 notaryCosts: number;
 landRegistryCosts: number;
 agentFee: number;                         // Maklerprovision

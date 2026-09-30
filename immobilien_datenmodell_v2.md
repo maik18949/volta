@@ -321,7 +321,7 @@ ltv_ratio =
 | `marginal_tax_rate` | Percent | 42% | ✓ |
 | `land_guideline_value_sqm` | Currency | 745 €/m² | — |
 
-> **Hinweis `land_value` / `building_value`:** Absolute Werte aus dem Regierungs-Excel (Sachwertverfahren). Beide Werte sollten sich zu `purchase_price` (inkl. Stellplatz, sofern wirtschaftlich verbunden) addieren.
+> **Hinweis `land_value` / `building_value`:** Absolute Werte aus dem Regierungs-Excel (Sachwertverfahren). Beide Werte sollten sich zu `purchase_price` (inkl. Stellplatz, sofern wirtschaftlich verbunden) addieren. In der UI sind beide Werte alternativ über einen Gebäudeanteil in % eingebbar (Grundstück = Rest); gespeichert werden weiterhin absolute Euro-Werte.
 
 > **Hinweis Stellplatz & AfA:** `purchase_price_parking` nur befüllen wenn der Stellplatz wirtschaftlich mit der Wohnung verbunden ist (gleicher Mieter, selbes WEG-Gebäude) und im Sachwertverfahren bereits enthalten ist. Ein separates Grundbuchblatt schließt den wirtschaftlichen Nutzungszusammenhang nicht aus. Nicht verbundene Stellplätze als separates Objekt anlegen.
 
