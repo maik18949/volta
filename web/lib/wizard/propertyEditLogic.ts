@@ -1,5 +1,6 @@
 import { mapToPropertyInsert, n, nOrNull, type WizardFormValues } from './wizardLogic';
 import type { Database, TablesUpdate } from '@/lib/supabase/types';
+import { normalizeState } from '@/lib/data/landTransferTaxRates';
 
 type PropertyRow = Database['public']['Tables']['properties']['Row'];
 
@@ -23,7 +24,7 @@ export function mapPropertyToEditFormValues(property: PropertyRow): PropertyEdit
     address: property.address,
     city: property.city,
     postalCode: property.postal_code,
-    state: property.state,
+    state: normalizeState(property.state) || property.state,
     propertyType: property.property_type,
     acquisitionType: property.acquisition_type,
     yearBuilt: property.year_built,

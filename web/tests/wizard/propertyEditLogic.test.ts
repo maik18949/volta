@@ -164,3 +164,13 @@ describe('mapEditFormValuesToPropertyUpdate', () => {
     expect(update.parking_rent_monthly).toBe(0);
   });
 });
+
+describe('mapPropertyToEditFormValues state normalization', () => {
+  it('maps spelling variants of a Bundesland to the canonical name', () => {
+    expect(mapPropertyToEditFormValues(makeProperty({ state: ' sachsen ' })).state).toBe('Sachsen');
+  });
+
+  it('keeps an unrecognized free-text value instead of dropping it', () => {
+    expect(mapPropertyToEditFormValues(makeProperty({ state: 'NRW' })).state).toBe('NRW');
+  });
+});
