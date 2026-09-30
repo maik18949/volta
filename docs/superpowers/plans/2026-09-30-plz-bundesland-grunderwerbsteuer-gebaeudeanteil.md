@@ -39,6 +39,8 @@
 | `components/property/immobiliendaten/PropertyEditForm.tsx` | ändern | `<StepKauf taxStartsManual />` |
 | `package.json` | ändern | Script `generate:plz` |
 | `../README.md` | ändern | drei Roadmap-Einträge entfernen |
+| `../docs/specs/spec-property-setup.md`, `../docs/specs/spec-immobiliendaten-tab.md` | ändern | Feldbeschreibungen Bundesland, Grunderwerbsteuer, Gebäude-/Grundstückswert nachziehen |
+| `../docs/specs/spec-data-model.md`, `../immobilien_datenmodell_v2.md` | ändern | `state` kanonisch, `building_value`/`land_value` Hinweis |
 | `tests/...` | neu | je Modul, siehe Tasks |
 
 ---
@@ -1690,7 +1692,84 @@ Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
 
 ---
 
-### Task 11: Abschluss — Roadmap, Gesamtprüfung, Sichtprüfung
+### Task 11: Feld-Dokumentation nachziehen
+
+Das Projekt arbeitet spec-first; die Feld-Specs beschreiben Bundesland als `[Textfeld]`, Grunderwerbsteuer als `[Währungsfeld]` und Gebäude-/Grundstückswert als reine Euro-Eingaben. Nach diesem Feature stimmt das nicht mehr. Alle Pfade relativ zum Repo-Root (`..` von `web/`).
+
+**Files:**
+- Modify: `docs/specs/spec-property-setup.md`, `docs/specs/spec-immobiliendaten-tab.md`, `docs/specs/spec-data-model.md`, `immobilien_datenmodell_v2.md`
+
+- [ ] **Step 1: Bundesland in beiden Feld-Specs ersetzen**
+
+In `docs/specs/spec-property-setup.md` (Zeile 33) und `docs/specs/spec-immobiliendaten-tab.md` (Zeile 45) die Zeile
+
+```
+Bundesland:     [Textfeld]
+```
+
+ersetzen durch
+
+```
+Bundesland:     [Picker]   16 Länder; wird bei vollständiger PLZ (5 Ziffern) vorbelegt, bei PLZ in zwei Ländern leer + Hinweis, jederzeit änderbar
+```
+
+- [ ] **Step 2: Grunderwerbsteuer in beiden Feld-Specs ersetzen**
+
+In `docs/specs/spec-property-setup.md` (Zeile 96) und `docs/specs/spec-immobiliendaten-tab.md` (Zeile 108) die Zeile
+
+```
+Grunderwerbsteuer:           [Währungsfeld]
+```
+
+ersetzen durch
+
+```
+Grunderwerbsteuer:           [Währungsfeld]  Vorschlag = Landessatz × Gesamtkaufpreis (Wohnung + Stellplatz), überschreibbar, "Zurücksetzen" stellt den Vorschlag wieder her
+```
+
+- [ ] **Step 3: Gebäude-/Grundstückswert in beiden Feld-Specs ergänzen**
+
+In `docs/specs/spec-property-setup.md` (Zeilen 209–210, Schritt 7) und `docs/specs/spec-immobiliendaten-tab.md` (Zeilen 241–242) direkt nach der Zeile `Grundstückswert (aus Regierungs-Excel) *: [Währungsfeld]` einfügen:
+
+```
+                                          Switcher [€ | %]: im %-Modus ein Feld "Gebäudeanteil" (0–100 %),
+                                          Grundstückswert = Rest; gespeichert wird immer in Euro
+```
+
+- [ ] **Step 4: Datenmodell-Dokumente anpassen**
+
+In `docs/specs/spec-data-model.md` (Zeile 55) `state: string;` ändern zu
+
+```
+state: string;                            // kanonischer Ländername (16 Bundesländer), vorbelegt aus postalCode
+```
+
+und Zeile 94 `landTransferTax: number;                  // Grunderwerbsteuer` ändern zu
+
+```
+landTransferTax: number;                  // Grunderwerbsteuer (Vorschlag: Landessatz × Gesamtkaufpreis, überschreibbar)
+```
+
+In `immobilien_datenmodell_v2.md` (Zeile 324) den Hinweis-Absatz um einen Satz erweitern; am Ende der Zeile anfügen:
+
+```
+ In der UI sind beide Werte alternativ über einen Gebäudeanteil in % eingebbar (Grundstück = Rest); gespeichert werden weiterhin absolute Euro-Werte.
+```
+
+Die Änderungstabelle ab Zeile 733 (`building_value`/`land_value` „als direkte manuelle Eingaben") bleibt unverändert: sie ist ein historisches Änderungsprotokoll von v2.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add docs/specs/spec-property-setup.md docs/specs/spec-immobiliendaten-tab.md docs/specs/spec-data-model.md immobilien_datenmodell_v2.md
+git commit -m "docs(specs): update field docs for Bundesland picker, Grunderwerbsteuer suggestion and building share switcher
+
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
+```
+
+---
+
+### Task 12: Abschluss — Roadmap, Gesamtprüfung, Sichtprüfung
 
 **Files:**
 - Modify: `../README.md` (Repo-Root), `../docs/superpowers/specs/2026-09-29-plz-bundesland-grunderwerbsteuer-gebaeudeanteil-design.md`
