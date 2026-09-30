@@ -9,10 +9,14 @@ import { makeDate } from '@/lib/calculations/dateHelpers';
 
 afterEach(cleanup);
 
-function Harness({ overrides = {}, taxStartsManual = false }: { overrides?: Partial<WizardFormValues>; taxStartsManual?: boolean }) {
-  const form = useForm<WizardFormValues>({
+function useWizardForm(overrides: Partial<WizardFormValues>) {
+  return useForm<WizardFormValues>({
     defaultValues: { ...makeWizardDefaultValues(makeDate(2026, 7, 25)), ...overrides },
   });
+}
+
+function Harness({ overrides = {}, taxStartsManual = false }: { overrides?: Partial<WizardFormValues>; taxStartsManual?: boolean }) {
+  const form = useWizardForm(overrides);
   return (
     <FormProvider {...form}>
       <StepKauf taxStartsManual={taxStartsManual} />
@@ -22,17 +26,18 @@ function Harness({ overrides = {}, taxStartsManual = false }: { overrides?: Part
 
 // Keeps the form alive while the step can be unmounted (wizard navigation) and lets tests change the Bundesland.
 function ControlledHarness({ overrides = {} }: { overrides?: Partial<WizardFormValues> }) {
-  const form = useForm<WizardFormValues>({
-    defaultValues: { ...makeWizardDefaultValues(makeDate(2026, 7, 25)), ...overrides },
-  });
+  const form = useWizardForm(overrides);
   const [mounted, setMounted] = useState(true);
   return (
     <FormProvider {...form}>
       <button type="button" onClick={() => setMounted((m) => !m)}>
-        toggle step
+        remount step
       </button>
       <button type="button" onClick={() => form.setValue('state', 'Bayern')}>
-        set Bayern
+        select Bayern
+      </button>
+      <button type="button" onClick={() => form.setValue('state', '')}>
+        clear Bundesland
       </button>
       {mounted && <StepKauf />}
     </FormProvider>
@@ -47,7 +52,7 @@ describe('StepKauf Grunderwerbsteuer suggestion', () => {
   it('fills in rate x purchase price in automatic mode and explains it', async () => {
     render(<Harness overrides={{ state: 'Sachsen', purchasePriceUnit: 175000 }} />);
     await waitFor(() => expect(taxField()).toHaveValue(9625));
-    expect(screen.getByText(/Sachsen 5,5 % \(Vorschlag\)/)).toBeInTheDocument();
+    expect(screen.getByText(/Sachsen 5,5\s% \(Vorschlag\)/)).toBeInTheDocument();
   });
 
   it('includes the parking price in the base', async () => {
@@ -100,7 +105,7 @@ describe('StepKauf Grunderwerbsteuer suggestion', () => {
 
   it('suggests 0 without complaint for a purchase price of 0', async () => {
     render(<Harness overrides={{ state: 'Sachsen', purchasePriceUnit: 0 }} />);
-    await waitFor(() => expect(screen.getByText(/Sachsen 5,5 % \(Vorschlag\)/)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText(/Sachsen 5,5\s% \(Vorschlag\)/)).toBeInTheDocument());
     expect(taxField()).toHaveValue(0);
   });
 
@@ -129,9 +134,9 @@ describe('StepKauf Grunderwerbsteuer suggestion', () => {
     await waitFor(() => expect(taxField()).toHaveValue(9625));
     fireEvent.change(taxField(), { target: { value: '8000' } });
 
-    fireEvent.click(screen.getByRole('button', { name: 'toggle step' }));
+    fireEvent.click(screen.getByRole('button', { name: 'remount step' }));
     expect(screen.queryByLabelText(/^Grunderwerbsteuer/)).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'toggle step' }));
+    fireEvent.click(screen.getByRole('button', { name: 'remount step' }));
 
     expect(taxField()).toHaveValue(8000);
     expect(screen.getByRole('button', { name: 'Zurücksetzen' })).toBeInTheDocument();
@@ -141,10 +146,10 @@ describe('StepKauf Grunderwerbsteuer suggestion', () => {
     render(<ControlledHarness overrides={{ state: 'Sachsen', purchasePriceUnit: 100000 }} />);
     await waitFor(() => expect(taxField()).toHaveValue(5500));
 
-    fireEvent.click(screen.getByRole('button', { name: 'set Bayern' }));
+    fireEvent.click(screen.getByRole('button', { name: 'select Bayern' }));
 
     await waitFor(() => expect(taxField()).toHaveValue(3500));
-    expect(screen.getByText(/Bayern 3,5 % \(Vorschlag\)/)).toBeInTheDocument();
+    expect(screen.getByText(/Bayern 3,5\s% \(Vorschlag\)/)).toBeInTheDocument();
   });
 
   it('keeps the value on a Bundesland change in manual mode and shows the new amount', async () => {
@@ -152,9 +157,43 @@ describe('StepKauf Grunderwerbsteuer suggestion', () => {
     await waitFor(() => expect(taxField()).toHaveValue(5500));
     fireEvent.change(taxField(), { target: { value: '8000' } });
 
-    fireEvent.click(screen.getByRole('button', { name: 'set Bayern' }));
+    fireEvent.click(screen.getByRole('button', { name: 'select Bayern' }));
 
-    await waitFor(() => expect(screen.getByText(/Bayern 3,5 % wären 3\.500,00/)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText(/Bayern 3,5\s% wären 3\.500,00/)).toBeInTheDocument());
     expect(taxField()).toHaveValue(8000);
+  });
+
+  it('points the tax input at the status element carrying the hint', async () => {
+    render(<Harness overrides={{ state: 'Sachsen', purchasePriceUnit: 175000 }} />);
+    await waitFor(() => expect(taxField()).toHaveValue(9625));
+    const hintId = taxField().getAttribute('aria-describedby');
+    expect(hintId).toBeTruthy();
+    const hint = document.getElementById(hintId as string);
+    expect(hint).toHaveAttribute('role', 'status');
+    expect(hint).toHaveTextContent(/Sachsen 5,5\s% \(Vorschlag\)/);
+  });
+
+  // Documented limitation: the start mode is derived from the values, and 0 means "empty".
+  it('documented behaviour: a tax of 0 is treated as empty on remount and gets the suggestion', async () => {
+    render(<ControlledHarness overrides={{ state: 'Sachsen', purchasePriceUnit: 175000 }} />);
+    await waitFor(() => expect(taxField()).toHaveValue(9625));
+    fireEvent.change(taxField(), { target: { value: '0' } });
+    expect(taxField()).toHaveValue(0);
+
+    fireEvent.click(screen.getByRole('button', { name: 'remount step' }));
+    fireEvent.click(screen.getByRole('button', { name: 'remount step' }));
+
+    await waitFor(() => expect(taxField()).toHaveValue(9625));
+    expect(screen.queryByRole('button', { name: 'Zurücksetzen' })).not.toBeInTheDocument();
+  });
+
+  it('keeps the computed amount when the Bundesland is cleared in automatic mode', async () => {
+    render(<ControlledHarness overrides={{ state: 'Sachsen', purchasePriceUnit: 100000 }} />);
+    await waitFor(() => expect(taxField()).toHaveValue(5500));
+
+    fireEvent.click(screen.getByRole('button', { name: 'clear Bundesland' }));
+
+    await waitFor(() => expect(screen.getByText('Bundesland wählen, dann erscheint ein Vorschlag.')).toBeInTheDocument());
+    expect(taxField()).toHaveValue(5500);
   });
 });

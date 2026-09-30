@@ -10,10 +10,18 @@ interface Values {
   amount: number;
 }
 
-function Harness({ onUserEdit, setRef }: { onUserEdit?: () => void; setRef?: (setValue: (v: number) => void) => void }) {
+function Harness({
+  onUserEdit,
+  setRef,
+  describedBy,
+}: {
+  onUserEdit?: () => void;
+  setRef?: (setValue: (v: number) => void) => void;
+  describedBy?: string;
+}) {
   const { register, setValue } = useForm<Values>({ defaultValues: { amount: 0 } });
   setRef?.((v) => setValue('amount', v));
-  return <CurrencyField label="Betrag" name="amount" register={register} onUserEdit={onUserEdit} />;
+  return <CurrencyField label="Betrag" name="amount" register={register} onUserEdit={onUserEdit} describedBy={describedBy} />;
 }
 
 describe('CurrencyField onUserEdit', () => {
@@ -37,5 +45,17 @@ describe('CurrencyField onUserEdit', () => {
     render(<Harness />);
     fireEvent.change(screen.getByLabelText(/^Betrag/), { target: { value: '5' } });
     expect(screen.getByLabelText(/^Betrag/)).toHaveValue(5);
+  });
+});
+
+describe('CurrencyField describedBy', () => {
+  it('sets aria-describedby on the input when provided', () => {
+    render(<Harness describedBy="amount-hint" />);
+    expect(screen.getByLabelText(/^Betrag/)).toHaveAttribute('aria-describedby', 'amount-hint');
+  });
+
+  it('sets no aria-describedby by default', () => {
+    render(<Harness />);
+    expect(screen.getByLabelText(/^Betrag/)).not.toHaveAttribute('aria-describedby');
   });
 });

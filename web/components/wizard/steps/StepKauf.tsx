@@ -8,7 +8,7 @@ import { FieldHint } from '@/components/ui/fieldStyles';
 import { CalcSummary, FormCard, FormGrid, FormHint, FormSection } from '@/components/ui/FormLayout';
 import { closingCostsTotal, totalInvestment as computeTotalInvestment } from '@/lib/calculations/kpiCalculator';
 import { landTransferTaxRatePercent, suggestLandTransferTax } from '@/lib/data/landTransferTaxRates';
-import { formatCurrency } from '@/lib/formatters';
+import { formatCurrency, formatPercent } from '@/lib/formatters';
 import type { WizardFormValues } from '@/lib/wizard/wizardLogic';
 
 function safeNum(value: number | undefined): number {
@@ -28,11 +28,13 @@ export function StepKauf({ taxStartsManual = false }: { taxStartsManual?: boolea
   const state = values.state ?? '';
   const landTransferTax = safeNum(values.landTransferTax);
   const suggestion = suggestLandTransferTax(state, purchasePrice);
-  const rateText = `${String(landTransferTaxRatePercent(state) ?? '').replace('.', ',')} %`;
+  const ratePercent = landTransferTaxRatePercent(state);
+  const rateText = ratePercent === null ? '' : formatPercent(ratePercent / 100);
 
   // The wizard remounts this step on navigation, so derive the start mode from the values:
   // automatic only while the field is empty or still equals the suggestion. The edit form
   // always starts manual so a saved value is never overwritten.
+  // Known limitation: 0 counts as empty, so a deliberately typed 0 is not preserved across a re-mount.
   const [taxMode, setTaxMode] = useState<'auto' | 'manual'>(() =>
     taxStartsManual ? 'manual' : landTransferTax === 0 || landTransferTax === suggestion ? 'auto' : 'manual'
   );
@@ -48,6 +50,7 @@ export function StepKauf({ taxStartsManual = false }: { taxStartsManual?: boolea
   if (suggestion === null) {
     taxHint = 'Bundesland wählen, dann erscheint ein Vorschlag.';
   } else if (taxMode === 'auto' || suggestion === landTransferTax) {
+    // A manual value that equals the suggestion shows the plain "(Vorschlag)" hint, without a reset button.
     taxHint = `${state} ${rateText} (Vorschlag)`;
   } else {
     taxHint = (
@@ -85,7 +88,7 @@ export function StepKauf({ taxStartsManual = false }: { taxStartsManual?: boolea
       <FormCard title="Kaufnebenkosten">
         <FormGrid>
           <div>
-            <CurrencyField label="Grunderwerbsteuer" name="landTransferTax" register={register} onUserEdit={() => setTaxMode('manual')} />
+            <CurrencyField label="Grunderwerbsteuer" name="landTransferTax" register={register} onUserEdit={() => setTaxMode('manual')} describedBy={taxHintId} />
             <FieldHint id={taxHintId}>{taxHint}</FieldHint>
           </div>
           <CurrencyField label="Notarkosten" name="notaryCosts" register={register} />
