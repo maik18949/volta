@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildingSharePercent, clampPercent, valuesFromBuildingShare } from '@/lib/wizard/buildingShare';
+import { buildingSharePercent, clampPercent, formatPercentInput, parsePercentInput, valuesFromBuildingShare } from '@/lib/wizard/buildingShare';
 
 describe('buildingSharePercent', () => {
   it('derives the percentage from the euro values, rounded to two decimals', () => {
@@ -41,5 +41,38 @@ describe('valuesFromBuildingShare', () => {
   it('clamps out-of-range input', () => {
     expect(valuesFromBuildingShare(150, 1000)).toEqual({ buildingValue: 1000, landValue: 0 });
     expect(valuesFromBuildingShare(Number.NaN, 1000)).toEqual({ buildingValue: 0, landValue: 1000 });
+  });
+});
+
+describe('parsePercentInput', () => {
+  it('parses plain numbers with dot or comma and trims whitespace', () => {
+    expect(parsePercentInput('')).toBe(0);
+    expect(parsePercentInput('   ')).toBe(0);
+    expect(parsePercentInput('80')).toBe(80);
+    expect(parsePercentInput('33,5')).toBe(33.5);
+    expect(parsePercentInput('33.5')).toBe(33.5);
+    expect(parsePercentInput('33.')).toBe(33);
+    expect(parsePercentInput('.5')).toBe(0.5);
+    expect(parsePercentInput(',5')).toBe(0.5);
+    expect(parsePercentInput('12,34')).toBe(12.34);
+    expect(parsePercentInput('  42 ')).toBe(42);
+  });
+
+  it('does not clamp values above 100 within three digits', () => {
+    expect(parsePercentInput('150')).toBe(150);
+  });
+
+  it('rejects everything that is not a plain non-negative decimal', () => {
+    for (const bad of ['-', '-5', 'e', 'abc', '1e3', '12.345', '1234', '1000', '33.3.3', '+5', ' 5 5', '1,2,3', '5%']) {
+      expect(parsePercentInput(bad), bad).toBeNull();
+    }
+  });
+});
+
+describe('formatPercentInput', () => {
+  it('uses a decimal comma and no trailing zeros', () => {
+    expect(formatPercentInput(80.71)).toBe('80,71');
+    expect(formatPercentInput(80)).toBe('80');
+    expect(formatPercentInput(0)).toBe('0');
   });
 });
