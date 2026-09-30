@@ -190,7 +190,15 @@ describe('mapToStatusEntryInserts', () => {
       parkingType: 'nicht_vorhanden',
     });
     expect(mapToStatusEntryInserts(values, today)).toEqual([
-      { date: '2026-06-01', status: 'vermietet', income_actual_monthly: null, notes: '', unit: 'wohnung' },
+      {
+        date: '2026-06-01',
+        status: 'vermietet',
+        income_actual_monthly: null,
+        income_is_fixed_amount: false,
+        income_period_end_date: null,
+        notes: '',
+        unit: 'wohnung',
+      },
     ]);
   });
 
@@ -227,5 +235,54 @@ describe('mapToStatusEntryInserts', () => {
 
     const vermietet = makeValues({ economicTransferDate: '2026-06-01', firstStatus: 'vermietet', firstStatusIncome: 500 });
     expect(mapToStatusEntryInserts(vermietet, today)[0].income_actual_monthly).toBeNull();
+  });
+
+  it('defaults to a monthly rate (income_is_fixed_amount false, no period end date)', () => {
+    const values = makeValues({ economicTransferDate: '2026-06-01', firstStatus: 'mietgarantie', firstStatusIncome: 500 });
+    expect(mapToStatusEntryInserts(values, today)[0]).toMatchObject({
+      income_is_fixed_amount: false,
+      income_period_end_date: null,
+    });
+  });
+
+  it('maps a fixed amount for a period, mirroring the Verlauf-tab StatusEntryModal', () => {
+    const values = makeValues({
+      economicTransferDate: '2026-06-01',
+      firstStatus: 'mietgarantie',
+      firstStatusAmountKind: 'fixed',
+      firstStatusIncome: 511.2,
+      firstStatusPeriodEndDate: '2026-06-30',
+    });
+    expect(mapToStatusEntryInserts(values, today)[0]).toMatchObject({
+      income_actual_monthly: 511.2,
+      income_is_fixed_amount: true,
+      income_period_end_date: '2026-06-30',
+    });
+  });
+
+  it('ignores firstStatusAmountKind when status is not mietgarantie', () => {
+    const values = makeValues({
+      economicTransferDate: '2026-06-01',
+      firstStatus: 'vermietet',
+      firstStatusAmountKind: 'fixed',
+      firstStatusPeriodEndDate: '2026-06-30',
+    });
+    expect(mapToStatusEntryInserts(values, today)[0]).toMatchObject({
+      income_is_fixed_amount: false,
+      income_period_end_date: null,
+    });
+  });
+
+  it('never marks the Stellplatz entry as a fixed amount, even when Wohnung is fixed — avoids doubling the guaranteed income period', () => {
+    const values = makeValues({
+      economicTransferDate: '2026-06-01',
+      firstStatus: 'mietgarantie',
+      firstStatusAmountKind: 'fixed',
+      firstStatusIncome: 511.2,
+      firstStatusPeriodEndDate: '2026-06-30',
+      parkingType: 'tiefgarage',
+    });
+    const inserts = mapToStatusEntryInserts(values, today);
+    expect(inserts[1]).toMatchObject({ unit: 'stellplatz', income_is_fixed_amount: false, income_period_end_date: null });
   });
 });

@@ -15,10 +15,17 @@ const STATUS_OPTIONS: Array<[WizardFormValues['firstStatus'], string]> = [
   ['mietgarantie', 'Mietgarantie'],
 ];
 
+const AMOUNT_KIND_OPTIONS: Array<[WizardFormValues['firstStatusAmountKind'], string]> = [
+  ['rate', 'Satz pro Monat'],
+  ['fixed', 'Fixbetrag für diesen Zeitraum'],
+];
+
 export function StepStatusOnboarding() {
   const { register, control, setValue, getFieldState } = useFormContext<WizardFormValues>();
   const economicTransferDate = useWatch({ control, name: 'economicTransferDate' });
   const firstStatus = useWatch({ control, name: 'firstStatus' });
+  const firstStatusAmountKind = useWatch({ control, name: 'firstStatusAmountKind' });
+  const isFixedAmount = firstStatusAmountKind === 'fixed';
 
   // Auto-fill `firstStatusDate` from `economicTransferDate` until the user has actually
   // touched (blurred) the field themselves. `isTouched` is set on blur regardless of the
@@ -44,7 +51,17 @@ export function StepStatusOnboarding() {
           <TextField label="Erster Statuseintrag ab (Datum)" name="firstStatusDate" register={register} type="date" required />
           <SelectField label="Status" name="firstStatus" register={register} options={STATUS_OPTIONS} />
           {firstStatus === 'mietgarantie' && (
-            <CurrencyField label="Einnahmen in diesem Zeitraum / Monat" name="firstStatusIncome" register={register} />
+            <>
+              <SelectField label="Betragsart" name="firstStatusAmountKind" register={register} options={AMOUNT_KIND_OPTIONS} />
+              <CurrencyField
+                label={isFixedAmount ? 'Fixbetrag für diesen Zeitraum' : 'Einnahmen in diesem Zeitraum / Monat'}
+                name="firstStatusIncome"
+                register={register}
+              />
+              {isFixedAmount && (
+                <TextField label="Enddatum des Zeitraums" name="firstStatusPeriodEndDate" register={register} type="date" required />
+              )}
+            </>
           )}
           <TextField label="Notiz (optional)" name="firstStatusNotes" register={register} className="sm:col-span-2" />
         </FormGrid>
