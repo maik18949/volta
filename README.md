@@ -64,7 +64,7 @@ Beim Anlegen einer Immobilie ist das Design der Summary/Zwischenwerte unten auf 
 
 **URL-Race beim schnellen Tab-Wechsel (Leerstandsquote-Regler):** Der Reglerwert wird debounced (400ms) in die URL geschrieben. Wechselt man innerhalb dieser 400ms den Tab, greift der Sidebar-Link noch auf den alten, noch nicht committeten Wert zu — der frisch gesetzte Wert geht verloren. Mögliche Lösungen: Wert beim Verlassen der Seite sofort ohne Debounce committen, oder den letzten Live-Wert zusätzlich synchron (z. B. sessionStorage) verfügbar machen.
 
-**Fixbetrag-Option fehlt im Property-Wizard:** Der "Satz pro Monat"/"Fixbetrag für diesen Zeitraum"-Umschalter für Mietgarantie existiert bisher nur im Verlauf-Tab (`StatusEntryModal.tsx`), nicht im Onboarding-Schritt beim Anlegen einer Immobilie (`StepStatusOnboarding.tsx`), der weiterhin nur ein einzelnes monatliches Einnahmefeld hat.
+**Erwerbsart Erbschaft/Schenkung ohne echten Kaufpreis:** Bei `acquisitionType` „Erbschaft" oder „Schenkung" gibt es im klassischen Sinne keinen Kaufpreis — der Wizard verlangt aber weiterhin `purchasePriceUnit`, und Rendite-KPIs (Bruttorendite, Nettorendite, Cap Rate etc.) sowie das Gesamtinvestment rechnen unverändert damit. Muss noch konzeptionell durchdacht werden: z. B. Verkehrswert/Bedarfswert als Ersatzgröße, KPIs die auf einen "Kaufpreis" angewiesen sind anders behandeln oder ausblenden, AfA-Basis bei unentgeltlichem Erwerb (Buchwertfortführung nach § 11d EStDV statt Kaufpreisaufteilung).
 
 ## Vorgehen
 
