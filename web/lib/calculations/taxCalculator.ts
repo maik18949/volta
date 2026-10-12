@@ -19,6 +19,12 @@ export interface AnnualTaxableIncomeInput {
   monthlyMortgage: number;
   afaBasis: number;
   depreciationRate: number;
+  /**
+   * Optional and additive: wenn gesetzt, ist dies die AfA für `year` (bereits für das Erwerbsjahr
+   * anteilig, z. B. aus depreciationSchedule) und ersetzt die Formel `afaBasis × depreciationRate`.
+   * Fehlt das Feld, ist das Verhalten byte-identisch zu vorher (lineare AfA).
+   */
+  depreciationAmountYear?: number;
   hoaUnitNonRecoverableMonthly: number;
   hoaUnitRecoverableMonthly: number;
   hoaParkingNonRecoverableMonthly: number;
@@ -116,9 +122,12 @@ export function annualTaxableIncomeBreakdown(input: AnnualTaxableIncomeBreakdown
 
   const stellplatzHistory = input.stellplatzStatusHistory ?? input.statusHistory;
 
-  const afaYear = isAcquisitionYear
-    ? (input.afaBasis * input.depreciationRate / 12) * ownershipMonths.length
-    : input.afaBasis * input.depreciationRate;
+  const afaYear =
+    input.depreciationAmountYear !== undefined
+      ? input.depreciationAmountYear
+      : isAcquisitionYear
+        ? (input.afaBasis * input.depreciationRate / 12) * ownershipMonths.length
+        : input.afaBasis * input.depreciationRate;
 
   let totalIncome = 0;
   let ownershipMonthEquivalent = 0;
@@ -260,6 +269,12 @@ export interface TaxScenarioInput {
   monthlyMortgage: number;
   afaBasis: number;
   depreciationRate: number;
+  /**
+   * Optional and additive: wenn gesetzt, ist dies die AfA für `year` (bereits für das Erwerbsjahr
+   * anteilig, z. B. aus depreciationSchedule) und ersetzt die Formel `afaBasis × depreciationRate`.
+   * Fehlt das Feld, ist das Verhalten byte-identisch zu vorher (lineare AfA).
+   */
+  depreciationAmountYear?: number;
   hoaUnitNonRecoverableMonthly: number;
   hoaUnitRecoverableMonthly: number;
   hoaParkingNonRecoverableMonthly: number;
@@ -283,7 +298,7 @@ export interface TaxScenarioInput {
 export function taxLineItemsForScenario(input: TaxScenarioInput): TaxLineItems {
   const income = input.scenario === 'vollvermietung' ? (input.coldRentMonthly + input.parkingRentMonthly) * 12 : 0;
   const interest = interestForCalendarYear(input.year, input.loanStartDate, input.loanAmount, input.interestRate, input.monthlyMortgage);
-  const depreciation = depreciationYearly(input.afaBasis, input.depreciationRate);
+  const depreciation = input.depreciationAmountYear ?? depreciationYearly(input.afaBasis, input.depreciationRate);
 
   const hoaRecoverableWE = input.scenario === 'leerstand' ? input.hoaUnitRecoverableMonthly * 12 : 0;
   const propertyTaxWE = input.scenario === 'leerstand' ? input.propertyTaxUnitMonthly * 12 : 0;

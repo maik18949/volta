@@ -515,3 +515,57 @@ describe('taxCalculator.blendTaxLineItems', () => {
     expect(blended.taxableIncome).toBeCloseTo(voll.taxableIncome * 0.8 + leer.taxableIncome * 0.2, 6);
   });
 });
+
+describe('taxCalculator depreciationAmountYear', () => {
+  const history: StatusEntry[] = [{ date: f.economicTransferDate, status: 'vermietet', incomeActualMonthly: null }];
+  const breakdownInput = {
+    ...baseInput,
+    year: 2026,
+    statusHistory: history,
+    today: makeDate(2026, 12, 31),
+    extraordinaryCostsDeductibleYearly: 0,
+  };
+
+  it('ohne das Feld bleibt die bisherige AfA unverändert (Erwerbsjahr anteilig)', () => {
+    const result = annualTaxableIncomeBreakdown(breakdownInput);
+    expect(result.depreciation).toBeCloseTo((f.afaBasis * f.depreciationRate / 12) * 11, 6);
+  });
+
+  it('mit dem Feld ersetzt der Wert die AfA, auch im Erwerbsjahr', () => {
+    const legacy = annualTaxableIncomeBreakdown(breakdownInput);
+    const overridden = annualTaxableIncomeBreakdown({ ...breakdownInput, depreciationAmountYear: 5_000 });
+    expect(overridden.depreciation).toBe(5_000);
+    expect(overridden.taxableIncome - legacy.taxableIncome).toBeCloseTo(legacy.depreciation - 5_000, 6);
+  });
+
+  it('ein Jahr ohne Eigentumsmonate bleibt komplett 0, das Feld wird ignoriert', () => {
+    const result = annualTaxableIncomeBreakdown({ ...breakdownInput, year: 2025, depreciationAmountYear: 5_000 });
+    expect(result.depreciation).toBe(0);
+  });
+
+  it('Prognose-Szenario: Feld ersetzt afaBasis × Satz', () => {
+    const scenario: Omit<TaxScenarioInput, 'scenario' | 'year'> = {
+      coldRentMonthly: f.coldRentMonthly,
+      parkingRentMonthly: f.parkingRentMonthly,
+      loanStartDate: f.loanStartDate,
+      loanAmount: f.loanAmount,
+      interestRate: f.interestRate,
+      monthlyMortgage: f.monthlyMortgage,
+      afaBasis: f.afaBasis,
+      depreciationRate: f.depreciationRate,
+      hoaUnitNonRecoverableMonthly: 125.0,
+      hoaUnitRecoverableMonthly: f.hoaFeeRecoverableMonthly,
+      hoaParkingNonRecoverableMonthly: 0,
+      hoaParkingRecoverableMonthly: 0,
+      propertyTaxUnitMonthly: f.propertyTaxMonthly,
+      propertyTaxParkingMonthly: 0,
+      propertyManagementMonthly: f.propertyManagementMonthly,
+      propertyInsuranceMonthly: 0,
+      otherCostsMonthly: 0,
+    };
+    const legacy = taxLineItemsForScenario({ ...scenario, scenario: 'vollvermietung', year: 2030 });
+    const overridden = taxLineItemsForScenario({ ...scenario, scenario: 'vollvermietung', year: 2030, depreciationAmountYear: 4_000 });
+    expect(overridden.depreciation).toBe(4_000);
+    expect(overridden.taxableIncome - legacy.taxableIncome).toBeCloseTo(legacy.depreciation - 4_000, 6);
+  });
+});
