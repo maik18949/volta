@@ -219,6 +219,8 @@ export type Database = {
           condition: Database["public"]["Enums"]["property_condition"] | null
           created_at: string
           current_market_value: number | null
+          degressive_switch_year: number | null
+          depreciation_method: string
           depreciation_rate: number
           economic_transfer_date: string
           energy_efficiency_class:
@@ -299,6 +301,8 @@ export type Database = {
           condition?: Database["public"]["Enums"]["property_condition"] | null
           created_at?: string
           current_market_value?: number | null
+          degressive_switch_year?: number | null
+          depreciation_method?: string
           depreciation_rate?: number
           economic_transfer_date?: string
           energy_efficiency_class?:
@@ -379,6 +383,8 @@ export type Database = {
           condition?: Database["public"]["Enums"]["property_condition"] | null
           created_at?: string
           current_market_value?: number | null
+          degressive_switch_year?: number | null
+          depreciation_method?: string
           depreciation_rate?: number
           economic_transfer_date?: string
           energy_efficiency_class?:
