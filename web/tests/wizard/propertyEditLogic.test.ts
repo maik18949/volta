@@ -101,6 +101,12 @@ describe('mapPropertyToEditFormValues', () => {
     expect(values.currentMarketValue).toBe(320_000);
   });
 
+  it('maps the AfA method and switch year from the row', () => {
+    const values = mapPropertyToEditFormValues(makeProperty({ depreciation_method: 'degressiv_5a', degressive_switch_year: 2040 }));
+    expect(values.depreciationMethod).toBe('degressiv_5a');
+    expect(values.degressiveSwitchYear).toBe(2040);
+  });
+
   it('opens the Grunderwerbsteuer in manual mode so a saved value is never overwritten', () => {
     expect(mapPropertyToEditFormValues(makeProperty()).landTransferTaxMode).toBe('manual');
   });

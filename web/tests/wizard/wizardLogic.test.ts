@@ -286,3 +286,28 @@ describe('mapToStatusEntryInserts', () => {
     expect(inserts[1]).toMatchObject({ unit: 'stellplatz', income_is_fixed_amount: false, income_period_end_date: null });
   });
 });
+
+describe('degressive AfA fields', () => {
+  it('defaults to linear without a switch year', () => {
+    const values = makeWizardDefaultValues(today);
+    expect(values.depreciationMethod).toBe('linear');
+    expect(values.degressiveSwitchYear).toBeNull();
+  });
+
+  it('maps method and switch year to the property insert for degressiv_5a', () => {
+    const insert = mapToPropertyInsert(makeValues({ depreciationMethod: 'degressiv_5a', degressiveSwitchYear: 2040 }));
+    expect(insert.depreciation_method).toBe('degressiv_5a');
+    expect(insert.degressive_switch_year).toBe(2040);
+  });
+
+  it('drops the switch year for linear properties', () => {
+    const insert = mapToPropertyInsert(makeValues({ depreciationMethod: 'linear', degressiveSwitchYear: 2040 }));
+    expect(insert.depreciation_method).toBe('linear');
+    expect(insert.degressive_switch_year).toBeNull();
+  });
+
+  it('turns an empty or NaN switch year into null', () => {
+    expect(mapToPropertyInsert(makeValues({ depreciationMethod: 'degressiv_5a', degressiveSwitchYear: Number.NaN })).degressive_switch_year).toBeNull();
+    expect(mapToPropertyInsert(makeValues({ depreciationMethod: 'degressiv_5a', degressiveSwitchYear: null })).degressive_switch_year).toBeNull();
+  });
+});

@@ -1,6 +1,7 @@
 import { mapToPropertyInsert, n, nOrNull, type WizardFormValues } from './wizardLogic';
 import type { Database, TablesUpdate } from '@/lib/supabase/types';
 import { normalizeState } from '@/lib/data/landTransferTaxRates';
+import { parseDepreciationMethod } from '@/lib/calculations/depreciationSchedule';
 
 type PropertyRow = Database['public']['Tables']['properties']['Row'];
 
@@ -89,6 +90,8 @@ export function mapPropertyToEditFormValues(property: PropertyRow): PropertyEdit
     buildingValue: property.building_value,
     landValue: property.land_value,
     depreciationRate: property.depreciation_rate,
+    depreciationMethod: parseDepreciationMethod(property.depreciation_method),
+    degressiveSwitchYear: property.degressive_switch_year,
     marginalTaxRate: property.marginal_tax_rate,
 
     firstStatusDate: property.economic_transfer_date,
