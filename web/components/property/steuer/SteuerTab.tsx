@@ -9,7 +9,7 @@ import { computeTaxCurrentYear } from '@/lib/data/propertyTax';
 import type { OverviewMetrics } from '@/lib/data/propertyOverview';
 import { CurrentYearSection } from './CurrentYearSection';
 import { YearOverviewCard } from './YearOverviewCard';
-import { AfaBasisCard } from './AfaBasisCard';
+import { AfaCard } from './AfaCard';
 import type { Database } from '@/lib/supabase/types';
 
 type PropertyRow = Database['public']['Tables']['properties']['Row'];
@@ -151,7 +151,7 @@ export function SteuerTab({
         </Card>
       </div>
 
-      <AfaBasisCard property={property} />
+      <AfaCard property={property} today={today} />
     </div>
   );
 }
