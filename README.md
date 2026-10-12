@@ -43,8 +43,8 @@ Responsive Umsetzung aller Ansichten (Portfolio, Objektdetail, Wizard, Rechner) 
 **Vision: Makler-Portal**
 Eigenes Portal, über das Makler ihre Objekte einpflegen und Interessenten diese direkt einsehen können — eine mögliche Erweiterung über die private Portfolioverwaltung hinaus.
 
-**Degressive AfA**
-Neben der linearen AfA optional degressive Abschreibung als Berechnungsvariante anbieten.
+**Degressive AfA – Rest**
+Die degressive AfA (§ 7 Abs. 5a EStG) mit planbarem Wechsel zu linear ist umgesetzt. Offen: Sonder-AfA nach § 7b (Wirkung auf den Restwert), nachträgliche Herstellungskosten als Zeitreihe und die Übernahme der Methode im neu zu gestaltenden Investment-Rechner.
 
 **KI-Objekterfassung**
 Immobilie automatisch anlegen lassen: Dokumente (Kaufvertrag, Exposé, Grundbuchauszug) hochladen, KI extrahiert die relevanten Stammdaten (Adresse, Kaufpreis, Wohnfläche, Baujahr etc.) und legt das Objekt vorausgefüllt an — Nutzer prüft und bestätigt nur noch.

@@ -37,7 +37,7 @@ Gestaltungsvorlage sind die Prototypen aus der Brainstorming-Session (Karte mit 
 - **Außergewöhnliche AfA (AfaA)**, Teilwertabschreibung.
 - **Erbschaft/Schenkung** (siehe README-Hinweis zur Buchwertfortführung).
 - Kein Restwert-Zeilenzusatz in der Jahresübersicht (`YearOverviewCard`); deren AfA-Zeile erhält nur die korrekten Werte.
-- Keine Prüfung des Kaufvertragsdatums (Volta erfasst es nicht); der Hinweis nennt die Bedingungen.
+- Als Kaufvertragsdatum dient `purchase_date`; die Warnung prüft das Zeitfenster 1.10.2023–30.9.2029 gegen dieses Datum.
 
 ---
 
@@ -82,7 +82,7 @@ export interface DepreciationYear {
 
 export function depreciationSchedule(input: DepreciationPlanInput, untilYear: number): DepreciationYear[];
 export function depreciationForYear(input: DepreciationPlanInput, year: number): DepreciationYear | null; // null vor dem Erwerbsjahr
-export function optimalSwitchYear(input: Omit<DepreciationPlanInput, 'switchYear' | 'method'>): number;
+export function optimalSwitchYear(input: { economicTransferDate: Date; linearRate: number }): number | null; // null bei Satz ≤ 0
 ```
 
 **Regeln:**
@@ -112,7 +112,7 @@ Das bestehende Muster „optional und additiv" wird beibehalten, damit lineare O
 - **Neu:** Auswahl „AfA-Methode" (Linear | Degressiv 5 %), Default Linear.
 - Beim Umschalten auf Degressiv wird `depreciationRate` auf 3 % gesetzt (Referenz und Nutzungsdauer, § 7 Abs. 5a ersetzt die 3-%-Regel). Das Feld bleibt editierbar (kürzere tatsächliche Nutzungsdauer). Das Label wechselt zu „Linearer Satz (nach Wechsel)".
 - **Neu, nur bei Degressiv:** optionales Feld „Wechsel zu linear ab Jahr" mit Hinweis „Empfohlen: ab 20XX · übernehmen". Validierung: ganze Zahl, größer als das Erwerbsjahr, höchstens Erwerbsjahr + 60.
-- **Weiche Warnung** (`FormWarning`, keine Sperre) bei Degressiv, wenn `yearBuilt < 2023`, das Erwerbsjahr nach dem Baujahr liegt (Anschaffung nicht im Fertigstellungsjahr) oder der Übergang nach dem 30.9.2029 liegt. Text nennt die Bedingungen (Neubau, Kauf im Fertigstellungsjahr, Vertrag zwischen 1.10.2023 und 30.9.2029).
+- **Weiche Warnung** (`FormWarning`, keine Sperre) bei Degressiv, wenn `yearBuilt < 2023`, das Erwerbsjahr nach dem Baujahr liegt (Anschaffung nicht im Fertigstellungsjahr) oder `purchase_date` außerhalb des Zeitfensters 1.10.2023–30.9.2029 liegt. Text nennt die Bedingungen (Neubau, Kauf im Fertigstellungsjahr, Vertrag zwischen 1.10.2023 und 30.9.2029).
 
 **`CalcSummary`:** gleiche Zeilen für beide Methoden: Bemessungsgrundlage, „AfA {Erwerbsjahr} (x Monate)", „AfA {Folgejahr}", „Restwert Ende {Folgejahr}", Summe „AfA / Monat ({Folgejahr})". Als Erwerbsdatum dient `values.economicTransferDate` (Fallback: heutiges Datum).
 
