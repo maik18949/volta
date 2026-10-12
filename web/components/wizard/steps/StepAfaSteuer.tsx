@@ -2,8 +2,18 @@
 
 import { useFormContext, useWatch } from 'react-hook-form';
 import { PercentField } from '@/components/ui/PercentField';
+import { SelectField } from '@/components/ui/SelectField';
+import { TextField } from '@/components/ui/TextField';
 import { CalcSummary, FormCard, FormGrid, FormHint, FormSection, FormWarning } from '@/components/ui/FormLayout';
-import { afaBasis, depreciationYearly, depreciationMonthly, valuationDeviation } from '@/lib/calculations/depreciationCalculator';
+import { afaBasis, valuationDeviation } from '@/lib/calculations/depreciationCalculator';
+import {
+  degressiveEligibilityWarning,
+  depreciationForYear,
+  isValidSwitchYear,
+  optimalSwitchYear,
+  parseDepreciationMethod,
+  type DepreciationPlanInput,
+} from '@/lib/calculations/depreciationSchedule';
 import { closingCostsTotal } from '@/lib/calculations/kpiCalculator';
 import { formatCurrency } from '@/lib/formatters';
 import { BuildingShareFields } from '@/components/wizard/BuildingShareFields';
@@ -11,6 +21,19 @@ import type { WizardFormValues } from '@/lib/wizard/wizardLogic';
 
 function safeNum(value: number | undefined): number {
   return typeof value === 'number' && !Number.isNaN(value) ? value : 0;
+}
+
+const DEFAULT_LINEAR_RATE_NEUBAU = 0.03;
+
+const METHOD_OPTIONS = [
+  ['linear', 'Linear'],
+  ['degressiv_5a', 'Degressiv 5 % (§ 7 Abs. 5a EStG)'],
+] as const;
+
+function toUtcDate(iso: string | undefined): Date | null {
+  if (!iso) return null;
+  const date = new Date(iso + 'T00:00:00Z');
+  return Number.isNaN(date.getTime()) ? null : date;
 }
 
 const BERECHNUNGSHILFE_URL =
@@ -31,7 +54,7 @@ function BerechnungshilfeLink() {
 }
 
 export function StepAfaSteuer() {
-  const { control } = useFormContext<WizardFormValues>();
+  const { control, register, setValue } = useFormContext<WizardFormValues>();
   const values = useWatch({ control });
 
   const parkingType = values.parkingType ?? 'nicht_vorhanden';
@@ -48,10 +71,40 @@ export function StepAfaSteuer() {
   const depreciationRate = safeNum(values.depreciationRate);
 
   const basis = afaBasis(buildingValue, closingCosts, purchasePrice, safeNum(values.renovationAfaEligible));
-  const yearly = depreciationYearly(basis, depreciationRate);
-  const monthly = depreciationMonthly(basis, depreciationRate);
-
   const sumDeviation = valuationDeviation(buildingValue, landValue, purchasePrice);
+
+  const method = parseDepreciationMethod(values.depreciationMethod ?? 'linear');
+  const isDegressive = method === 'degressiv_5a';
+  const transferDate = toUtcDate(values.economicTransferDate);
+  const purchaseDate = toUtcDate(values.purchaseDate);
+  const switchYear =
+    typeof values.degressiveSwitchYear === 'number' && !Number.isNaN(values.degressiveSwitchYear) ? values.degressiveSwitchYear : null;
+  const yearBuilt = typeof values.yearBuilt === 'number' && !Number.isNaN(values.yearBuilt) ? values.yearBuilt : null;
+
+  const plan: DepreciationPlanInput | null = transferDate
+    ? { basis, method, linearRate: depreciationRate, economicTransferDate: transferDate, switchYear }
+    : null;
+  const startYear = transferDate ? transferDate.getUTCFullYear() : null;
+  const firstYear = plan && startYear !== null ? depreciationForYear(plan, startYear) : null;
+  const secondYear = plan && startYear !== null ? depreciationForYear(plan, startYear + 1) : null;
+  const optimalYear = plan && isDegressive ? optimalSwitchYear(plan) : null;
+
+  const eligibilityWarning =
+    isDegressive && transferDate && purchaseDate
+      ? degressiveEligibilityWarning({ yearBuilt, purchaseDate, economicTransferDate: transferDate })
+      : null;
+  const switchYearInvalid = isDegressive && switchYear !== null && transferDate !== null && !isValidSwitchYear(switchYear, transferDate);
+
+  const months = transferDate ? 13 - (transferDate.getUTCMonth() + 1) : 0;
+  const summaryRows =
+    startYear !== null && firstYear && secondYear
+      ? [
+          { label: 'AfA-Bemessungsgrundlage', value: formatCurrency(basis) },
+          { label: `AfA ${startYear} (${months} Monate)`, value: formatCurrency(firstYear.amount) },
+          { label: `AfA ${startYear + 1}`, value: formatCurrency(secondYear.amount) },
+          { label: `Restwert Ende ${startYear + 1}`, value: formatCurrency(secondYear.bookValueEnd) },
+        ]
+      : [{ label: 'AfA-Bemessungsgrundlage', value: formatCurrency(basis) }];
 
   return (
     <FormSection>
@@ -68,8 +121,52 @@ export function StepAfaSteuer() {
               buildingLabel={<>Gebäudewert (<BerechnungshilfeLink />)</>}
               landLabel={<>Grundstückswert (<BerechnungshilfeLink />)</>}
             />
-            <PercentField label="AfA-Satz" name="depreciationRate" control={control} required hint="2 % ab 1925 · 2,5 % vor 1925 · 3 % Neubau ab 2023" />
+            <SelectField
+              label="AfA-Methode"
+              name="depreciationMethod"
+              register={register}
+              options={METHOD_OPTIONS}
+              registerOptions={{
+                onChange: (event) => {
+                  if (event.target.value === 'degressiv_5a') setValue('depreciationRate', DEFAULT_LINEAR_RATE_NEUBAU);
+                },
+              }}
+            />
+            <PercentField
+              label={isDegressive ? 'Linearer Satz (nach Wechsel)' : 'AfA-Satz'}
+              name="depreciationRate"
+              control={control}
+              required
+              hint={isDegressive ? '3 % bei Neubau ab 2023' : '2 % ab 1925 · 2,5 % vor 1925 · 3 % Neubau ab 2023'}
+            />
+            {isDegressive && (
+              <div className="sm:col-span-2">
+                <TextField label="Wechsel zu linear ab Jahr (optional)" name="degressiveSwitchYear" register={register} type="number" />
+                {optimalYear !== null && (
+                  <p className="mt-1.5 text-[12px] text-text-dim">
+                    Empfohlen: ab {optimalYear}{' '}
+                    <button
+                      type="button"
+                      onClick={() => setValue('degressiveSwitchYear', optimalYear, { shouldDirty: true })}
+                      className="font-semibold text-accent underline hover:no-underline"
+                    >
+                      übernehmen
+                    </button>
+                  </p>
+                )}
+              </div>
+            )}
             <PercentField label="Grenzsteuersatz" name="marginalTaxRate" control={control} required />
+            {isDegressive && eligibilityWarning && (
+              <div className="sm:col-span-2">
+                <FormWarning>⚠ {eligibilityWarning}</FormWarning>
+              </div>
+            )}
+            {switchYearInvalid && (
+              <div className="sm:col-span-2">
+                <FormWarning>⚠ Das Wechseljahr muss nach dem Erwerbsjahr liegen (höchstens 60 Jahre danach).</FormWarning>
+              </div>
+            )}
             {sumDeviation > 0.05 && (
               <div className="sm:col-span-2">
                 <FormWarning>
@@ -83,11 +180,12 @@ export function StepAfaSteuer() {
 
         <CalcSummary
           className="self-start"
-          rows={[
-            { label: 'AfA-Bemessungsgrundlage', value: formatCurrency(basis) },
-            { label: 'AfA / Jahr', value: formatCurrency(yearly) },
-          ]}
-          total={{ label: 'AfA / Monat', value: formatCurrency(monthly) }}
+          rows={summaryRows}
+          total={
+            secondYear && startYear !== null
+              ? { label: `AfA / Monat (${startYear + 1})`, value: formatCurrency(secondYear.amount / 12) }
+              : undefined
+          }
         />
       </div>
     </FormSection>
