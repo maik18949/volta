@@ -361,3 +361,40 @@ describe('computeTaxCurrentYear with disbursementRows', () => {
     expect(staged.lineItems.interest).toBeLessThan(naive.lineItems.interest);
   });
 });
+
+describe('degressive AfA in computeTaxCurrentYear / computeTaxForecastYear', () => {
+  const statusEntries = [makeStatusEntry()];
+  const degressive = makeProperty({ depreciation_method: 'degressiv_5a', depreciation_rate: 0.03 });
+
+  it('Erwerbsjahr 2026 (Übergang Februar): 5 % × 11/12 der Basis', () => {
+    const result = computeTaxCurrentYear(degressive, statusEntries, [], makeDate(2026, 6, 15));
+    expect(result.lineItems.depreciation).toBeCloseTo((f.afaBasis * 0.05 * 11) / 12, 0);
+  });
+
+  it('Folgejahr 2027: 5 % vom Restwert nach dem Erwerbsjahr', () => {
+    const result = computeTaxCurrentYear(degressive, statusEntries, [], makeDate(2027, 6, 15));
+    expect(result.lineItems.depreciation).toBeCloseTo(f.afaBasis * (1 - (0.05 * 11) / 12) * 0.05, 0);
+  });
+
+  it('Jahresübersicht (yearOverride) und Prognose nutzen denselben Plan', () => {
+    const today = makeDate(2026, 6, 15);
+    const pastOrCurrent = computeTaxCurrentYear(degressive, statusEntries, [], today, undefined, [], 2027);
+    const forecast = computeTaxForecastYear(degressive, 2027, 0);
+    expect(forecast.lineItems.depreciation).toBeCloseTo(pastOrCurrent.lineItems.depreciation, 6);
+  });
+
+  it('lineare Objekte rechnen unverändert (Basis × Satz)', () => {
+    const linear = makeProperty({ depreciation_method: 'linear' });
+    const result = computeTaxCurrentYear(linear, statusEntries, [], makeDate(2027, 6, 15));
+    expect(result.lineItems.depreciation).toBeCloseTo(f.afaBasis * linear.depreciation_rate, 0);
+  });
+
+  it('nach dem geplanten Wechsel ist die AfA konstant und höher als die degressive desselben Jahres', () => {
+    const switched = makeProperty({ depreciation_method: 'degressiv_5a', depreciation_rate: 0.03, degressive_switch_year: 2040 });
+    const at2040 = computeTaxForecastYear(switched, 2040, 0).lineItems.depreciation;
+    const at2041 = computeTaxForecastYear(switched, 2041, 0).lineItems.depreciation;
+    const degressive2040 = computeTaxForecastYear(degressive, 2040, 0).lineItems.depreciation;
+    expect(at2040).toBeGreaterThan(degressive2040);
+    expect(at2041).toBeCloseTo(at2040, 6);
+  });
+});
