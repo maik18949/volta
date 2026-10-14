@@ -1,5 +1,6 @@
 'use client';
 
+import type { ReactNode } from 'react';
 import { useController, type Control, type FieldValues, type Path } from 'react-hook-form';
 import { twMerge } from 'tailwind-merge';
 import { FieldLabel, SUFFIXED_INPUT_CLASS, SuffixedInputBox } from './fieldStyles';
@@ -10,6 +11,7 @@ export function PercentField<T extends FieldValues>({
   control,
   required = false,
   hint,
+  info,
   className,
 }: {
   label: string;
@@ -17,6 +19,8 @@ export function PercentField<T extends FieldValues>({
   control: Control<T>;
   required?: boolean;
   hint?: string;
+  /** Info popover ("i") next to the label, for longer explanations than an inline hint. */
+  info?: ReactNode;
   className?: string;
 }) {
   const { field } = useController({ name, control });
@@ -24,7 +28,7 @@ export function PercentField<T extends FieldValues>({
 
   return (
     <label className={twMerge('block', className)}>
-      <FieldLabel label={label} required={required} hint={hint} />
+      <FieldLabel label={label} required={required} hint={hint} info={info} />
       <SuffixedInputBox suffix="%">
         <input
           type="number"

@@ -32,6 +32,21 @@ describe('StepAfaSteuer degressive AfA', () => {
     expect(screen.getByText('Restwert Ende 2027')).toBeInTheDocument();
   });
 
+  it('legt die Satz-Übersicht bei Linear in einen Infotip statt neben das Label', () => {
+    render(<Harness />);
+    const hint = /2 % ab 1925 · 2,5 % vor 1925 · 3 % Neubau ab 2023/;
+    expect(screen.queryByText(hint)).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Info' }));
+    expect(screen.getByRole('tooltip')).toHaveTextContent(hint);
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+  });
+
+  it('das Infotip nimmt dem Eingabefeld nicht das Label weg', () => {
+    render(<Harness />);
+    expect(screen.getByLabelText(/AfA-Satz/)).toHaveAttribute('type', 'number');
+  });
+
   it('bietet die Methode ohne Paragraphenhinweis im Label an', () => {
     render(<Harness />);
     const options = Array.from(screen.getByLabelText('AfA-Methode').querySelectorAll('option')).map((option) => option.textContent);

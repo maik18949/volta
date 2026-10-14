@@ -133,7 +133,7 @@ export function StepAfaSteuer() {
                 name="depreciationRate"
                 control={control}
                 required
-                hint="2 % ab 1925 · 2,5 % vor 1925 · 3 % Neubau ab 2023"
+                info="2 % ab 1925 · 2,5 % vor 1925 · 3 % Neubau ab 2023"
               />
             )}
             <PercentField label="Grenzsteuersatz" name="marginalTaxRate" control={control} required />
