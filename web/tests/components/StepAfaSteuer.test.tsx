@@ -36,6 +36,21 @@ describe('StepAfaSteuer degressive AfA', () => {
     expect(screen.getByText('Vollständig abgeschrieben')).toBeInTheDocument();
   });
 
+  it('der Grenzsteuersatz wirkt in der Vorschau: Steuerersparnis = AfA × Satz, bei Linear wie bei Degressiv', () => {
+    const { unmount } = render(<Harness overrides={{ marginalTaxRate: 0.42, depreciationRate: 0.02 }} />);
+    // Linear 2 %: 240.000 € × 2 % = 4.800 € im ersten vollen Jahr → 4.800 × 42 % = 2.016 €
+    expect(screen.getByText(/weniger Steuer/)).toHaveTextContent(/2\.016/);
+    unmount();
+    render(<Harness overrides={{ marginalTaxRate: 0.42, depreciationMethod: 'degressiv_5a', depreciationRate: 0.03 }} />);
+    // Degressiv: 2026 (6 Monate) 6.000 €, 2027 = 5 % von 234.000 € = 11.700 € → 11.700 × 42 % = 4.914 €
+    expect(screen.getByText(/weniger Steuer/)).toHaveTextContent(/4\.914/);
+  });
+
+  it('ohne Grenzsteuersatz zeigt die Vorschau keine Steuerersparnis', () => {
+    render(<Harness overrides={{ marginalTaxRate: 0 }} />);
+    expect(screen.queryByText(/weniger Steuer/)).not.toBeInTheDocument();
+  });
+
   it('gliedert den Schritt in Kaufpreisaufteilung und AfA & Steuer', () => {
     render(<Harness />);
     expect(screen.getByText('Kaufpreisaufteilung')).toBeInTheDocument();

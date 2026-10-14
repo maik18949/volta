@@ -62,6 +62,7 @@ function percentLabel(rate: number): string {
 interface AfaPreviewData {
   method: DepreciationMethod;
   linearRate: number;
+  marginalTaxRate: number;
   basis: number;
   buildingValue: number;
   closingCostsShare: number;
@@ -103,8 +104,14 @@ function AfaPreview({ data }: { data: AfaPreviewData }) {
           <p className="mt-0.5 text-[26px] font-extrabold leading-tight tabular-nums text-text-primary">
             {formatCurrency(schedule.firstFullYearAmount)}
           </p>
-          <p className="mt-1 text-[11px] text-text-dim">
+          {data.marginalTaxRate > 0 && (
+            <p className="mt-1 text-[13px] font-semibold tabular-nums text-positive-strong">
+              ≈ {formatCurrency(schedule.firstFullYearAmount * data.marginalTaxRate)} weniger Steuer
+            </p>
+          )}
+          <p className="mt-0.5 text-[11px] text-text-dim">
             ≈ {formatCurrency(schedule.firstFullYearAmount / 12)} pro Monat · {subline}
+            {data.marginalTaxRate > 0 && ` · bei ${percentLabel(data.marginalTaxRate)} Grenzsteuersatz`}
           </p>
 
           <div className="mt-5 border-t border-black/[0.07] pt-5">
@@ -251,7 +258,16 @@ export function StepAfaSteuer() {
         </div>
 
         <AfaPreview
-          data={{ method, linearRate: depreciationRate, basis, buildingValue, closingCostsShare, renovation, schedule }}
+          data={{
+            method,
+            linearRate: depreciationRate,
+            marginalTaxRate: safeNum(values.marginalTaxRate),
+            basis,
+            buildingValue,
+            closingCostsShare,
+            renovation,
+            schedule,
+          }}
         />
       </div>
     </FormSection>
