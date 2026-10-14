@@ -82,6 +82,8 @@ function makeProperty(overrides: Partial<PropertyRow> = {}): PropertyRow {
     land_value: 50_600,
     building_value: 228_000,
     depreciation_rate: 0.0384,
+    depreciation_method: 'linear',
+    degressive_switch_year: null,
     marginal_tax_rate: 0.42,
     sort_order: 0,
     created_at: '2026-01-01T00:00:00Z',

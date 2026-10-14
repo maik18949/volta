@@ -1,5 +1,6 @@
 import { firstDayOfMonth } from '@/lib/calculations/dateHelpers';
 import { monthlyMortgageCalc } from '@/lib/calculations/amortizationCalculator';
+import type { DepreciationMethod } from '@/lib/calculations/depreciationSchedule';
 import type { Database, TablesInsert } from '@/lib/supabase/types';
 
 type PropertyType = Database['public']['Enums']['property_type'];
@@ -87,6 +88,8 @@ export interface WizardFormValues {
   buildingValue: number;
   landValue: number;
   depreciationRate: number;
+  depreciationMethod: DepreciationMethod;
+  degressiveSwitchYear: number | null;
   marginalTaxRate: number;
 
   // Step 8: Status-Onboarding (conditional)
@@ -174,6 +177,8 @@ export function makeWizardDefaultValues(today: Date): WizardFormValues {
     buildingValue: 0,
     landValue: 0,
     depreciationRate: 0.02,
+    depreciationMethod: 'linear',
+    degressiveSwitchYear: null,
     marginalTaxRate: 0,
 
     firstStatusDate: todayStr,
@@ -321,6 +326,8 @@ export function mapToPropertyInsert(values: WizardFormValues): Omit<TablesInsert
     land_value: n(values.landValue),
     building_value: n(values.buildingValue),
     depreciation_rate: n(values.depreciationRate),
+    depreciation_method: values.depreciationMethod,
+    degressive_switch_year: values.depreciationMethod === 'degressiv_5a' ? nOrNull(values.degressiveSwitchYear) : null,
     marginal_tax_rate: n(values.marginalTaxRate),
   };
 }

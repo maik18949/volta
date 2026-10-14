@@ -1,6 +1,7 @@
 import type { Database } from '@/lib/supabase/types';
 import { makeDate, firstDayOfMonth, monthsBetween } from '@/lib/calculations/dateHelpers';
 import { afaBasis } from '@/lib/calculations/depreciationCalculator';
+import { depreciationAmountOverride } from '@/lib/data/propertyDepreciation';
 import { remainingDebt } from '@/lib/calculations/amortizationCalculator';
 import type { StatusEntry, PropertyStatus, PropertyUnit } from '@/lib/calculations/statusPeriodCalculator';
 import { incomeForUnit, ownershipDayFraction } from '@/lib/calculations/statusPeriodCalculator';
@@ -179,6 +180,7 @@ export function computePropertySummary(
     monthlyMortgage: property.monthly_mortgage,
     afaBasis: basis,
     depreciationRate: property.depreciation_rate,
+    depreciationAmountYear: depreciationAmountOverride(property, basis, currentYear),
     hoaUnitNonRecoverableMonthly: hoaFeeNonRecoverableMonthly,
     hoaUnitRecoverableMonthly: property.hoa_fee_recoverable_monthly,
     hoaParkingNonRecoverableMonthly: hoaFeeParkingNonRecoverableMonthly,

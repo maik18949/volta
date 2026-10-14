@@ -11,6 +11,7 @@ import {
   type TaxLineItems,
 } from '@/lib/calculations/taxCalculator';
 import { afaBasis as computeAfaBasis } from '@/lib/calculations/depreciationCalculator';
+import { depreciationAmountOverride } from '@/lib/data/propertyDepreciation';
 import { closingCostsTotal as computeClosingCostsTotal, hoaNonRecoverableMonthly } from '@/lib/calculations/kpiCalculator';
 import { toLoanDisbursements, type LoanDisbursementRow } from '@/lib/data/loanDisbursements';
 
@@ -105,6 +106,7 @@ export function computeTaxCurrentYear(
     monthlyMortgage: property.monthly_mortgage,
     afaBasis: basis,
     depreciationRate: property.depreciation_rate,
+    depreciationAmountYear: depreciationAmountOverride(property, basis, year),
     hoaUnitNonRecoverableMonthly: hoaFeeNonRecoverableMonthly,
     hoaUnitRecoverableMonthly: property.hoa_fee_recoverable_monthly,
     hoaParkingNonRecoverableMonthly: hoaFeeParkingNonRecoverableMonthly,
@@ -190,6 +192,7 @@ export function computeTaxForecastYear(property: PropertyRow, year: number, leer
     monthlyMortgage: property.monthly_mortgage,
     afaBasis: basis,
     depreciationRate: property.depreciation_rate,
+    depreciationAmountYear: depreciationAmountOverride(property, basis, year),
     hoaUnitNonRecoverableMonthly: hoaFeeNonRecoverableMonthly,
     hoaUnitRecoverableMonthly: property.hoa_fee_recoverable_monthly,
     hoaParkingNonRecoverableMonthly: hoaFeeParkingNonRecoverableMonthly,

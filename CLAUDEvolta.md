@@ -204,7 +204,9 @@ create table properties (
   -- AfA & Steuer
   land_value double precision not null default 0,
   building_value double precision not null default 0,
-  depreciation_rate double precision not null default 0.02,
+  depreciation_rate double precision not null default 0.02,  -- bei degressiv: linearer Satz nach dem Wechsel (fest 3 %)
+  depreciation_method text not null default 'linear' check (depreciation_method in ('linear', 'degressiv_5a')),  -- § 7 Abs. 5a EStG
+  degressive_switch_year int,  -- geplantes Wechseljahr zu linear; wirkt automatisch ab diesem Jahr
   marginal_tax_rate double precision not null default 0,
 
   sort_order int not null default 0,   -- manuelle Reihenfolge im Portfolio-Grid

@@ -79,6 +79,8 @@ function makeProperty(overrides: Partial<PropertyRow> = {}): PropertyRow {
     land_value: f.landValue,
     building_value: f.buildingValue,
     depreciation_rate: f.depreciationRate,
+    depreciation_method: 'linear',
+    degressive_switch_year: null,
     marginal_tax_rate: f.marginalTaxRate,
     sort_order: 0,
     created_at: '2026-01-01T00:00:00Z',
@@ -97,6 +99,12 @@ describe('mapPropertyToEditFormValues', () => {
     expect(values.vacancyRateAssumption).toBe(0.05);
     expect(values.marketRentPerSqm).toBe(15.5);
     expect(values.currentMarketValue).toBe(320_000);
+  });
+
+  it('maps the AfA method and switch year from the row', () => {
+    const values = mapPropertyToEditFormValues(makeProperty({ depreciation_method: 'degressiv_5a', degressive_switch_year: 2040 }));
+    expect(values.depreciationMethod).toBe('degressiv_5a');
+    expect(values.degressiveSwitchYear).toBe(2040);
   });
 
   it('opens the Grunderwerbsteuer in manual mode so a saved value is never overwritten', () => {
