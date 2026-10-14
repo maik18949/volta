@@ -127,7 +127,7 @@ Das bestehende Muster „optional und additiv" wird beibehalten, damit lineare O
 - AfA {Jahr} (Untertitel: „5 % vom Restwert", „Restwert ÷ Restnutzungsdauer" oder „3 % der Basis")
 - Steuerersparnis {Jahr} (≈ AfA × Grenzsteuersatz, Untertitel „bei x % Grenzsteuersatz")
 - Restwert Ende {Jahr} (Untertitel „von … Basis"), bei **beiden** Methoden
-- Methode („Degressiv 5 %", „Linear 3 %", „Linear (seit 2040)") mit Paragraphenhinweis
+- Methode („Degressiv 5 %", „Linear 3 %", „Linear (seit 2040)"), ohne Paragraphenhinweis
 
 **Darunter** eine kleine Zeile mit den bisherigen Stammdaten (Grundstückswert, Gebäudewert, Bemessungsgrundlage, Grenzsteuersatz), damit keine bisherige Information verloren geht.
 
