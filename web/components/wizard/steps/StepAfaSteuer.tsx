@@ -106,7 +106,7 @@ function AfaPreview({ data }: { data: AfaPreviewData }) {
           </p>
           {data.marginalTaxRate > 0 && (
             <p className="mt-1 text-[13px] font-semibold tabular-nums text-positive-strong">
-              ≈ {formatCurrency(schedule.firstFullYearAmount * data.marginalTaxRate)} weniger Steuer
+              ≈ {formatCurrency(schedule.firstFullYearAmount * data.marginalTaxRate)} Steuerersparnis
             </p>
           )}
           <p className="mt-0.5 text-[11px] text-text-dim">

@@ -42,7 +42,7 @@ describe('AfaCard', () => {
   it('stellt die AfA mit Steuerersparnis voran, daneben Restwert und Methode', () => {
     render(<AfaCard property={makeProperty()} today={makeDate(2026, 6, 15)} />);
     expect(screen.getByText('AfA 2026')).toBeInTheDocument();
-    expect(screen.getByText(/weniger Steuer/)).toHaveTextContent(/6\.300/);
+    expect(screen.getByText(/Steuerersparnis/)).toHaveTextContent(/6\.300/);
     expect(screen.getByText('Restwert Ende 2026')).toBeInTheDocument();
     expect(screen.getByText(/von .* abgeschrieben/)).toHaveTextContent(/5,0 %/);
     expect(screen.getByText('Degressiv 5 %')).toBeInTheDocument();

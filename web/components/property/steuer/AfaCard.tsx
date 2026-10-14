@@ -171,7 +171,7 @@ export function AfaCard({ property, today }: { property: PropertyRow; today: Dat
           <p className={CAPTION}>AfA {model.year}</p>
           <p className="mt-0.5 text-[26px] font-extrabold leading-tight tabular-nums text-text-primary">{formatCurrency(model.amount)}</p>
           <p className="mt-1 text-[13px] font-semibold tabular-nums text-positive-strong">
-            ≈ {formatCurrency(model.taxSaving)} weniger Steuer
+            ≈ {formatCurrency(model.taxSaving)} Steuerersparnis
           </p>
           <p className="mt-0.5 text-[11px] text-text-dim">
             {amountSubline(model)} · bei {formatPercent(property.marginal_tax_rate)} Grenzsteuersatz
