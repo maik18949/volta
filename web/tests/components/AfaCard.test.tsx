@@ -39,17 +39,28 @@ beforeEach(() => setDegressiveSwitchYear.mockClear());
 afterEach(cleanup);
 
 describe('AfaCard', () => {
-  it('zeigt die vier Kennzahlen inklusive Restwert und Steuerersparnis', () => {
+  it('stellt die AfA mit Steuerersparnis voran, daneben Restwert und Methode', () => {
     render(<AfaCard property={makeProperty()} today={makeDate(2026, 6, 15)} />);
     expect(screen.getByText('AfA 2026')).toBeInTheDocument();
-    expect(screen.getByText('Steuerersparnis 2026')).toBeInTheDocument();
+    expect(screen.getByText(/weniger Steuer/)).toHaveTextContent(/6\.300/);
     expect(screen.getByText('Restwert Ende 2026')).toBeInTheDocument();
+    expect(screen.getByText(/abgeschrieben/)).toHaveTextContent(/5,0 %/);
     expect(screen.getByText('Degressiv 5 %')).toBeInTheDocument();
+  });
+
+  it('Ausblick: bei konstanter AfA (Linear) nur das Ende, bei Degressiv zusätzlich die Folgewerte', () => {
+    const { unmount } = render(<AfaCard property={makeProperty({ depreciation_method: 'linear' })} today={makeDate(2026, 6, 15)} />);
+    expect(screen.getByText('AfA endet')).toBeInTheDocument();
+    expect(screen.queryByText('AfA 2031')).not.toBeInTheDocument();
+    unmount();
+    render(<AfaCard property={makeProperty()} today={makeDate(2026, 6, 15)} />);
+    expect(screen.getByText('AfA 2031')).toBeInTheDocument();
+    expect(screen.getByText('AfA 2036')).toBeInTheDocument();
   });
 
   it('weit: nur ein ruhiger Hinweis mit Link zum Vormerken, kein Button', () => {
     render(<AfaCard property={makeProperty()} today={makeDate(2026, 6, 15)} />);
-    expect(screen.getByText(/Wechsel zu linear empfohlen/)).toBeInTheDocument();
+    expect(screen.getByText(/Empfohlen/)).toHaveTextContent(/ab 2040/);
     expect(screen.getByRole('button', { name: 'Jetzt vormerken' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Wechsel ab 2040 vormerken/ })).not.toBeInTheDocument();
   });
@@ -72,7 +83,7 @@ describe('AfaCard', () => {
 
   it('vorgemerkt: zeigt den Plan und lässt ihn zurücknehmen', async () => {
     render(<AfaCard property={makeProperty({ degressive_switch_year: 2040 })} today={makeDate(2030, 3, 1)} />);
-    expect(screen.getByText(/Wechsel vorgemerkt: ab 2040/)).toBeInTheDocument();
+    expect(screen.getByText(/Vorgemerkt ab 2040/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Zurücknehmen' }));
     await waitFor(() => expect(setDegressiveSwitchYear).toHaveBeenCalledWith('prop-1', null));
   });

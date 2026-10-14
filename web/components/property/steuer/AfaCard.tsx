@@ -3,7 +3,6 @@
 import { useState, useTransition, type ReactNode } from 'react';
 import { Card } from '@/components/ui/Card';
 import { SectionLabel } from '@/components/ui/SectionLabel';
-import { Stat } from '@/components/ui/Stat';
 import { buildAfaCardModel, type AfaCardModel } from '@/lib/data/propertyDepreciation';
 import { setDegressiveSwitchYear } from '@/lib/data/propertyActions';
 import { formatCurrency, formatPercent } from '@/lib/formatters';
@@ -23,6 +22,7 @@ const BANNER_TONE: Record<SwitchState, string> = {
 
 const PRIMARY_BUTTON = 'whitespace-nowrap rounded-[9px] bg-accent px-3.5 py-2 text-[12.5px] font-semibold text-white';
 const LINK_BUTTON = 'text-[12px] font-semibold text-accent underline hover:no-underline';
+const CAPTION = 'text-[11px] text-text-secondary';
 
 function percentLabel(rate: number): string {
   return `${(rate * 100).toLocaleString('de-DE', { maximumFractionDigits: 2 })} %`;
@@ -41,20 +41,10 @@ function amountSubline(model: AfaCardModel): string {
     case 'linear_nach_wechsel':
       return 'Restwert ÷ Restnutzungsdauer';
     case 'linear':
-      return `${percentLabel(model.linearRate)} der Basis`;
+      return `${percentLabel(model.linearRate)} der Bemessungsgrundlage`;
     default:
       return 'vor dem Erwerb';
   }
-}
-
-function KeyFigure({ label, value, sub }: { label: string; value: ReactNode; sub?: string }) {
-  return (
-    <div>
-      <p className="mb-0.5 text-[11px] text-text-secondary">{label}</p>
-      <p className="tabular-nums text-[15px] font-bold text-text-primary">{value}</p>
-      {sub && <p className="mt-0.5 text-[11px] text-text-dim">{sub}</p>}
-    </div>
-  );
 }
 
 export function AfaCard({ property, today }: { property: PropertyRow; today: Date }) {
@@ -78,25 +68,34 @@ export function AfaCard({ property, today }: { property: PropertyRow; today: Dat
   const sw = model.switch;
   const minYear = Math.max(model.year, model.acquisitionYear + 1);
   const maxYear = Math.max(sw?.optimalYear ?? minYear, minYear) + 6;
+  const writtenOffShare = model.basis > 0 ? Math.min(Math.max(1 - model.bookValueEnd / model.basis, 0), 1) : 0;
 
-  function banner(): ReactNode {
+  function switchBlock(): ReactNode {
     if (!sw) return null;
-    const tone = `mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border px-3.5 py-3 text-[12.5px] leading-snug ${BANNER_TONE[sw.state]}`;
+    const box = `mt-5 flex flex-wrap items-center justify-between gap-x-4 gap-y-2.5 rounded-xl border px-4 py-3 ${BANNER_TONE[sw.state]}`;
+    const title = <p className="mb-0.5 text-[10.5px] font-bold uppercase tracking-[0.5px] opacity-70">Wechsel zu linear</p>;
+    const text = 'text-[13px] leading-snug';
     switch (sw.state) {
       case 'aktiv':
         return (
-          <div className={tone}>
-            <span>
-              ✓ <b>Linear seit {sw.switchYear}</b> · der geplante Wechsel wurde automatisch übernommen.
-            </span>
+          <div className={box}>
+            <div>
+              {title}
+              <p className={text}>
+                <b>Linear seit {sw.switchYear}</b> · der geplante Wechsel wurde automatisch übernommen.
+              </p>
+            </div>
           </div>
         );
       case 'vorgemerkt':
         return (
-          <div className={tone}>
-            <span>
-              <b>Wechsel vorgemerkt: ab {sw.switchYear}</b> (in {sw.switchYear! - model.year} Jahren) · wird dann automatisch übernommen.
-            </span>
+          <div className={box}>
+            <div>
+              {title}
+              <p className={text}>
+                <b>Vorgemerkt ab {sw.switchYear}</b> (in {sw.switchYear! - model.year} Jahren) · wird dann automatisch übernommen.
+              </p>
+            </div>
             <span className="flex gap-3">
               <button type="button" className={LINK_BUTTON} onClick={() => setPanelYear(sw.switchYear)}>
                 Ändern
@@ -109,11 +108,14 @@ export function AfaCard({ property, today }: { property: PropertyRow; today: Dat
         );
       case 'ueberfaellig':
         return (
-          <div className={tone}>
-            <span>
-              <b>Der Wechsel wäre seit {sw.optimalYear} sinnvoll.</b> Linear hätte dieses Jahr {formatCurrency(sw.lostAmountThisYear)} mehr
-              AfA gebracht (≈ {formatCurrency(sw.lostAmountThisYear * property.marginal_tax_rate)} Steuer).
-            </span>
+          <div className={box}>
+            <div>
+              {title}
+              <p className={text}>
+                <b>Der Wechsel wäre seit {sw.optimalYear} sinnvoll.</b> Linear hätte dieses Jahr {formatCurrency(sw.lostAmountThisYear)} mehr
+                AfA gebracht (≈ {formatCurrency(sw.lostAmountThisYear * property.marginal_tax_rate)} Steuer).
+              </p>
+            </div>
             <button type="button" className={PRIMARY_BUTTON} onClick={() => setPanelYear(model.year)}>
               Ab {model.year} wechseln
             </button>
@@ -121,11 +123,14 @@ export function AfaCard({ property, today }: { property: PropertyRow; today: Dat
         );
       case 'faellig':
         return (
-          <div className={tone}>
-            <span>
-              <b>{model.year === sw.optimalYear ? 'Dieses Jahr' : 'Nächstes Jahr'} ist der optimale Wechselzeitpunkt.</b> Ab{' '}
-              {sw.optimalYear} bringt die lineare AfA mehr als die degressive.
-            </span>
+          <div className={box}>
+            <div>
+              {title}
+              <p className={text}>
+                <b>{model.year === sw.optimalYear ? 'Dieses Jahr' : 'Nächstes Jahr'} ist der optimale Zeitpunkt.</b> Ab {sw.optimalYear} bringt die
+                lineare AfA mehr als die degressive.
+              </p>
+            </div>
             <button type="button" className={PRIMARY_BUTTON} onClick={() => setPanelYear(sw.optimalYear)}>
               Wechsel ab {sw.optimalYear} vormerken
             </button>
@@ -133,10 +138,13 @@ export function AfaCard({ property, today }: { property: PropertyRow; today: Dat
         );
       default:
         return (
-          <div className={tone}>
-            <span>
-              Wechsel zu linear empfohlen <b>ab {sw.optimalYear}</b> · in {sw.optimalYear - model.year} Jahren
-            </span>
+          <div className={box}>
+            <div>
+              {title}
+              <p className={text}>
+                Empfohlen <b>ab {sw.optimalYear}</b> · in {sw.optimalYear - model.year} Jahren
+              </p>
+            </div>
             <button type="button" className={LINK_BUTTON} onClick={() => setPanelYear(sw.optimalYear)}>
               Jetzt vormerken
             </button>
@@ -145,21 +153,47 @@ export function AfaCard({ property, today }: { property: PropertyRow; today: Dat
     }
   }
 
+  const outlook: Array<{ label: string; value: string }> = [];
+  if (Math.abs(model.outlook.amountIn5Years - model.amount) >= 0.5) {
+    outlook.push({ label: `AfA ${model.year + 5}`, value: formatCurrency(model.outlook.amountIn5Years) });
+  }
+  if (Math.abs(model.outlook.amountIn10Years - model.amount) >= 0.5) {
+    outlook.push({ label: `AfA ${model.year + 10}`, value: formatCurrency(model.outlook.amountIn10Years) });
+  }
+  outlook.push({ label: 'AfA endet', value: model.outlook.endYear !== null ? String(model.outlook.endYear) : 'offen' });
+
   return (
-    <Card className="py-[18px]">
-      <SectionLabel>AfA</SectionLabel>
-      <div className="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-x-5 gap-y-3">
-        <KeyFigure label={`AfA ${model.year}`} value={formatCurrency(model.amount)} sub={amountSubline(model)} />
-        <KeyFigure
-          label={`Steuerersparnis ${model.year}`}
-          value={formatCurrency(model.taxSaving)}
-          sub={`bei ${formatPercent(property.marginal_tax_rate)} Grenzsteuersatz`}
-        />
-        <KeyFigure label={`Restwert Ende ${model.year}`} value={formatCurrency(model.bookValueEnd)} sub={`von ${formatCurrency(model.basis)} Basis`} />
-        <KeyFigure label="Methode" value={methodLabel(model)} />
+    <Card>
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <SectionLabel className="mb-0">AfA</SectionLabel>
+        <span className="rounded-[5px] bg-slate-100 px-2 py-[3px] text-[11px] font-bold text-slate-700">{methodLabel(model)}</span>
       </div>
 
-      {banner()}
+      <div className="grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2">
+        <div>
+          <p className={CAPTION}>AfA {model.year}</p>
+          <p className="mt-0.5 text-[26px] font-extrabold leading-tight tabular-nums text-text-primary">{formatCurrency(model.amount)}</p>
+          <p className="mt-1 text-[13px] font-semibold tabular-nums text-positive-strong">
+            ≈ {formatCurrency(model.taxSaving)} weniger Steuer
+          </p>
+          <p className="mt-0.5 text-[11px] text-text-dim">
+            {amountSubline(model)} · bei {formatPercent(property.marginal_tax_rate)} Grenzsteuersatz
+          </p>
+        </div>
+
+        <div>
+          <p className={CAPTION}>Restwert Ende {model.year}</p>
+          <p className="mt-0.5 text-[20px] font-bold leading-tight tabular-nums text-text-primary">{formatCurrency(model.bookValueEnd)}</p>
+          <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-slate-100" aria-hidden="true">
+            <div className="h-full rounded-full bg-accent" style={{ width: `${writtenOffShare * 100}%` }} />
+          </div>
+          <p className="mt-1.5 text-[11px] text-text-dim">
+            {formatPercent(writtenOffShare)} von {formatCurrency(model.basis)} abgeschrieben
+          </p>
+        </div>
+      </div>
+
+      {switchBlock()}
 
       {panelYear !== null && sw && (
         <AfaSwitchPanel
@@ -176,24 +210,19 @@ export function AfaCard({ property, today }: { property: PropertyRow; today: Dat
       )}
       {error && <p className="mt-2 text-[12px] font-medium text-negative">{error}</p>}
 
-      <div className="mt-3.5 flex flex-wrap gap-x-5 gap-y-1 text-[12px] text-text-secondary">
-        <span>
-          AfA in 5 Jahren <b className="tabular-nums text-text-primary">{formatCurrency(model.outlook.amountIn5Years)}</b>
-        </span>
-        <span>
-          in 10 Jahren <b className="tabular-nums text-text-primary">{formatCurrency(model.outlook.amountIn10Years)}</b>
-        </span>
-        <span>
-          AfA endet <b className="tabular-nums text-text-primary">{model.outlook.endYear ?? '–'}</b>
-        </span>
+      <div className="mt-5 flex flex-wrap gap-x-8 gap-y-2 border-t border-black/[0.07] pt-4">
+        {outlook.map((item) => (
+          <div key={item.label}>
+            <p className={CAPTION}>{item.label}</p>
+            <p className="text-[14px] font-bold tabular-nums text-text-primary">{item.value}</p>
+          </div>
+        ))}
       </div>
 
-      <div className="mt-4 grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-x-5 gap-y-3 border-t border-black/[0.07] pt-3.5">
-        <Stat label="Grundstückswert" value={formatCurrency(property.land_value)} size="sm" />
-        <Stat label="Gebäudewert" value={formatCurrency(property.building_value)} size="sm" />
-        <Stat label="AfA-Bemessungsgrundlage" value={formatCurrency(model.basis)} size="sm" />
-        <Stat label="Grenzsteuersatz" value={formatPercent(property.marginal_tax_rate)} size="sm" />
-      </div>
+      <p className="mt-4 text-[11px] leading-relaxed text-text-dim">
+        Bemessungsgrundlage {formatCurrency(model.basis)} · Gebäudewert {formatCurrency(property.building_value)} · Grundstückswert{' '}
+        {formatCurrency(property.land_value)}
+      </p>
     </Card>
   );
 }
