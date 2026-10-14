@@ -44,18 +44,29 @@ describe('AfaCard', () => {
     expect(screen.getByText('AfA 2026')).toBeInTheDocument();
     expect(screen.getByText(/weniger Steuer/)).toHaveTextContent(/6\.300/);
     expect(screen.getByText('Restwert Ende 2026')).toBeInTheDocument();
-    expect(screen.getByText(/abgeschrieben/)).toHaveTextContent(/5,0 %/);
+    expect(screen.getByText(/von .* abgeschrieben/)).toHaveTextContent(/5,0 %/);
     expect(screen.getByText('Degressiv 5 %')).toBeInTheDocument();
   });
 
-  it('Ausblick: bei konstanter AfA (Linear) nur das Ende, bei Degressiv zusätzlich die Folgewerte', () => {
-    const { unmount } = render(<AfaCard property={makeProperty({ depreciation_method: 'linear' })} today={makeDate(2026, 6, 15)} />);
-    expect(screen.getByText('AfA endet')).toBeInTheDocument();
-    expect(screen.queryByText('AfA 2031')).not.toBeInTheDocument();
-    unmount();
+  it('Ausblick als Tabelle mit AfA und Restwert, Grundlagen als Liste', () => {
     render(<AfaCard property={makeProperty()} today={makeDate(2026, 6, 15)} />);
-    expect(screen.getByText('AfA 2031')).toBeInTheDocument();
-    expect(screen.getByText('AfA 2036')).toBeInTheDocument();
+    expect(screen.getByText('Ausblick')).toBeInTheDocument();
+    expect(screen.getByText('Grundlagen')).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Restwert' })).toBeInTheDocument();
+    expect(screen.getByText('2031')).toBeInTheDocument();
+    expect(screen.getByText('2036')).toBeInTheDocument();
+    expect(screen.getByText('Bemessungsgrundlage')).toBeInTheDocument();
+    expect(screen.getByText('Grundstückswert')).toBeInTheDocument();
+    expect(screen.getByText('nicht abschreibbar')).toBeInTheDocument();
+  });
+
+  it('Ende der AfA: bei Degressiv ohne Wechsel „nie", bei Linear das Jahr', () => {
+    const { unmount } = render(<AfaCard property={makeProperty()} today={makeDate(2026, 6, 15)} />);
+    expect(screen.getByText(/nie \(ohne Wechsel\)/)).toBeInTheDocument();
+    unmount();
+    render(<AfaCard property={makeProperty({ depreciation_method: 'linear' })} today={makeDate(2026, 6, 15)} />);
+    expect(screen.queryByText(/nie \(ohne Wechsel\)/)).not.toBeInTheDocument();
+    expect(screen.getByText('2059')).toBeInTheDocument();
   });
 
   it('weit: nur ein ruhiger Hinweis mit Link zum Vormerken, kein Button', () => {
@@ -68,7 +79,7 @@ describe('AfaCard', () => {
   it('fällig: Button öffnet das Vorschau-Feld, Bestätigen speichert das Wechseljahr', async () => {
     render(<AfaCard property={makeProperty()} today={makeDate(2039, 3, 1)} />);
     fireEvent.click(screen.getByRole('button', { name: 'Wechsel ab 2040 vormerken' }));
-    expect(screen.getByText(/ohne Wechsel/)).toBeInTheDocument();
+    expect(screen.getByText('ohne Wechsel')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Wechsel vormerken' }));
     await waitFor(() => expect(setDegressiveSwitchYear).toHaveBeenCalledWith('prop-1', 2040));
   });

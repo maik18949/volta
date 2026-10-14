@@ -23,6 +23,7 @@ const BANNER_TONE: Record<SwitchState, string> = {
 const PRIMARY_BUTTON = 'whitespace-nowrap rounded-[9px] bg-accent px-3.5 py-2 text-[12.5px] font-semibold text-white';
 const LINK_BUTTON = 'text-[12px] font-semibold text-accent underline hover:no-underline';
 const CAPTION = 'text-[11px] text-text-secondary';
+const SUBHEADING = 'mb-2 text-[10.5px] font-bold uppercase tracking-[0.5px] text-text-secondary';
 
 function percentLabel(rate: number): string {
   return `${(rate * 100).toLocaleString('de-DE', { maximumFractionDigits: 2 })} %`;
@@ -45,6 +46,18 @@ function amountSubline(model: AfaCardModel): string {
     default:
       return 'vor dem Erwerb';
   }
+}
+
+function FactRow({ label, value, note, strong }: { label: string; value: string; note?: string; strong?: boolean }) {
+  return (
+    <div className="flex items-baseline justify-between gap-3 border-t border-black/[0.06] py-2 first:border-t-0 first:pt-0">
+      <dt className="text-text-secondary">
+        {label}
+        {note && <span className="ml-1.5 text-[11px] text-text-dim">{note}</span>}
+      </dt>
+      <dd className={strong ? 'font-bold text-text-primary' : 'font-semibold text-text-primary'}>{value}</dd>
+    </div>
+  );
 }
 
 export function AfaCard({ property, today }: { property: PropertyRow; today: Date }) {
@@ -153,14 +166,10 @@ export function AfaCard({ property, today }: { property: PropertyRow; today: Dat
     }
   }
 
-  const outlook: Array<{ label: string; value: string }> = [];
-  if (Math.abs(model.outlook.amountIn5Years - model.amount) >= 0.5) {
-    outlook.push({ label: `AfA ${model.year + 5}`, value: formatCurrency(model.outlook.amountIn5Years) });
-  }
-  if (Math.abs(model.outlook.amountIn10Years - model.amount) >= 0.5) {
-    outlook.push({ label: `AfA ${model.year + 10}`, value: formatCurrency(model.outlook.amountIn10Years) });
-  }
-  outlook.push({ label: 'AfA endet', value: model.outlook.endYear !== null ? String(model.outlook.endYear) : 'offen' });
+  const outlookRows = [
+    { year: model.year + 5, label: 'in 5 Jahren', amount: model.outlook.amountIn5Years, bookValue: model.outlook.bookValueIn5Years },
+    { year: model.year + 10, label: 'in 10 Jahren', amount: model.outlook.amountIn10Years, bookValue: model.outlook.bookValueIn10Years },
+  ];
 
   return (
     <Card>
@@ -210,19 +219,54 @@ export function AfaCard({ property, today }: { property: PropertyRow; today: Dat
       )}
       {error && <p className="mt-2 text-[12px] font-medium text-negative">{error}</p>}
 
-      <div className="mt-5 flex flex-wrap gap-x-8 gap-y-2 border-t border-black/[0.07] pt-4">
-        {outlook.map((item) => (
-          <div key={item.label}>
-            <p className={CAPTION}>{item.label}</p>
-            <p className="text-[14px] font-bold tabular-nums text-text-primary">{item.value}</p>
-          </div>
-        ))}
-      </div>
+      <div className="mt-5 grid grid-cols-1 gap-x-10 gap-y-6 border-t border-black/[0.07] pt-5 sm:grid-cols-[1.5fr_1fr]">
+        <div>
+          <p className={SUBHEADING}>Ausblick</p>
+          <table className="w-full text-[13px] tabular-nums">
+            <thead>
+              <tr className="text-[11px] text-text-secondary">
+                <th scope="col" className="pb-1.5 text-left font-medium">
+                  Jahr
+                </th>
+                <th scope="col" className="pb-1.5 text-right font-medium">
+                  AfA
+                </th>
+                <th scope="col" className="pb-1.5 text-right font-medium">
+                  Restwert
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {outlookRows.map((row) => (
+                <tr key={row.year} className="border-t border-black/[0.06]">
+                  <td className="py-2 text-left">
+                    <span className="font-semibold text-text-primary">{row.year}</span>{' '}
+                    <span className="text-[11px] text-text-dim">{row.label}</span>
+                  </td>
+                  <td className="py-2 text-right font-semibold text-text-primary">{formatCurrency(row.amount)}</td>
+                  <td className="py-2 text-right text-text-secondary">{formatCurrency(row.bookValue)}</td>
+                </tr>
+              ))}
+              <tr className="border-t border-black/[0.06]">
+                <td className="py-2 text-left text-text-secondary">Vollständig abgeschrieben</td>
+                <td colSpan={2} className="py-2 text-right font-semibold text-text-primary">
+                  {model.outlook.endYear !== null ? model.outlook.endYear : <span className="font-normal text-text-secondary">nie (ohne Wechsel)</span>}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
 
-      <p className="mt-4 text-[11px] leading-relaxed text-text-dim">
-        Bemessungsgrundlage {formatCurrency(model.basis)} · Gebäudewert {formatCurrency(property.building_value)} · Grundstückswert{' '}
-        {formatCurrency(property.land_value)}
-      </p>
+        <div>
+          <p className={SUBHEADING}>Grundlagen</p>
+          <dl className="text-[13px] tabular-nums">
+            <FactRow label="Bemessungsgrundlage" value={formatCurrency(model.basis)} strong />
+            <FactRow label="Gebäudewert" value={formatCurrency(property.building_value)} />
+            <FactRow label="Grundstückswert" value={formatCurrency(property.land_value)} note="nicht abschreibbar" />
+            <FactRow label="Grenzsteuersatz" value={formatPercent(property.marginal_tax_rate)} />
+          </dl>
+        </div>
+      </div>
     </Card>
   );
 }

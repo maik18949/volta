@@ -57,7 +57,13 @@ export interface AfaCardModel {
   taxSaving: number;
   bookValueEnd: number;
   phase: DepreciationPhase | null;
-  outlook: { amountIn5Years: number; amountIn10Years: number; endYear: number | null };
+  outlook: {
+    amountIn5Years: number;
+    bookValueIn5Years: number;
+    amountIn10Years: number;
+    bookValueIn10Years: number;
+    endYear: number | null;
+  };
   /** null bei Linear oder wenn keine Empfehlung berechenbar ist. */
   switch: null | { state: SwitchState; optimalYear: number; switchYear: number | null; lostAmountThisYear: number };
 }
@@ -94,7 +100,9 @@ export function buildAfaCardModel(property: PropertyRow, today: Date): AfaCardMo
     phase: current?.phase ?? null,
     outlook: {
       amountIn5Years: depreciationForYear(plan, year + 5)?.amount ?? 0,
+      bookValueIn5Years: depreciationForYear(plan, year + 5)?.bookValueEnd ?? 0,
       amountIn10Years: depreciationForYear(plan, year + 10)?.amount ?? 0,
+      bookValueIn10Years: depreciationForYear(plan, year + 10)?.bookValueEnd ?? 0,
       endYear: depreciationEndYear(plan),
     },
     switch: switchInfo,
