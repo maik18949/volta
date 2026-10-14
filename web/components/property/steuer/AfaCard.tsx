@@ -35,19 +35,6 @@ function methodLabel(model: AfaCardModel): string {
   return 'Degressiv 5 %';
 }
 
-function amountSubline(model: AfaCardModel): string {
-  switch (model.phase) {
-    case 'degressiv':
-      return '5 % vom Restwert';
-    case 'linear_nach_wechsel':
-      return 'Restwert ÷ Restnutzungsdauer';
-    case 'linear':
-      return `${percentLabel(model.linearRate)} der Bemessungsgrundlage`;
-    default:
-      return 'vor dem Erwerb';
-  }
-}
-
 export function AfaCard({ property, today }: { property: PropertyRow; today: Date }) {
   const model = buildAfaCardModel(property, today);
   const [panelYear, setPanelYear] = useState<number | null>(null);
@@ -172,9 +159,6 @@ export function AfaCard({ property, today }: { property: PropertyRow; today: Dat
           <p className="mt-0.5 text-[26px] font-extrabold leading-tight tabular-nums text-text-primary">{formatCurrency(model.amount)}</p>
           <p className="mt-1 text-[13px] font-semibold tabular-nums text-positive-strong">
             ≈ {formatCurrency(model.taxSaving)} Steuerersparnis
-          </p>
-          <p className="mt-0.5 text-[11px] text-text-dim">
-            {amountSubline(model)} · bei {formatPercent(property.marginal_tax_rate)} Grenzsteuersatz
           </p>
         </div>
 
