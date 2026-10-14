@@ -72,7 +72,6 @@ interface AfaPreviewData {
     startYear: number;
     months: number;
     firstFullYearAmount: number;
-    firstFullYearPhase: string;
     rows: AfaOutlookRow[];
     endYear: number | null;
   };
@@ -81,14 +80,6 @@ interface AfaPreviewData {
 function AfaPreview({ data }: { data: AfaPreviewData }) {
   const isDegressive = data.method === 'degressiv_5a';
   const schedule = data.schedule;
-  const subline = !schedule
-    ? ''
-    : schedule.firstFullYearPhase === 'degressiv'
-      ? '5 % vom Restwert'
-      : schedule.firstFullYearPhase === 'linear_nach_wechsel'
-        ? 'Restwert ÷ Restnutzungsdauer'
-        : `${percentLabel(data.linearRate)} der Bemessungsgrundlage`;
-
   return (
     <Card className="self-start">
       <div className="mb-4 flex items-center justify-between gap-3">
@@ -109,10 +100,7 @@ function AfaPreview({ data }: { data: AfaPreviewData }) {
               ≈ {formatCurrency(schedule.firstFullYearAmount * data.marginalTaxRate)} Steuerersparnis
             </p>
           )}
-          <p className="mt-0.5 text-[11px] text-text-dim">
-            ≈ {formatCurrency(schedule.firstFullYearAmount / 12)} pro Monat · {subline}
-            {data.marginalTaxRate > 0 && ` · bei ${percentLabel(data.marginalTaxRate)} Grenzsteuersatz`}
-          </p>
+          <p className="mt-0.5 text-[11px] text-text-dim">≈ {formatCurrency(schedule.firstFullYearAmount / 12)} pro Monat</p>
 
           <div className="mt-5 border-t border-black/[0.07] pt-5">
             <AfaOutlookTable rows={schedule.rows} endYear={schedule.endYear} />
@@ -182,7 +170,6 @@ export function StepAfaSteuer() {
         startYear,
         months,
         firstFullYearAmount: second.amount,
-        firstFullYearPhase: second.phase,
         rows: [
           { year: startYear, label: `${months} Monate`, amount: first.amount, bookValue: first.bookValueEnd },
           { year: startYear + 1, amount: second.amount, bookValue: second.bookValueEnd },
