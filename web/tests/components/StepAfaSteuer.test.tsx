@@ -26,10 +26,33 @@ function Harness({ overrides = {} }: { overrides?: Partial<WizardFormValues> }) 
 }
 
 describe('StepAfaSteuer degressive AfA', () => {
-  it('zeigt bei Linear den AfA-Satz und den Restwert in der Zusammenfassung', () => {
+  it('zeigt bei Linear den AfA-Satz und die Vorschau mit Ausblick-Tabelle und Restwert', () => {
     render(<Harness />);
     expect(screen.getByLabelText(/AfA-Satz/)).toBeInTheDocument();
-    expect(screen.getByText('Restwert Ende 2027')).toBeInTheDocument();
+    expect(screen.getByText('AfA-Vorschau')).toBeInTheDocument();
+    expect(screen.getByText('Ausblick')).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Restwert' })).toBeInTheDocument();
+    expect(screen.getByText('2036')).toBeInTheDocument();
+    expect(screen.getByText('Vollständig abgeschrieben')).toBeInTheDocument();
+  });
+
+  it('gliedert den Schritt in Kaufpreisaufteilung und AfA & Steuer', () => {
+    render(<Harness />);
+    expect(screen.getByText('Kaufpreisaufteilung')).toBeInTheDocument();
+    expect(screen.getAllByText('AfA & Steuer').length).toBeGreaterThan(0);
+  });
+
+  it('schlüsselt die Bemessungsgrundlage auf', () => {
+    render(
+      <Harness
+        overrides={{ landTransferTax: 15_000, notaryCosts: 4_500, landRegistryCosts: 1_500, renovationAfaEligible: 10_000 }}
+      />
+    );
+    // Nebenkosten 21.000 € × Gebäudeanteil 80 % = 16.800 €; Basis 240.000 + 16.800 + 10.000 = 266.800 €
+    expect(screen.getByText('Anteilige Kaufnebenkosten').parentElement).toHaveTextContent(/16\.800/);
+    expect(screen.getByText('Aktivierte Renovierung')).toBeInTheDocument();
+    expect(screen.getAllByText('Bemessungsgrundlage').length).toBeGreaterThan(0);
+    expect(screen.getByText('Bemessungsgrundlage', { selector: 'dt' }).parentElement).toHaveTextContent(/266\.800/);
   });
 
   it('legt die Satz-Übersicht bei Linear in einen Infotip statt neben das Label', () => {
@@ -65,7 +88,9 @@ describe('StepAfaSteuer degressive AfA', () => {
   it('Degressiv rechnet die Zusammenfassung mit 5 % vom Restwert', () => {
     render(<Harness overrides={{ depreciationMethod: 'degressiv_5a', depreciationRate: 0.03 }} />);
     // Basis 240.000 €, Übergang 25.7.2026 (6 Monate): 240.000 × 5 % × 6/12 = 6.000 €
-    expect(screen.getByText(/6\.000/)).toBeInTheDocument();
+    expect(screen.getByRole('row', { name: /2026/ })).toHaveTextContent(/6\.000/);
+    expect(screen.getByText(/Wechsel zu linear kannst du später im Steuer-Tab/)).toBeInTheDocument();
+    expect(screen.getByText(/nie \(ohne Wechsel\)/)).toBeInTheDocument();
   });
 
   it('warnt weich, wenn das Baujahr vor 2023 liegt', () => {

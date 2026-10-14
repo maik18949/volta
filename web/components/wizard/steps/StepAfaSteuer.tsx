@@ -3,17 +3,22 @@
 import { useFormContext, useWatch } from 'react-hook-form';
 import { PercentField } from '@/components/ui/PercentField';
 import { SelectField } from '@/components/ui/SelectField';
-import { CalcSummary, FormCard, FormGrid, FormHint, FormSection, FormWarning } from '@/components/ui/FormLayout';
+import { Card } from '@/components/ui/Card';
+import { FormCard, FormGrid, FormHint, FormSection, FormWarning } from '@/components/ui/FormLayout';
+import { SectionLabel } from '@/components/ui/SectionLabel';
 import { afaBasis, valuationDeviation } from '@/lib/calculations/depreciationCalculator';
 import {
   degressiveEligibilityWarning,
+  depreciationEndYear,
   depreciationForYear,
   parseDepreciationMethod,
+  type DepreciationMethod,
   type DepreciationPlanInput,
 } from '@/lib/calculations/depreciationSchedule';
 import { closingCostsTotal } from '@/lib/calculations/kpiCalculator';
 import { formatCurrency } from '@/lib/formatters';
 import { BuildingShareFields } from '@/components/wizard/BuildingShareFields';
+import { AfaFactRow, AfaFacts, AfaOutlookTable, type AfaOutlookRow } from '@/components/property/steuer/AfaParts';
 import type { WizardFormValues } from '@/lib/wizard/wizardLogic';
 
 function safeNum(value: number | undefined): number {
@@ -50,6 +55,80 @@ function BerechnungshilfeLink() {
   );
 }
 
+function percentLabel(rate: number): string {
+  return `${(rate * 100).toLocaleString('de-DE', { maximumFractionDigits: 2 })} %`;
+}
+
+interface AfaPreviewData {
+  method: DepreciationMethod;
+  linearRate: number;
+  basis: number;
+  buildingValue: number;
+  closingCostsShare: number;
+  renovation: number;
+  /** null, solange das Besitzübergangsdatum fehlt. */
+  schedule: null | {
+    startYear: number;
+    months: number;
+    firstFullYearAmount: number;
+    firstFullYearPhase: string;
+    rows: AfaOutlookRow[];
+    endYear: number | null;
+  };
+}
+
+function AfaPreview({ data }: { data: AfaPreviewData }) {
+  const isDegressive = data.method === 'degressiv_5a';
+  const schedule = data.schedule;
+  const subline = !schedule
+    ? ''
+    : schedule.firstFullYearPhase === 'degressiv'
+      ? '5 % vom Restwert'
+      : schedule.firstFullYearPhase === 'linear_nach_wechsel'
+        ? 'Restwert ÷ Restnutzungsdauer'
+        : `${percentLabel(data.linearRate)} der Bemessungsgrundlage`;
+
+  return (
+    <Card className="self-start">
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <SectionLabel className="mb-0">AfA-Vorschau</SectionLabel>
+        <span className="rounded-[5px] bg-slate-100 px-2 py-[3px] text-[11px] font-bold text-slate-700">
+          {isDegressive ? 'Degressiv 5 %' : `Linear ${percentLabel(data.linearRate)}`}
+        </span>
+      </div>
+
+      {schedule && (
+        <>
+          <p className="text-[11px] text-text-secondary">AfA {schedule.startYear + 1}</p>
+          <p className="mt-0.5 text-[26px] font-extrabold leading-tight tabular-nums text-text-primary">
+            {formatCurrency(schedule.firstFullYearAmount)}
+          </p>
+          <p className="mt-1 text-[11px] text-text-dim">
+            ≈ {formatCurrency(schedule.firstFullYearAmount / 12)} pro Monat · {subline}
+          </p>
+
+          <div className="mt-5 border-t border-black/[0.07] pt-5">
+            <AfaOutlookTable rows={schedule.rows} endYear={schedule.endYear} />
+          </div>
+        </>
+      )}
+
+      <div className="mt-5 border-t border-black/[0.07] pt-5">
+        <AfaFacts title="Bemessungsgrundlage">
+          <AfaFactRow label="Gebäudewert" value={formatCurrency(data.buildingValue)} />
+          <AfaFactRow label="Anteilige Kaufnebenkosten" value={formatCurrency(data.closingCostsShare)} />
+          {data.renovation > 0 && <AfaFactRow label="Aktivierte Renovierung" value={formatCurrency(data.renovation)} />}
+          <AfaFactRow label="Bemessungsgrundlage" value={formatCurrency(data.basis)} strong />
+        </AfaFacts>
+      </div>
+
+      {isDegressive && (
+        <p className="mt-4 text-[11px] leading-relaxed text-text-dim">Einen Wechsel zu linear kannst du später im Steuer-Tab vormerken.</p>
+      )}
+    </Card>
+  );
+}
+
 export function StepAfaSteuer() {
   const { control, register, setValue } = useFormContext<WizardFormValues>();
   const values = useWatch({ control });
@@ -66,8 +145,10 @@ export function StepAfaSteuer() {
   const buildingValue = safeNum(values.buildingValue);
   const landValue = safeNum(values.landValue);
   const depreciationRate = safeNum(values.depreciationRate);
+  const renovation = safeNum(values.renovationAfaEligible);
 
-  const basis = afaBasis(buildingValue, closingCosts, purchasePrice, safeNum(values.renovationAfaEligible));
+  const basis = afaBasis(buildingValue, closingCosts, purchasePrice, renovation);
+  const closingCostsShare = purchasePrice > 0 ? (closingCosts * buildingValue) / purchasePrice : 0;
   const sumDeviation = valuationDeviation(buildingValue, landValue, purchasePrice);
 
   const method = parseDepreciationMethod(values.depreciationMethod ?? 'linear');
@@ -81,25 +162,34 @@ export function StepAfaSteuer() {
   const plan: DepreciationPlanInput | null = transferDate
     ? { basis, method, linearRate: depreciationRate, economicTransferDate: transferDate, switchYear }
     : null;
-  const startYear = transferDate ? transferDate.getUTCFullYear() : null;
-  const firstYear = plan && startYear !== null ? depreciationForYear(plan, startYear) : null;
-  const secondYear = plan && startYear !== null ? depreciationForYear(plan, startYear + 1) : null;
+
+  let schedule: AfaPreviewData['schedule'] = null;
+  if (plan && transferDate) {
+    const startYear = transferDate.getUTCFullYear();
+    const months = 13 - (transferDate.getUTCMonth() + 1);
+    const first = depreciationForYear(plan, startYear);
+    const second = depreciationForYear(plan, startYear + 1);
+    const tenth = depreciationForYear(plan, startYear + 10);
+    if (first && second && tenth) {
+      schedule = {
+        startYear,
+        months,
+        firstFullYearAmount: second.amount,
+        firstFullYearPhase: second.phase,
+        rows: [
+          { year: startYear, label: `${months} Monate`, amount: first.amount, bookValue: first.bookValueEnd },
+          { year: startYear + 1, amount: second.amount, bookValue: second.bookValueEnd },
+          { year: startYear + 10, label: 'in 10 Jahren', amount: tenth.amount, bookValue: tenth.bookValueEnd },
+        ],
+        endYear: depreciationEndYear(plan),
+      };
+    }
+  }
 
   const eligibilityWarning =
     isDegressive && transferDate && purchaseDate
       ? degressiveEligibilityWarning({ yearBuilt, purchaseDate, economicTransferDate: transferDate })
       : null;
-
-  const months = transferDate ? 13 - (transferDate.getUTCMonth() + 1) : 0;
-  const summaryRows =
-    startYear !== null && firstYear && secondYear
-      ? [
-          { label: 'AfA-Bemessungsgrundlage', value: formatCurrency(basis) },
-          { label: `AfA ${startYear} (${months} Monate)`, value: formatCurrency(firstYear.amount) },
-          { label: `AfA ${startYear + 1}`, value: formatCurrency(secondYear.amount) },
-          { label: `Restwert Ende ${startYear + 1}`, value: formatCurrency(secondYear.bookValueEnd) },
-        ]
-      : [{ label: 'AfA-Bemessungsgrundlage', value: formatCurrency(basis) }];
 
   return (
     <FormSection>
@@ -109,58 +199,59 @@ export function StepAfaSteuer() {
       </FormHint>
 
       <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-2">
-        <FormCard title="AfA & Steuer">
-          <FormGrid>
-            <BuildingShareFields
-              purchasePrice={purchasePrice}
-              buildingLabel={<>Gebäudewert (<BerechnungshilfeLink />)</>}
-              landLabel={<>Grundstückswert (<BerechnungshilfeLink />)</>}
-            />
-            <SelectField
-              label="AfA-Methode"
-              name="depreciationMethod"
-              register={register}
-              options={METHOD_OPTIONS}
-              registerOptions={{
-                onChange: (event) => {
-                  if (event.target.value === 'degressiv_5a') setValue('depreciationRate', DEFAULT_LINEAR_RATE_NEUBAU);
-                },
-              }}
-            />
-            {!isDegressive && (
-              <PercentField
-                label="AfA-Satz"
-                name="depreciationRate"
-                control={control}
-                required
-                info="2 % ab 1925 · 2,5 % vor 1925 · 3 % Neubau ab 2023"
+        <div className="flex flex-col gap-5">
+          <FormCard title="Kaufpreisaufteilung">
+            <FormGrid>
+              <BuildingShareFields
+                purchasePrice={purchasePrice}
+                buildingLabel={<>Gebäudewert (<BerechnungshilfeLink />)</>}
+                landLabel={<>Grundstückswert (<BerechnungshilfeLink />)</>}
               />
-            )}
-            <PercentField label="Grenzsteuersatz" name="marginalTaxRate" control={control} required />
-            {isDegressive && eligibilityWarning && (
-              <div className="sm:col-span-2">
-                <FormWarning>⚠ {eligibilityWarning}</FormWarning>
-              </div>
-            )}
-            {sumDeviation > 0.05 && (
-              <div className="sm:col-span-2">
-                <FormWarning>
-                  ⚠ Gebäude + Grundstück ({formatCurrency(buildingValue + landValue)}) weicht {(sumDeviation * 100).toFixed(1)} % vom
-                  Kaufpreis ab — Werte aus der Berechnungshilfe prüfen.
-                </FormWarning>
-              </div>
-            )}
-          </FormGrid>
-        </FormCard>
+              {sumDeviation > 0.05 && (
+                <div className="sm:col-span-2">
+                  <FormWarning>
+                    ⚠ Gebäude + Grundstück ({formatCurrency(buildingValue + landValue)}) weicht {(sumDeviation * 100).toFixed(1)} % vom
+                    Kaufpreis ab — Werte aus der Berechnungshilfe prüfen.
+                  </FormWarning>
+                </div>
+              )}
+            </FormGrid>
+          </FormCard>
 
-        <CalcSummary
-          className="self-start"
-          rows={summaryRows}
-          total={
-            secondYear && startYear !== null
-              ? { label: `AfA / Monat (${startYear + 1})`, value: formatCurrency(secondYear.amount / 12) }
-              : undefined
-          }
+          <FormCard title="AfA & Steuer">
+            <FormGrid>
+              <SelectField
+                label="AfA-Methode"
+                name="depreciationMethod"
+                register={register}
+                options={METHOD_OPTIONS}
+                registerOptions={{
+                  onChange: (event) => {
+                    if (event.target.value === 'degressiv_5a') setValue('depreciationRate', DEFAULT_LINEAR_RATE_NEUBAU);
+                  },
+                }}
+              />
+              {!isDegressive && (
+                <PercentField
+                  label="AfA-Satz"
+                  name="depreciationRate"
+                  control={control}
+                  required
+                  info="2 % ab 1925 · 2,5 % vor 1925 · 3 % Neubau ab 2023"
+                />
+              )}
+              <PercentField label="Grenzsteuersatz" name="marginalTaxRate" control={control} required />
+              {eligibilityWarning && (
+                <div className="sm:col-span-2">
+                  <FormWarning>⚠ {eligibilityWarning}</FormWarning>
+                </div>
+              )}
+            </FormGrid>
+          </FormCard>
+        </div>
+
+        <AfaPreview
+          data={{ method, linearRate: depreciationRate, basis, buildingValue, closingCostsShare, renovation, schedule }}
         />
       </div>
     </FormSection>
