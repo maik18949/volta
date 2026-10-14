@@ -26,34 +26,35 @@ function Harness({ overrides = {} }: { overrides?: Partial<WizardFormValues> }) 
 }
 
 describe('StepAfaSteuer degressive AfA', () => {
-  it('zeigt bei Linear weder Wechseljahr noch Warnung und nennt den Restwert in der Zusammenfassung', () => {
+  it('zeigt bei Linear den AfA-Satz und den Restwert in der Zusammenfassung', () => {
     render(<Harness />);
-    expect(screen.queryByLabelText(/Wechsel zu linear ab Jahr/)).not.toBeInTheDocument();
-    expect(screen.getByText('Restwert Ende 2027')).toBeInTheDocument();
     expect(screen.getByLabelText(/AfA-Satz/)).toBeInTheDocument();
+    expect(screen.getByText('Restwert Ende 2027')).toBeInTheDocument();
   });
 
-  it('Umschalten auf Degressiv setzt den Satz auf 3 %, benennt ihn um und zeigt das Wechseljahr-Feld', () => {
+  it('bietet die Methode ohne Paragraphenhinweis im Label an', () => {
+    render(<Harness />);
+    const options = Array.from(screen.getByLabelText('AfA-Methode').querySelectorAll('option')).map((option) => option.textContent);
+    expect(options).toEqual(['Linear', 'Degressiv 5 %']);
+  });
+
+  it('Degressiv blendet den AfA-Satz aus (fest 3 %) und hat kein Wechseljahr-Feld', () => {
     render(<Harness />);
     fireEvent.change(screen.getByLabelText('AfA-Methode'), { target: { value: 'degressiv_5a' } });
-    expect(screen.getByLabelText(/Linearer Satz \(nach Wechsel\)/)).toHaveValue(3);
-    expect(screen.getByLabelText(/Wechsel zu linear ab Jahr/)).toBeInTheDocument();
-    expect(screen.getByText(/Empfohlen: ab 2040/)).toBeInTheDocument();
+    expect(screen.queryByLabelText(/AfA-Satz/)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/Linearer Satz/)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/Wechsel zu linear/)).not.toBeInTheDocument();
+    expect(screen.getByLabelText(/Grenzsteuersatz/)).toBeInTheDocument();
   });
 
-  it('„übernehmen" trägt das empfohlene Wechseljahr ein', () => {
+  it('Degressiv rechnet die Zusammenfassung mit 5 % vom Restwert', () => {
     render(<Harness overrides={{ depreciationMethod: 'degressiv_5a', depreciationRate: 0.03 }} />);
-    fireEvent.click(screen.getByRole('button', { name: 'übernehmen' }));
-    expect(screen.getByLabelText(/Wechsel zu linear ab Jahr/)).toHaveValue(2040);
+    // Basis 240.000 €, Übergang 25.7.2026 (6 Monate): 240.000 × 5 % × 6/12 = 6.000 €
+    expect(screen.getByText(/6\.000/)).toBeInTheDocument();
   });
 
   it('warnt weich, wenn das Baujahr vor 2023 liegt', () => {
     render(<Harness overrides={{ depreciationMethod: 'degressiv_5a', yearBuilt: 2015 }} />);
     expect(screen.getByText(/nach 2022 fertiggestellt/)).toBeInTheDocument();
-  });
-
-  it('warnt, wenn das Wechseljahr nicht nach dem Erwerbsjahr liegt', () => {
-    render(<Harness overrides={{ depreciationMethod: 'degressiv_5a', degressiveSwitchYear: 2026 }} />);
-    expect(screen.getByText(/Wechseljahr muss nach dem Erwerbsjahr/)).toBeInTheDocument();
   });
 });

@@ -110,8 +110,8 @@ Das bestehende Muster „optional und additiv" wird beibehalten, damit lineare O
 **Formularkarte „AfA & Steuer":**
 
 - **Neu:** Auswahl „AfA-Methode" (Linear | Degressiv 5 %), Default Linear.
-- Beim Umschalten auf Degressiv wird `depreciationRate` auf 3 % gesetzt (Referenz und Nutzungsdauer, § 7 Abs. 5a ersetzt die 3-%-Regel). Das Feld bleibt editierbar (kürzere tatsächliche Nutzungsdauer). Das Label wechselt zu „Linearer Satz (nach Wechsel)".
-- **Neu, nur bei Degressiv:** optionales Feld „Wechsel zu linear ab Jahr" mit Hinweis „Empfohlen: ab 20XX · übernehmen". Validierung: ganze Zahl, größer als das Erwerbsjahr, höchstens Erwerbsjahr + 60.
+- Beim Umschalten auf Degressiv wird `depreciationRate` auf 3 % gesetzt (§ 7 Abs. 5a ersetzt die 3-%-Regel) und das Feld „AfA-Satz" ausgeblendet. Die Methode heißt im Dropdown „Degressiv 5 %" (ohne Paragraphenhinweis).
+- Das Wechseljahr wird **nicht** im Wizard/Edit erfasst, sondern nur im Steuer-Tab (Vormerken). Das Feld `degressiveSwitchYear` bleibt in den Formularwerten, damit ein gespeicherter Plan beim Speichern erhalten bleibt.
 - **Weiche Warnung** (`FormWarning`, keine Sperre) bei Degressiv, wenn `yearBuilt < 2023`, das Erwerbsjahr nach dem Baujahr liegt (Anschaffung nicht im Fertigstellungsjahr) oder `purchase_date` außerhalb des Zeitfensters 1.10.2023–30.9.2029 liegt. Text nennt die Bedingungen (Neubau, Kauf im Fertigstellungsjahr, Vertrag zwischen 1.10.2023 und 30.9.2029).
 
 **`CalcSummary`:** gleiche Zeilen für beide Methoden: Bemessungsgrundlage, „AfA {Erwerbsjahr} (x Monate)", „AfA {Folgejahr}", „Restwert Ende {Folgejahr}", Summe „AfA / Monat ({Folgejahr})". Als Erwerbsdatum dient `values.economicTransferDate` (Fallback: heutiges Datum).

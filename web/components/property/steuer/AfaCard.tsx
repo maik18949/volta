@@ -47,12 +47,12 @@ function amountSubline(model: AfaCardModel): string {
   }
 }
 
-function KeyFigure({ label, value, sub }: { label: string; value: ReactNode; sub: string }) {
+function KeyFigure({ label, value, sub }: { label: string; value: ReactNode; sub?: string }) {
   return (
     <div>
       <p className="mb-0.5 text-[11px] text-text-secondary">{label}</p>
       <p className="tabular-nums text-[15px] font-bold text-text-primary">{value}</p>
-      <p className="mt-0.5 text-[11px] text-text-dim">{sub}</p>
+      {sub && <p className="mt-0.5 text-[11px] text-text-dim">{sub}</p>}
     </div>
   );
 }
@@ -156,7 +156,7 @@ export function AfaCard({ property, today }: { property: PropertyRow; today: Dat
           sub={`bei ${formatPercent(property.marginal_tax_rate)} Grenzsteuersatz`}
         />
         <KeyFigure label={`Restwert Ende ${model.year}`} value={formatCurrency(model.bookValueEnd)} sub={`von ${formatCurrency(model.basis)} Basis`} />
-        <KeyFigure label="Methode" value={methodLabel(model)} sub={model.method === 'linear' ? '§ 7 Abs. 4 EStG' : '§ 7 Abs. 5a EStG'} />
+        <KeyFigure label="Methode" value={methodLabel(model)} />
       </div>
 
       {banner()}
