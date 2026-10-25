@@ -5,10 +5,10 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { SectionLabel } from '@/components/ui/SectionLabel';
 import { YearPicker } from '@/components/ui/YearPicker';
 import { QuoteSlider } from '@/components/ui/QuoteSlider';
-import { computeTaxCurrentYear, computeTaxForecastYear, type TaxCurrentYearResult } from '@/lib/data/propertyTax';
+import { computeTaxCurrentYear, computeTaxForecastYear } from '@/lib/data/propertyTax';
 import type { OverviewMetrics } from '@/lib/data/propertyOverview';
 import {
-  initialYearFromParams,
+  initialYearSkippingCurrent,
   defaultForecastQuotePercent,
   effectiveForecastQuotePercent,
   MAX_FORECAST_YEARS_AHEAD,
@@ -24,9 +24,10 @@ type LoanDisbursementRow = Database['public']['Tables']['loan_disbursements']['R
 
 /**
  * Steuer-Tab "Jahresübersicht" — ersetzt die alte, zukunftsonly "Prognose"-Karte.
- * Vergangenheit + aktuelles Jahr: echte Ist-Werte über computeTaxCurrentYear(yearOverride).
- * Aktuelles Jahr speziell: identisches Ergebnis wie die "Laufendes Jahr"-Karte (übergeben via
- * `currentYearResult`, kein eigener Aufruf/Regler hier) — vermeidet zwei Regler für dieselbe Zahl.
+ * Vergangenheit: echte Ist-Werte über computeTaxCurrentYear(yearOverride).
+ * Das aktuelle Jahr kommt hier bewusst nicht vor: Es steht in der "Laufendes Jahr"-Karte (mit eigenem
+ * Regler). Der Jahreswähler überspringt es (skipYear), und die Übersicht startet beim Folgejahr —
+ * so gibt es keine zwei Karten mit identischem Inhalt und keine zwei Regler für dieselbe Zahl.
  * Zukunft: computeTaxForecastYear mit einem eigenen, hier lokal + per URL geteilten Regler.
  * Der Zukunfts-Regler nutzt denselben nativen <input type="range"> wie die "Laufendes Jahr"-Karte
  * (QuoteSlider) und feuert damit ebenso bei JEDEM Tick eines Drags (~100x pro Geste), nicht nur
@@ -46,7 +47,6 @@ export function YearOverviewCard({
   loanDisbursements,
   today,
   overview,
-  currentYearResult,
   economicTransferDate,
 }: {
   property: PropertyRow;
@@ -55,7 +55,6 @@ export function YearOverviewCard({
   loanDisbursements: LoanDisbursementRow[];
   today: Date;
   overview: OverviewMetrics;
-  currentYearResult: TaxCurrentYearResult;
   economicTransferDate: Date;
 }) {
   const router = useRouter();
@@ -66,7 +65,7 @@ export function YearOverviewCard({
   const loanStartDate = new Date(property.loan_start_date + 'T00:00:00Z');
   const minYear = Math.min(economicTransferDate.getUTCFullYear(), loanStartDate.getUTCFullYear());
 
-  const initialYear = initialYearFromParams(searchParams, currentYear);
+  const initialYear = initialYearSkippingCurrent(searchParams, currentYear, minYear);
   const [year, setYear] = useState(initialYear);
   const isFuture = year > currentYear;
 
@@ -129,11 +128,9 @@ export function YearOverviewCard({
     };
   }, [liveForecastQuote, year, updateUrl]);
 
-  const pastOrCurrentResult = isFuture
+  const pastResult = isFuture
     ? null
-    : year === currentYear
-      ? currentYearResult
-      : computeTaxCurrentYear(property, statusEntries, extraordinaryCosts, today, undefined, loanDisbursements, year);
+    : computeTaxCurrentYear(property, statusEntries, extraordinaryCosts, today, undefined, loanDisbursements, year);
   const forecastResult = isFuture ? computeTaxForecastYear(property, year, liveForecastQuote / 100) : null;
 
   return (
@@ -147,7 +144,13 @@ export function YearOverviewCard({
             <span className="rounded-[5px] bg-slate-100 px-2 py-[3px] text-[11px] font-bold text-slate-700">Ist</span>
           )}
         </div>
-        <YearPicker year={year} onChange={handleYearChange} minYear={minYear} maxYear={currentYear + MAX_FORECAST_YEARS_AHEAD} />
+        <YearPicker
+          year={year}
+          onChange={handleYearChange}
+          minYear={minYear}
+          maxYear={currentYear + MAX_FORECAST_YEARS_AHEAD}
+          skipYear={currentYear}
+        />
       </div>
       {isFuture && (
         <div className="mb-3">
@@ -157,7 +160,7 @@ export function YearOverviewCard({
       {isFuture ? (
         <ForecastSection result={forecastResult!} hasParking={hasParking} />
       ) : (
-        <CurrentYearSection result={pastOrCurrentResult!} hasParking={hasParking} economicTransferDate={economicTransferDate} />
+        <CurrentYearSection result={pastResult!} hasParking={hasParking} economicTransferDate={economicTransferDate} />
       )}
     </div>
   );

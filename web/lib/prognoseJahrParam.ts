@@ -27,6 +27,17 @@ export function initialYearFromParams(searchParams: ReadonlySearchParamsLike, cu
   return parsed > currentYear && parsed <= currentYear + MAX_FORECAST_YEARS_AHEAD ? parsed : currentYear;
 }
 
+/**
+ * Startjahr der Steuer-Jahresübersicht: wie `initialYearFromParams`, aber das aktuelle Jahr wird
+ * übersprungen (das zeigt dort schon die Karte „Laufendes Jahr"), also das Folgejahr. Nie vor
+ * `minYear` (frühestes darstellbares Jahr, z. B. bei einem Objekt, das erst in der Zukunft beginnt).
+ */
+export function initialYearSkippingCurrent(searchParams: ReadonlySearchParamsLike, currentYear: number, minYear: number): number {
+  const fromParams = initialYearFromParams(searchParams, currentYear);
+  const year = fromParams === currentYear ? currentYear + 1 : fromParams;
+  return Math.max(year, minYear);
+}
+
 /** The default (no override) Leerstandsquote for a future year, as a 0-100 percent — derived
  * from the property's lifetime average vacancy rate. */
 export function defaultForecastQuotePercent(actualVacancyRate: number | null): number {

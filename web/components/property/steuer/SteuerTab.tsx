@@ -145,7 +145,6 @@ export function SteuerTab({
             loanDisbursements={loanDisbursements}
             today={today}
             overview={overview}
-            currentYearResult={currentYearResult}
             economicTransferDate={economicTransferDate}
           />
         </Card>

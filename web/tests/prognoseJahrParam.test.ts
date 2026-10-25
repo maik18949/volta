@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   initialYearFromParams,
+  initialYearSkippingCurrent,
   defaultForecastQuotePercent,
   effectiveForecastQuotePercent,
 } from '@/lib/prognoseJahrParam';
@@ -69,5 +70,26 @@ describe('effectiveForecastQuotePercent', () => {
   it('clamps an out-of-range quote to [0, 100]', () => {
     expect(effectiveForecastQuotePercent(params({ prognoseJahr: '2027', prognoseQuote: '150' }), 2026, 2027, 5)).toBe(100);
     expect(effectiveForecastQuotePercent(params({ prognoseJahr: '2027', prognoseQuote: '-10' }), 2026, 2027, 5)).toBe(0);
+  });
+});
+
+describe('initialYearSkippingCurrent', () => {
+  it('startet ohne prognoseJahr beim Folgejahr (das aktuelle Jahr zeigt die Karte „Laufendes Jahr")', () => {
+    expect(initialYearSkippingCurrent(params({}), 2026, 2025)).toBe(2027);
+  });
+
+  it('übernimmt ein gültiges Prognosejahr aus der URL', () => {
+    expect(initialYearSkippingCurrent(params({ prognoseJahr: '2030' }), 2026, 2025)).toBe(2030);
+  });
+
+  it('fällt bei ungültigem oder zu weitem Prognosejahr auf das Folgejahr zurück', () => {
+    expect(initialYearSkippingCurrent(params({ prognoseJahr: '2026' }), 2026, 2025)).toBe(2027);
+    expect(initialYearSkippingCurrent(params({ prognoseJahr: '2037' }), 2026, 2025)).toBe(2027);
+    expect(initialYearSkippingCurrent(params({ prognoseJahr: 'abc' }), 2026, 2025)).toBe(2027);
+  });
+
+  it('beginnt nie vor dem frühesten darstellbaren Jahr (Objekt, das erst in der Zukunft beginnt)', () => {
+    expect(initialYearSkippingCurrent(params({}), 2026, 2029)).toBe(2029);
+    expect(initialYearSkippingCurrent(params({ prognoseJahr: '2028' }), 2026, 2029)).toBe(2029);
   });
 });

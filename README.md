@@ -44,7 +44,11 @@ Responsive Umsetzung aller Ansichten (Portfolio, Objektdetail, Wizard, Rechner) 
 Eigenes Portal, über das Makler ihre Objekte einpflegen und Interessenten diese direkt einsehen können — eine mögliche Erweiterung über die private Portfolioverwaltung hinaus.
 
 **Degressive AfA – Rest**
-Die degressive AfA (§ 7 Abs. 5a EStG) mit planbarem Wechsel zu linear ist umgesetzt. Offen: Sonder-AfA nach § 7b (Wirkung auf den Restwert), nachträgliche Herstellungskosten als Zeitreihe und die Übernahme der Methode im neu zu gestaltenden Investment-Rechner.
+Die degressive AfA (§ 7 Abs. 5a EStG) mit planbarem Wechsel zu linear ist umgesetzt. Offen:
+- **Restnutzungsdauer nach dem Wechsel verifizieren:** Nach dem Wechsel wird der Restwert durch (Nutzungsdauer − bisher vergangene Zeit) geteilt. Das ist die übliche Lesart von § 7 Abs. 5a Satz 8, aber nicht amtlich bestätigt (kein BMF-Schreiben gefunden). Bei Gelegenheit mit einem Steuerberater oder per BMF-Schreiben prüfen; die Stelle ist in `depreciationSchedule.ts` kommentiert.
+- **Sonder-AfA nach § 7b:** Wirkung auf den Restwert der degressiven AfA abbilden (§ 7b ist neben § 7 Abs. 5a erlaubt).
+- **Nachträgliche Herstellungskosten** als Zeitreihe (erhöhen bei Degressiv den Restwert, bei Linear die Bemessungsgrundlage).
+- **Investment-Rechner:** die AfA-Methode übernehmen, sobald er neu gestaltet wird.
 
 **KI-Objekterfassung**
 Immobilie automatisch anlegen lassen: Dokumente (Kaufvertrag, Exposé, Grundbuchauszug) hochladen, KI extrahiert die relevanten Stammdaten (Adresse, Kaufpreis, Wohnfläche, Baujahr etc.) und legt das Objekt vorausgefüllt an — Nutzer prüft und bestätigt nur noch.
