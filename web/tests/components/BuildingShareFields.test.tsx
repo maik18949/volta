@@ -18,7 +18,7 @@ function Harness({ price, building, land }: { price: number; building: number; l
   const buildingDirty = Boolean(form.formState.dirtyFields.buildingValue);
   return (
     <FormProvider {...form}>
-      <BuildingShareFields purchasePrice={price} buildingLabel="Gebäudewert" landLabel="Grundstückswert" />
+      <BuildingShareFields acquisitionCosts={price} buildingLabel="Gebäudewert" landLabel="Grundstückswert" />
       <output data-testid="values">{JSON.stringify({ b, l })}</output>
       <output data-testid="dirty">{String(buildingDirty)}</output>
     </FormProvider>

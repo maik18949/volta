@@ -1,6 +1,5 @@
 import type { Database } from '@/lib/supabase/types';
 import { afaBasis } from '@/lib/calculations/depreciationCalculator';
-import { closingCostsTotal } from '@/lib/calculations/kpiCalculator';
 import {
   depreciationEndYear,
   depreciationForYear,
@@ -16,15 +15,7 @@ import {
 type PropertyRow = Database['public']['Tables']['properties']['Row'];
 
 export function propertyAfaBasis(property: PropertyRow): number {
-  const purchasePrice = property.purchase_price_unit + property.purchase_price_parking;
-  const closingCosts = closingCostsTotal(
-    property.land_transfer_tax,
-    property.notary_costs,
-    property.land_registry_costs,
-    property.agent_fee,
-    property.appraisal_costs
-  );
-  return afaBasis(property.building_value, closingCosts, purchasePrice, property.renovation_afa_eligible);
+  return afaBasis(property.building_value, property.renovation_afa_eligible);
 }
 
 /** `switchYearOverride`: undefined = gespeicherter Plan des Objekts, null = ohne Wechsel, Zahl = hypothetisches Wechseljahr. */

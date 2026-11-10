@@ -213,11 +213,13 @@ Grundstückswert (aus Regierungs-Excel) *: [Währungsfeld]
 AfA-Satz *:        [Prozentfeld]  z.B. 2% (Altbau) oder 3% (Neubau ab 2023)
 Grenzsteuersatz *: [Prozentfeld]
 
-⚠ Warnung wenn |Gebäude + Grund − Kaufpreis| > 5%: "Werte aus dem Regierungs-Excel prüfen"
+Basis der Aufteilung: Gesamtanschaffungskosten = Kaufpreis + Nebenkosten (wie im BMF-Rechner).
+⚠ Warnung wenn |Gebäude + Grund − (Kaufpreis + Nebenkosten)| > 5%: "Werte aus der Berechnungshilfe prüfen"
 
 ━━━━ ZUSAMMENFASSUNG (readonly) ━━━━
 AfA-Bemessungsgrundlage: XXX.XXX €
-  = Gebäudewert + (Nebenkosten × Gebäudewert / Kaufpreis) + aktivierungspfl. Renovierung
+  = Gebäudewert (inkl. anteiliger Nebenkosten) + aktivierungspfl. Renovierung
+  davon anteilige Kaufnebenkosten (Info) = Nebenkosten × Gebäudewert / (Kaufpreis + Nebenkosten)
 AfA / Jahr:              XX.XXX €
 AfA / Monat:             X.XXX €
 ```

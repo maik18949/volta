@@ -107,7 +107,7 @@ export function computePropertySummary(
       ? remainingDebt(property.loan_amount, property.interest_rate, property.monthly_mortgage, Math.max(0, monthsSinceLoanStart))
       : 0;
 
-  const basis = afaBasis(property.building_value, closingCostsTotal, totalPurchasePrice, property.renovation_afa_eligible);
+  const basis = afaBasis(property.building_value, property.renovation_afa_eligible);
 
   const currentMonth = firstDayOfMonth(today);
   const currentYear = currentMonth.getUTCFullYear();

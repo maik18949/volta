@@ -149,7 +149,7 @@ export function computeInvestmentKPIs(
   const cashflowAfterDebtYearly = netOperatingIncomeYearly - debtServiceAnnual;
   const cashflowAfterDebtMonthly = cashflowAfterDebtYearly / 12;
 
-  const basis = afaBasis(values.buildingValue, closingCostsTotal, purchasePrice, values.renovationAfaEligible);
+  const basis = afaBasis(values.buildingValue, values.renovationAfaEligible);
   const taxLineItems = taxLineItemsForScenario({
     scenario: 'vollvermietung',
     year: today.getUTCFullYear(),

@@ -57,17 +57,32 @@ describe('StepAfaSteuer degressive AfA', () => {
     expect(screen.getAllByText('AfA & Steuer').length).toBeGreaterThan(0);
   });
 
-  it('schlüsselt die Bemessungsgrundlage auf', () => {
+  it('schlüsselt die Bemessungsgrundlage auf: Gebäudewert plus Renovierung, Nebenkosten nur als Info', () => {
     render(
       <Harness
-        overrides={{ landTransferTax: 15_000, notaryCosts: 4_500, landRegistryCosts: 1_500, renovationAfaEligible: 10_000 }}
+        overrides={{
+          landTransferTax: 15_000,
+          notaryCosts: 4_500,
+          landRegistryCosts: 1_500,
+          renovationAfaEligible: 10_000,
+          landValue: 81_000,
+        }}
       />
     );
-    // Nebenkosten 21.000 € × Gebäudeanteil 80 % = 16.800 €; Basis 240.000 + 16.800 + 10.000 = 266.800 €
-    expect(screen.getByText('Anteilige Kaufnebenkosten').parentElement).toHaveTextContent(/16\.800/);
+    // Gesamtkosten 321.000 €; Gebäude 240.000 € (inkl. Nebenkosten); Basis 240.000 + 10.000 = 250.000 €
+    // Darin enthaltene Nebenkosten: 21.000 × 240.000 / 321.000 = 15.700,93 €
+    expect(screen.getByText('davon anteilige Kaufnebenkosten').parentElement).toHaveTextContent(/15\.700,93/);
     expect(screen.getByText('Aktivierte Renovierung')).toBeInTheDocument();
-    expect(screen.getAllByText('Bemessungsgrundlage').length).toBeGreaterThan(0);
-    expect(screen.getByText('Bemessungsgrundlage', { selector: 'dt' }).parentElement).toHaveTextContent(/266\.800/);
+    expect(screen.getByText('Bemessungsgrundlage', { selector: 'dt' }).parentElement).toHaveTextContent(/250\.000/);
+  });
+
+  it('prüft die Summe von Gebäude und Grundstück gegen Kaufpreis plus Nebenkosten', () => {
+    // Nebenkosten 21.000 €: Summe 300.000 € passt nicht zu 321.000 € (6,5 % Abweichung)
+    const { unmount } = render(<Harness overrides={{ landTransferTax: 15_000, notaryCosts: 4_500, landRegistryCosts: 1_500 }} />);
+    expect(screen.getByText(/weicht 6,5 % von den Gesamtanschaffungskosten ab/)).toBeInTheDocument();
+    unmount();
+    render(<Harness overrides={{ landTransferTax: 15_000, notaryCosts: 4_500, landRegistryCosts: 1_500, landValue: 81_000 }} />);
+    expect(screen.queryByText(/weicht/)).not.toBeInTheDocument();
   });
 
   it('legt die Satz-Übersicht bei Linear in einen Infotip statt neben das Label', () => {

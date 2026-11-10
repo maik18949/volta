@@ -31,9 +31,10 @@ function makeProperty(overrides: Partial<PropertyRow> = {}): PropertyRow {
 }
 
 describe('propertyAfaBasis', () => {
-  it('ist Gebäudewert + anteilige Nebenkosten + Renovierung', () => {
+  it('ist Gebäudewert + Renovierung (Nebenkosten stecken schon im Gebäudewert)', () => {
     expect(propertyAfaBasis(makeProperty())).toBe(300_000);
-    expect(propertyAfaBasis(makeProperty({ building_value: 240_000, notary_costs: 5_000 }))).toBeCloseTo(240_000 + 5_000 * 0.8, 6);
+    expect(propertyAfaBasis(makeProperty({ building_value: 240_000, notary_costs: 5_000 }))).toBeCloseTo(240_000, 6);
+    expect(propertyAfaBasis(makeProperty({ building_value: 240_000, renovation_afa_eligible: 10_000 }))).toBeCloseTo(250_000, 6);
   });
 });
 

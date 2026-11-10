@@ -31,11 +31,12 @@ function segmentClass(active: boolean): string {
  * geändert, muss der Modus gewechselt werden, damit der Prozentwert neu synchronisiert wird.
  */
 export function BuildingShareFields({
-  purchasePrice,
+  acquisitionCosts,
   buildingLabel,
   landLabel,
 }: {
-  purchasePrice: number;
+  /** Gesamtanschaffungskosten (Kaufpreis + Nebenkosten): Basis der Kaufpreisaufteilung. */
+  acquisitionCosts: number;
   buildingLabel: ReactNode;
   landLabel: ReactNode;
 }) {
@@ -44,7 +45,7 @@ export function BuildingShareFields({
   const landValue = safeNum(useWatch({ control, name: 'landValue' }));
   const [mode, setMode] = useState<Mode>('eur');
   const [percentText, setPercentText] = useState('');
-  const previousPrice = useRef(purchasePrice);
+  const previousPrice = useRef(acquisitionCosts);
 
   const applyPercent = useCallback(
     (percent: number, price: number) => {
@@ -55,17 +56,17 @@ export function BuildingShareFields({
     [setValue]
   );
 
-  // In percent mode the share is the source of truth: a new purchase price recomputes the euro values.
+  // In percent mode the share is the source of truth: new acquisition costs recompute the euro values.
   useEffect(() => {
-    if (previousPrice.current === purchasePrice) return;
-    previousPrice.current = purchasePrice;
-    if (mode === 'pct') applyPercent(parsePercentInput(percentText) ?? 0, purchasePrice);
-  }, [purchasePrice, mode, percentText, applyPercent]);
+    if (previousPrice.current === acquisitionCosts) return;
+    previousPrice.current = acquisitionCosts;
+    if (mode === 'pct') applyPercent(parsePercentInput(percentText) ?? 0, acquisitionCosts);
+  }, [acquisitionCosts, mode, percentText, applyPercent]);
 
   function switchTo(next: Mode) {
     if (next === mode) return;
     if (next === 'pct') {
-      const percent = buildingSharePercent(safeNum(getValues('buildingValue')), purchasePrice);
+      const percent = buildingSharePercent(safeNum(getValues('buildingValue')), acquisitionCosts);
       setPercentText(percent === null ? '' : formatPercentInput(clampPercent(percent)));
     }
     setMode(next);
@@ -114,7 +115,7 @@ export function BuildingShareFields({
                   const parsed = parsePercentInput(e.target.value);
                   if (parsed === null || parsed > 100) return;
                   setPercentText(e.target.value);
-                  applyPercent(parsed, purchasePrice);
+                  applyPercent(parsed, acquisitionCosts);
                 }}
                 onFocus={(e) => e.target.select()}
                 className={SUFFIXED_INPUT_CLASS}

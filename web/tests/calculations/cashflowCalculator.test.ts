@@ -139,7 +139,7 @@ describe('cashflowCalculator', () => {
 
   it('cashflowAfterTax adds the monthly tax effect', () => {
     const result = cashflowAfterTax(-485.61, f.taxEffectMonthly);
-    expect(result).toBeCloseTo(-136.51, 1);
+    expect(result).toBeCloseTo(-158.62, 1);
   });
 });
 
