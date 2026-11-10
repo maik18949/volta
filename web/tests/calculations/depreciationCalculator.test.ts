@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { fixtures as f } from './fixtures';
 import { makeDate } from '@/lib/calculations/dateHelpers';
 import {
+  acquisitionCostsTotal,
   afaBasis,
   depreciationYearly,
   depreciationMonthly,
@@ -10,18 +11,22 @@ import {
 } from '@/lib/calculations/depreciationCalculator';
 
 describe('depreciationCalculator', () => {
-  it('afaBasis: building + closing-cost share + eligible renovation', () => {
-    const result = afaBasis(f.buildingValue, f.closingCostsTotal, f.purchasePrice, f.renovationAfaEligible);
-    expect(result).toBeCloseTo(f.afaBasis, 0);
+  it('afaBasis: Gebäudewert ist bereits auf die Gesamtanschaffungskosten bezogen (BMF-Rechner)', () => {
+    // BMF-Split auf 298_734 EUR: Gebäude 228_024, Boden 70_710. Nebenkosten werden NICHT nochmals aufgeschlagen.
+    expect(afaBasis(228_024, 0)).toBeCloseTo(228_024, 2);
+    expect(afaBasis(f.buildingValue, f.renovationAfaEligible)).toBeCloseTo(f.afaBasis, 2);
   });
 
   it('afaBasis: zero building value (Grundstück ohne Gebäude) is zero', () => {
-    expect(afaBasis(0, 20_000, 100_000, 0)).toBeCloseTo(0, 2);
+    expect(afaBasis(0, 0)).toBeCloseTo(0, 2);
   });
 
   it('afaBasis: with renovation share', () => {
-    // buildingShare = 200000/250000 = 0.8; afaBasis = 200000 + (10000*0.8) + 15000 = 223000
-    expect(afaBasis(200_000, 10_000, 250_000, 15_000)).toBeCloseTo(223_000, 1);
+    expect(afaBasis(200_000, 15_000)).toBeCloseTo(215_000, 1);
+  });
+
+  it('acquisitionCostsTotal: Kaufpreis plus Nebenkosten', () => {
+    expect(acquisitionCostsTotal(f.purchasePrice, f.closingCostsTotal)).toBeCloseTo(f.totalInvestment, 2);
   });
 
   it('depreciationYearly', () => {
@@ -33,9 +38,9 @@ describe('depreciationCalculator', () => {
   });
 
   it('depreciationProratedInAcquisitionYear: February transfer (11 months remaining)', () => {
-    // 9387.95 / 12 * 11 = 8605.62
+    // 8756.12 / 12 * 11 = 8026.44
     const result = depreciationProratedInAcquisitionYear(f.afaBasis, f.depreciationRate, f.economicTransferDate);
-    expect(result).toBeCloseTo(8_605.62, 0);
+    expect(result).toBeCloseTo(8_026.44, 0);
   });
 
   it('depreciationProratedInAcquisitionYear: January transfer equals full year', () => {
@@ -67,6 +72,10 @@ describe('depreciationCalculator', () => {
       // 5.1% of 300000 = 15300; sum = 284700+0 -> deviation ~5.1%
       const result = valuationDeviation(284_700, 0, 300_000);
       expect(result).toBeGreaterThan(0.05);
+    });
+
+    it('BMF-Split summiert sich zu Kaufpreis + Nebenkosten → keine Abweichung', () => {
+      expect(valuationDeviation(f.buildingValue, f.landValue, f.totalInvestment)).toBeLessThan(0.0001);
     });
 
     it('exact match → 0% deviation', () => {

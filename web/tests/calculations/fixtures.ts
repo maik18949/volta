@@ -50,17 +50,18 @@ export const fixtures = {
   loanStartDate: makeDate(2025, 10, 1),
   economicTransferDate: makeDate(2026, 2, 1),
 
-  landValue: 50_600.0,
-  buildingValue: 228_000.0,
+  // Kaufpreisaufteilung laut BMF-Rechner auf Basis der Gesamtanschaffungskosten
+  // (Kaufpreis + Nebenkosten = 298_734.96); beide Werte summieren sich dazu.
+  landValue: 70_710.0,
+  buildingValue: 228_024.0,
   depreciationRate: 0.0384,
   marginalTaxRate: 0.42,
-  // buildingShareRatio = 228000 / 278600 = 0.818376...
-  // afaBasis = 228000 + (20134.96 * 0.818376) + 0 = 244_477.97
-  afaBasis: 244_477.97,
-  depreciationYearly: 9_387.95, // afaBasis * 0.0384
-  depreciationMonthly: 782.33,
+  // afaBasis = buildingValue + renovationAfaEligible (Nebenkosten stecken schon im Gebäudewert)
+  afaBasis: 228_024.0,
+  depreciationYearly: 8_756.12, // afaBasis * 0.0384
+  depreciationMonthly: 729.68,
 
-  taxableIncomeVV: -9_974.35, // 11616.72 - 2313.12 - 9890 - 9387.95
-  taxEffectYearly: 4_189.23, // 9974.35 * 0.42
-  taxEffectMonthly: 349.10,
+  taxableIncomeVV: -9_342.52, // 11616.72 - 2313.12 - 9890 - 8756.12
+  taxEffectYearly: 3_923.86, // 9342.52 * 0.42
+  taxEffectMonthly: 326.99,
 };

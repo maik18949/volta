@@ -38,7 +38,7 @@ describe('taxCalculator.annualTaxableIncome', () => {
       statusHistory: history,
       today: makeDate(2026, 12, 31),
     });
-    expect(result).toBeCloseTo(-9100.44, 0);
+    expect(result).toBeCloseTo(-8520.95, 0);
   });
 
   it('propertyInsuranceMonthly is deducted (regression: was silently missing)', () => {
@@ -69,7 +69,7 @@ describe('taxCalculator.annualTaxableIncome', () => {
       statusHistory: history,
       today: makeDate(2026, 12, 31),
     });
-    expect(result).toBeCloseTo(-23478.36, 0);
+    expect(result).toBeCloseTo(-22898.87, 0);
   });
 
   it('mixed: leerstand Feb, vermietet Mar-Dec (2026)', () => {
@@ -83,7 +83,7 @@ describe('taxCalculator.annualTaxableIncome', () => {
       statusHistory: history,
       today: makeDate(2026, 12, 31),
     });
-    expect(result).toBeCloseTo(-10407.52, 0);
+    expect(result).toBeCloseTo(-9828.03, 0);
   });
 
   it('full year, no acquisition-year proration (2027)', () => {
@@ -128,7 +128,7 @@ describe('taxCalculator.annualTaxableIncomeBreakdown', () => {
       today: makeDate(2026, 12, 31),
       extraordinaryCostsDeductibleYearly: 0,
     });
-    expect(breakdown.taxableIncome).toBeCloseTo(-9100.44, 0);
+    expect(breakdown.taxableIncome).toBeCloseTo(-8520.95, 0);
   });
 
   it('a deductible extraordinary cost reduces taxableIncome by exactly its amount', () => {
@@ -178,7 +178,7 @@ describe('taxCalculator.annualTaxableIncomeBreakdown', () => {
       breakdown.propertyTaxTE -
       breakdown.extraordinaryCostsDeductible;
     expect(recomputed).toBeCloseTo(breakdown.taxableIncome, 6);
-    expect(breakdown.taxableIncome).toBeCloseTo(-10407.52, 0);
+    expect(breakdown.taxableIncome).toBeCloseTo(-9828.03, 0);
   });
 
   it('annualTaxableIncomeBreakdown: includes otherIncomeMonthly for fully vermietet months', () => {

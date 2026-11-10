@@ -6,7 +6,7 @@ import { SelectField } from '@/components/ui/SelectField';
 import { Card } from '@/components/ui/Card';
 import { FormCard, FormGrid, FormHint, FormSection, FormWarning } from '@/components/ui/FormLayout';
 import { SectionLabel } from '@/components/ui/SectionLabel';
-import { afaBasis, valuationDeviation } from '@/lib/calculations/depreciationCalculator';
+import { acquisitionCostsTotal, afaBasis, valuationDeviation } from '@/lib/calculations/depreciationCalculator';
 import {
   degressiveEligibilityWarning,
   depreciationEndYear,
@@ -110,8 +110,8 @@ function AfaPreview({ data }: { data: AfaPreviewData }) {
 
       <div className="mt-5 border-t border-black/[0.07] pt-5">
         <AfaFacts title="Bemessungsgrundlage">
-          <AfaFactRow label="Gebäudewert" value={formatCurrency(data.buildingValue)} />
-          <AfaFactRow label="Anteilige Kaufnebenkosten" value={formatCurrency(data.closingCostsShare)} />
+          <AfaFactRow label="Gebäudewert" value={formatCurrency(data.buildingValue)} note="inkl. Nebenkosten" />
+          <AfaFactRow label="davon anteilige Kaufnebenkosten" value={formatCurrency(data.closingCostsShare)} />
           {data.renovation > 0 && <AfaFactRow label="Aktivierte Renovierung" value={formatCurrency(data.renovation)} />}
           <AfaFactRow label="Bemessungsgrundlage" value={formatCurrency(data.basis)} strong />
         </AfaFacts>
@@ -142,9 +142,12 @@ export function StepAfaSteuer() {
   const depreciationRate = safeNum(values.depreciationRate);
   const renovation = safeNum(values.renovationAfaEligible);
 
-  const basis = afaBasis(buildingValue, closingCosts, purchasePrice, renovation);
-  const closingCostsShare = purchasePrice > 0 ? (closingCosts * buildingValue) / purchasePrice : 0;
-  const sumDeviation = valuationDeviation(buildingValue, landValue, purchasePrice);
+  // Die Kaufpreisaufteilung (BMF) bezieht sich auf Kaufpreis + Nebenkosten; der Gebäudewert enthält
+  // den anteiligen Nebenkostenanteil bereits, deshalb ist die Bemessungsgrundlage Gebäudewert + Renovierung.
+  const acquisitionCosts = acquisitionCostsTotal(purchasePrice, closingCosts);
+  const basis = afaBasis(buildingValue, renovation);
+  const closingCostsShare = acquisitionCosts > 0 ? (closingCosts * buildingValue) / acquisitionCosts : 0;
+  const sumDeviation = valuationDeviation(buildingValue, landValue, acquisitionCosts);
 
   const method = parseDepreciationMethod(values.depreciationMethod ?? 'linear');
   const isDegressive = method === 'degressiv_5a';
@@ -188,8 +191,9 @@ export function StepAfaSteuer() {
   return (
     <FormSection>
       <FormHint>
-        Gebäude- und Grundstückswert kommen aus dem Sachwertverfahren (<BerechnungshilfeLink />) und sollten sich zum Kaufpreis
-        addieren (Toleranz ±5 %).
+        Gebäude- und Grundstückswert kommen aus dem Sachwertverfahren (<BerechnungshilfeLink />) und beziehen sich auf die
+        Gesamtanschaffungskosten (Kaufpreis + Nebenkosten{acquisitionCosts > 0 ? `: ${formatCurrency(acquisitionCosts)}` : ''}).
+        Beide Werte sollten sich dazu addieren (Toleranz ±5 %).
       </FormHint>
 
       <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-2">
@@ -197,15 +201,15 @@ export function StepAfaSteuer() {
           <FormCard title="Kaufpreisaufteilung">
             <FormGrid>
               <BuildingShareFields
-                purchasePrice={purchasePrice}
+                acquisitionCosts={acquisitionCosts}
                 buildingLabel={<>Gebäudewert (<BerechnungshilfeLink />)</>}
                 landLabel={<>Grundstückswert (<BerechnungshilfeLink />)</>}
               />
               {sumDeviation > 0.05 && (
                 <div className="sm:col-span-2">
                   <FormWarning>
-                    ⚠ Gebäude + Grundstück ({formatCurrency(buildingValue + landValue)}) weicht {(sumDeviation * 100).toFixed(1)} % vom
-                    Kaufpreis ab — Werte aus der Berechnungshilfe prüfen.
+                    ⚠ Gebäude + Grundstück ({formatCurrency(buildingValue + landValue)}) weicht {(sumDeviation * 100).toFixed(1).replace('.', ',')} % von den
+                    Gesamtanschaffungskosten ab — Werte aus der Berechnungshilfe prüfen.
                   </FormWarning>
                 </div>
               )}

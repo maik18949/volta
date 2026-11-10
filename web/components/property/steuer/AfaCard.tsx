@@ -195,7 +195,7 @@ export function AfaCard({ property, today }: { property: PropertyRow; today: Dat
         <AfaOutlookTable rows={outlookRows} endYear={model.outlook.endYear} />
         <AfaFacts title="Grundlagen">
           <AfaFactRow label="Bemessungsgrundlage" value={formatCurrency(model.basis)} strong />
-          <AfaFactRow label="Gebäudewert" value={formatCurrency(property.building_value)} />
+          <AfaFactRow label="Gebäudewert" value={formatCurrency(property.building_value)} note="inkl. anteiliger Nebenkosten" />
           <AfaFactRow label="Grundstückswert" value={formatCurrency(property.land_value)} note="nicht abschreibbar" />
           <AfaFactRow label="Grenzsteuersatz" value={formatPercent(property.marginal_tax_rate)} />
         </AfaFacts>

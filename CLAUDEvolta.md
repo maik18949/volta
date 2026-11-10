@@ -298,11 +298,12 @@ supabase gen types typescript --project-id <project-id> > web/lib/supabase/types
 ### AfA-Basis
 
 ```typescript
-// buildingValue und landValue kommen direkt aus Regierungs-Excel
-// buildingShareRatio wird daraus abgeleitet, NICHT umgekehrt
+// buildingValue und landValue kommen direkt aus der BMF-Kaufpreisaufteilung (Arbeitshilfe) und sind
+// auf die GESAMTANSCHAFFUNGSKOSTEN bezogen (Kaufpreis + Nebenkosten), nicht auf den Kaufpreis allein.
+// buildingValue + landValue ≈ purchasePrice + closingCostsTotal.
+// Der Gebäudewert enthält den anteiligen Nebenkostenanteil bereits -> Nebenkosten NICHT nochmals aufschlagen.
 
-const buildingShareRatio = buildingValue / purchasePrice;
-const afaBasis = buildingValue + (closingCostsTotal * buildingShareRatio) + renovationAfaEligible;
+const afaBasis = buildingValue + renovationAfaEligible;
 const depreciationYearly = afaBasis * depreciationRate;
 ```
 
@@ -516,7 +517,7 @@ Gezielte Tests für Invarianten, die die App voraussetzt:
 
 - Erster `status_entries`-Eintrag muss `date == economic_transfer_date` sein
 - `status_entries.income_actual_monthly` ist nur bei `status = 'mietgarantie'` gesetzt, sonst `null`
-- `building_share_ratio + land_share_ratio ≈ 1.0` (aus Regierungs-Excel-Werten)
+- `building_value + land_value ≈ purchase_price + closingCostsTotal` (Gesamtanschaffungskosten, aus der BMF-Kaufpreisaufteilung)
 - Promote-Flow: `investment_calculations` → `properties` kopiert alle Felder korrekt
 
 ### Bewusst ausgelassen

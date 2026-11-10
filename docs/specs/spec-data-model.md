@@ -163,8 +163,8 @@ brokerCommissionAgreement: number;     // Anteil aus Eigenprovisions-Vereinbarun
 ### AfA & Steuer
 
 ```typescript
-landValue: number;                     // Grundstückswert (aus Regierungs-Excel)
-buildingValue: number;                 // Gebäudewert (aus Regierungs-Excel)
+landValue: number;                     // Grundstückswert (BMF-Aufteilung, bezogen auf Kaufpreis + Nebenkosten)
+buildingValue: number;                 // Gebäudewert (BMF-Aufteilung, inkl. anteiliger Nebenkosten = AfA-Basis ohne Renovierung)
 depreciationRate: number;              // AfA-Satz, z.B. 2% (Altbau) oder 3% (Neubau ab 2023)
 marginalTaxRate: number;               // Persönlicher Grenzsteuersatz, z.B. 42%
 ```

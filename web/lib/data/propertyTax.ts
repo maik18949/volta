@@ -12,7 +12,7 @@ import {
 } from '@/lib/calculations/taxCalculator';
 import { afaBasis as computeAfaBasis } from '@/lib/calculations/depreciationCalculator';
 import { depreciationAmountOverride } from '@/lib/data/propertyDepreciation';
-import { closingCostsTotal as computeClosingCostsTotal, hoaNonRecoverableMonthly } from '@/lib/calculations/kpiCalculator';
+import { hoaNonRecoverableMonthly } from '@/lib/calculations/kpiCalculator';
 import { toLoanDisbursements, type LoanDisbursementRow } from '@/lib/data/loanDisbursements';
 
 type PropertyRow = Database['public']['Tables']['properties']['Row'];
@@ -84,15 +84,7 @@ export function computeTaxCurrentYear(
     property.hoa_fee_parking_maintenance_reserve_monthly
   );
 
-  const totalPurchasePrice = property.purchase_price_unit + property.purchase_price_parking;
-  const closingCosts = computeClosingCostsTotal(
-    property.land_transfer_tax,
-    property.notary_costs,
-    property.land_registry_costs,
-    property.agent_fee,
-    property.appraisal_costs
-  );
-  const basis = computeAfaBasis(property.building_value, closingCosts, totalPurchasePrice, property.renovation_afa_eligible);
+  const basis = computeAfaBasis(property.building_value, property.renovation_afa_eligible);
 
   const lineItems = annualTaxableIncomeBreakdown({
     year,
@@ -172,15 +164,7 @@ export function computeTaxForecastYear(property: PropertyRow, year: number, leer
     property.hoa_fee_parking_maintenance_reserve_monthly
   );
 
-  const totalPurchasePrice = property.purchase_price_unit + property.purchase_price_parking;
-  const closingCosts = computeClosingCostsTotal(
-    property.land_transfer_tax,
-    property.notary_costs,
-    property.land_registry_costs,
-    property.agent_fee,
-    property.appraisal_costs
-  );
-  const basis = computeAfaBasis(property.building_value, closingCosts, totalPurchasePrice, property.renovation_afa_eligible);
+  const basis = computeAfaBasis(property.building_value, property.renovation_afa_eligible);
 
   const sharedInput = {
     year,

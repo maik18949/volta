@@ -69,8 +69,8 @@ async function main() {
       amortization_rate: 0.01,
       loan_start_date: '2025-10-01',
       monthly_mortgage: 1_242.85,
-      land_value: 50_600,
-      building_value: 228_000,
+      land_value: 70_710,
+      building_value: 228_024,
       depreciation_rate: 0.0384,
       marginal_tax_rate: 0.42,
     })

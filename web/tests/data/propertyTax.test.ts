@@ -273,7 +273,7 @@ describe('computeTaxForecastYear', () => {
 
   it('depreciation is never acquisition-year-prorated', () => {
     const result = computeTaxForecastYear(property, 2035, 0);
-    const basis = f.buildingValue + f.closingCostsTotal * (f.buildingValue / f.purchasePrice) + f.renovationAfaEligible;
+    const basis = f.buildingValue + f.renovationAfaEligible;
     expect(result.lineItems.depreciation).toBeCloseTo(basis * f.depreciationRate, 0);
   });
 

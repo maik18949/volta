@@ -67,7 +67,7 @@ export function InvestmentInputSections({
       </Section>
 
       <Section title="AfA & Steuer — Stufe 4">
-        <CurrencyField label="Gebäudewert" name="buildingValue" register={register} />
+        <CurrencyField label="Gebäudewert (inkl. anteiliger Nebenkosten)" name="buildingValue" register={register} />
         <PercentField label="AfA-Satz" name="depreciationRate" control={control} />
         <PercentField label="Grenzsteuersatz" name="marginalTaxRate" control={control} />
       </Section>

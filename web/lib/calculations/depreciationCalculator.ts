@@ -1,19 +1,21 @@
 import { monthOf } from './dateHelpers';
 
 /**
- * AfA-Basis = Gebäudewert + (Nebenkosten × Gebäudeanteil) + aktivierungspflichtige Renovierung.
- * buildingValue and landValue come from the government valuation spreadsheet (Sachwertverfahren);
- * the building-share ratio is derived from them, never the other way around.
+ * Gesamtanschaffungskosten = Kaufpreis + Kaufnebenkosten. Auf diese Basis bezieht sich die
+ * Kaufpreisaufteilung (BMF-Arbeitshilfe): Gebäude- und Grundstückswert summieren sich dazu.
  */
-export function afaBasis(
-  buildingValue: number,
-  closingCostsTotal: number,
-  purchasePrice: number,
-  renovationAfaEligible: number
-): number {
-  if (purchasePrice <= 0) return 0;
-  const buildingShareRatio = buildingValue / purchasePrice;
-  return buildingValue + closingCostsTotal * buildingShareRatio + renovationAfaEligible;
+export function acquisitionCostsTotal(purchasePrice: number, closingCostsTotal: number): number {
+  return purchasePrice + closingCostsTotal;
+}
+
+/**
+ * AfA-Basis = Gebäudewert + aktivierungspflichtige Renovierung.
+ * Der Gebäudewert stammt aus der Kaufpreisaufteilung (BMF-Arbeitshilfe) und ist bereits auf die
+ * Gesamtanschaffungskosten (Kaufpreis + Nebenkosten) bezogen, enthält also den anteiligen
+ * Nebenkostenanteil. Nebenkosten dürfen deshalb NICHT nochmals aufgeschlagen werden.
+ */
+export function afaBasis(buildingValue: number, renovationAfaEligible: number): number {
+  return buildingValue + renovationAfaEligible;
 }
 
 export function depreciationYearly(basis: number, rate: number): number {
@@ -24,10 +26,10 @@ export function depreciationMonthly(basis: number, rate: number): number {
   return depreciationYearly(basis, rate) / 12;
 }
 
-/** Fractional deviation of (buildingValue + landValue) from purchasePrice; 0 when purchasePrice or both values are 0. */
-export function valuationDeviation(buildingValue: number, landValue: number, purchasePrice: number): number {
-  if (purchasePrice <= 0 || (buildingValue <= 0 && landValue <= 0)) return 0;
-  return Math.abs(buildingValue + landValue - purchasePrice) / purchasePrice;
+/** Fractional deviation of (buildingValue + landValue) from the total acquisition costs; 0 when those or both values are 0. */
+export function valuationDeviation(buildingValue: number, landValue: number, totalAcquisitionCosts: number): number {
+  if (totalAcquisitionCosts <= 0 || (buildingValue <= 0 && landValue <= 0)) return 0;
+  return Math.abs(buildingValue + landValue - totalAcquisitionCosts) / totalAcquisitionCosts;
 }
 
 /**
