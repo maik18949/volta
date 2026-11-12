@@ -33,6 +33,19 @@ export async function getPropertiesWithSummaries(): Promise<PropertyWithSummary[
 
   if (statusError) throw statusError;
 
+  const propertyIds = properties.map((p) => p.id);
+  const { data: extraordinaryCosts, error: costsError } = await supabase
+    .from('extraordinary_costs')
+    .select('*')
+    .in('property_id', propertyIds);
+  if (costsError) throw costsError;
+
+  const { data: loanDisbursements, error: disbursementsError } = await supabase
+    .from('loan_disbursements')
+    .select('*')
+    .in('property_id', propertyIds);
+  if (disbursementsError) throw disbursementsError;
+
   const { data: photoRows, error: photosError } = await supabase
     .from('property_photos')
     .select('*')
@@ -66,7 +79,13 @@ export async function getPropertiesWithSummaries(): Promise<PropertyWithSummary[
     const ownStatusEntries = (statusEntries ?? []).filter((s) => s.property_id === property.id);
     const coverFilePath = coverPhotoByProperty.get(property.id);
     const coverPhotoUrl = coverFilePath ? (signedUrlByPath.get(coverFilePath) ?? null) : null;
-    return { property, summary: computePropertySummary(property, ownStatusEntries, today), coverPhotoUrl };
+    const ownCosts = (extraordinaryCosts ?? []).filter((c) => c.property_id === property.id);
+    const ownDisbursements = (loanDisbursements ?? []).filter((d) => d.property_id === property.id);
+    return {
+      property,
+      summary: computePropertySummary(property, ownStatusEntries, today, ownCosts, ownDisbursements),
+      coverPhotoUrl,
+    };
   });
 }
 

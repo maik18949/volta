@@ -14,7 +14,7 @@ export default async function PropertyDetailLayout({
   const detail = await getPropertyDetail(id);
   if (!detail) notFound();
 
-  const { currentStatus } = computePropertySummary(detail.property, detail.statusEntries, new Date());
+  const { currentStatus } = computePropertySummary(detail.property, detail.statusEntries, new Date(), detail.extraordinaryCosts, detail.loanDisbursements);
 
   return (
     <PropertyDetailShell

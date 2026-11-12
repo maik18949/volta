@@ -10,7 +10,7 @@ export default async function SteuerTabPage({ params }: { params: Promise<{ id: 
   if (!detail) notFound();
 
   const today = new Date();
-  const summary = computePropertySummary(detail.property, detail.statusEntries, today);
+  const summary = computePropertySummary(detail.property, detail.statusEntries, today, detail.extraordinaryCosts, detail.loanDisbursements);
   const overview = computeOverviewMetrics(detail.property, detail.statusEntries, detail.extraordinaryCosts, summary, today);
 
   return (

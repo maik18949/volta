@@ -14,7 +14,7 @@ export default async function PropertyOverviewPage({ params }: { params: Promise
   if (!detail) notFound();
 
   const today = new Date();
-  const summary = computePropertySummary(detail.property, detail.statusEntries, today);
+  const summary = computePropertySummary(detail.property, detail.statusEntries, today, detail.extraordinaryCosts, detail.loanDisbursements);
   const overview = computeOverviewMetrics(detail.property, detail.statusEntries, detail.extraordinaryCosts, summary, today);
 
   const wohnungHistory = [...detail.statusEntries]

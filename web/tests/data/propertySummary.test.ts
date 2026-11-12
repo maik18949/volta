@@ -3,6 +3,7 @@ import { fixtures as f } from '../calculations/fixtures';
 import { makeDate } from '@/lib/calculations/dateHelpers';
 import type { Database } from '@/lib/supabase/types';
 import { computePropertySummary, toUnitStatusHistories } from '@/lib/data/propertySummary';
+import { computeTaxCurrentYear } from '@/lib/data/propertyTax';
 
 type PropertyRow = Database['public']['Tables']['properties']['Row'];
 type StatusEntryRow = Database['public']['Tables']['status_entries']['Row'];
@@ -364,5 +365,29 @@ describe('toUnitStatusHistories', () => {
     const { wohnung, stellplatz } = toUnitStatusHistories(rows);
     expect(wohnung[0].incomeActualMonthly).toBe(800);
     expect(stellplatz[0].incomeActualMonthly).toBe(40);
+  });
+});
+
+describe('computePropertySummary: Steuereffekt stimmt mit Cashflow-/Steuer-Tab überein', () => {
+  type LoanDisbursementRow = Database['public']['Tables']['loan_disbursements']['Row'];
+  const today = makeDate(2026, 9, 16);
+  const disbursements: LoanDisbursementRow[] = [
+    { id: 'd1', property_id: 'prop-1', date: '2025-10-01', amount: 2_734.45, is_deductible: false, label: 'Hyposchutz', created_at: '2025-10-01T00:00:00Z' },
+    { id: 'd2', property_id: 'prop-1', date: '2026-01-20', amount: 278_665.55, is_deductible: true, label: 'Hauptkredit', created_at: '2026-01-20T00:00:00Z' },
+  ];
+  const property = makeProperty({ loan_amount: 281_400, interest_rate: 0.043, monthly_mortgage: 1_242.85, marginal_tax_rate: 0.414 });
+  const entries = [makeStatusEntry()];
+
+  it('berücksichtigt gestaffelte Auszahlungen wie computeTaxCurrentYear', () => {
+    const summary = computePropertySummary(property, entries, today, [], disbursements);
+    const tax = computeTaxCurrentYear(property, entries, [], today, undefined, disbursements);
+    expect(summary.taxEffectMonthly).toBeCloseTo(tax.taxEffectMonthly, 6);
+    expect(summary.taxEffectYearly).toBeCloseTo(tax.taxEffectYearly, 6);
+  });
+
+  it('nicht abzugsfähige Tranche verändert den Steuereffekt gegenüber der Pauschalrechnung', () => {
+    const staged = computePropertySummary(property, entries, today, [], disbursements);
+    const plain = computePropertySummary(property, entries, today);
+    expect(staged.taxEffectMonthly).not.toBeCloseTo(plain.taxEffectMonthly, 2);
   });
 });
