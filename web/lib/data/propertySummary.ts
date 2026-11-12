@@ -1,16 +1,16 @@
 import type { Database } from '@/lib/supabase/types';
-import { makeDate, firstDayOfMonth, monthsBetween } from '@/lib/calculations/dateHelpers';
-import { afaBasis } from '@/lib/calculations/depreciationCalculator';
-import { depreciationAmountOverride } from '@/lib/data/propertyDepreciation';
+import { firstDayOfMonth, monthsBetween } from '@/lib/calculations/dateHelpers';
 import { remainingDebt } from '@/lib/calculations/amortizationCalculator';
 import type { StatusEntry, PropertyStatus, PropertyUnit } from '@/lib/calculations/statusPeriodCalculator';
-import { incomeForUnit, ownershipDayFraction } from '@/lib/calculations/statusPeriodCalculator';
+import { incomeForUnit } from '@/lib/calculations/statusPeriodCalculator';
 import { cashflowBeforeTax, cashflowAfterTax, ownerBorneRecoverableWEForMonth } from '@/lib/calculations/cashflowCalculator';
-import { annualTaxableIncome, taxEffectYearly, taxEffectMonthly } from '@/lib/calculations/taxCalculator';
+import { computeTaxCurrentYear } from '@/lib/data/propertyTax';
 import { netYield as computeNetYield, totalInvestment as computeTotalInvestment, closingCostsTotal as computeClosingCostsTotal } from '@/lib/calculations/kpiCalculator';
 
 type PropertyRow = Database['public']['Tables']['properties']['Row'];
 type StatusEntryRow = Database['public']['Tables']['status_entries']['Row'];
+type ExtraordinaryCostRow = Database['public']['Tables']['extraordinary_costs']['Row'];
+type LoanDisbursementRow = Database['public']['Tables']['loan_disbursements']['Row'];
 
 /** Filter out near-zero cost items (floating-point noise), not genuinely tiny real costs. */
 const ZERO_AMOUNT_EPSILON_EUR = 0.005;
@@ -80,10 +80,11 @@ export function toUnitStatusHistories(rows: StatusEntryRow[]): { wohnung: Status
 export function computePropertySummary(
   property: PropertyRow,
   statusEntryRows: StatusEntryRow[],
-  today: Date = new Date()
+  today: Date = new Date(),
+  extraordinaryCostRows: ExtraordinaryCostRow[] = [],
+  disbursementRows: LoanDisbursementRow[] = []
 ): PropertySummary {
   const { wohnung: statusHistory, stellplatz: stellplatzStatusHistory } = toUnitStatusHistories(statusEntryRows);
-  const economicTransferDate = new Date(property.economic_transfer_date + 'T00:00:00Z');
   const loanStartDate = new Date(property.loan_start_date + 'T00:00:00Z');
 
   const closingCostsTotal = computeClosingCostsTotal(
@@ -107,10 +108,7 @@ export function computePropertySummary(
       ? remainingDebt(property.loan_amount, property.interest_rate, property.monthly_mortgage, Math.max(0, monthsSinceLoanStart))
       : 0;
 
-  const basis = afaBasis(property.building_value, property.renovation_afa_eligible);
-
   const currentMonth = firstDayOfMonth(today);
-  const currentYear = currentMonth.getUTCFullYear();
 
   // per spec-data-model.md: recoverable and reserve are both carved out of
   // the total ("davon") — reserve is added back separately below for
@@ -169,40 +167,16 @@ export function computePropertySummary(
   const incomeStellplatzThisMonth = incomeForUnit(currentMonth, stellplatzStatusHistory, today, property.parking_rent_monthly);
   const incomeThisMonth = incomeWohnungThisMonth + incomeStellplatzThisMonth;
 
-  const taxableIncomeYear = annualTaxableIncome({
-    year: currentYear,
-    statusHistory,
-    stellplatzStatusHistory,
-    economicTransferDate,
-    loanStartDate,
-    loanAmount: property.loan_amount,
-    interestRate: property.interest_rate,
-    monthlyMortgage: property.monthly_mortgage,
-    afaBasis: basis,
-    depreciationRate: property.depreciation_rate,
-    depreciationAmountYear: depreciationAmountOverride(property, basis, currentYear),
-    hoaUnitNonRecoverableMonthly: hoaFeeNonRecoverableMonthly,
-    hoaUnitRecoverableMonthly: property.hoa_fee_recoverable_monthly,
-    hoaParkingNonRecoverableMonthly: hoaFeeParkingNonRecoverableMonthly,
-    hoaParkingRecoverableMonthly: property.hoa_fee_parking_recoverable_monthly,
-    propertyTaxUnitMonthly: property.property_tax_annual / 12, // annual → monthly
-    propertyTaxParkingMonthly: property.property_tax_parking_annual / 12, // annual → monthly
-    propertyManagementMonthly: property.property_management_annual / 12, // annual → monthly
-    otherCostsMonthly: property.other_costs_monthly,
-    propertyInsuranceMonthly: property.property_insurance_annual / 12, // annual → monthly
-    coldRentMonthly: property.cold_rent_monthly,
-    parkingRentMonthly: property.parking_rent_monthly,
-    otherIncomeMonthly: property.other_income_monthly,
+  // Eine einzige Steuerberechnung für laufendes Jahr: identisch mit Cashflow- und Steuer-Tab
+  // (inkl. gestaffelter Darlehensauszahlungen und Sonderkosten), damit die Ansichten nicht auseinanderlaufen.
+  const { taxEffectYearly: taxEffectYear, taxEffectMonthly: taxEffectThisMonth } = computeTaxCurrentYear(
+    property,
+    statusEntryRows,
+    extraordinaryCostRows,
     today,
-  });
-  // Sum of ownership day-fractions across the calendar year — matches taxCalculator's own
-  // ownershipMonthEquivalent so the monthly divisor is consistent with the yearly figure it divides.
-  let ownershipMonthsThisYear = 0;
-  for (let month = 1; month <= 12; month++) {
-    ownershipMonthsThisYear += ownershipDayFraction(makeDate(currentYear, month, 1), economicTransferDate);
-  }
-  const taxEffectYear = taxEffectYearly(taxableIncomeYear, property.marginal_tax_rate);
-  const taxEffectThisMonth = taxEffectMonthly(taxEffectYear, ownershipMonthsThisYear || 12);
+    undefined,
+    disbursementRows
+  );
 
   const cashflowBeforeTaxThisMonth = cashflowBeforeTax({
     incomeActualMonthly: incomeThisMonth,
